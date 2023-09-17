@@ -10,6 +10,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from configs import DATA_FOLDER
+from configs import LOG_FOLDER
 from isr import ISRClassifier, check_clf
 from utils.eval_utils import extract_data, save_df, measure_group_accs, load_data, group2env
 
@@ -135,11 +136,11 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 def parse_args(args: list = None, specs: dict = None):
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--root_dir', type=str,
-                           default=DATA_FOLDER)
+                           default=LOG_FOLDER)
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last'])
 
@@ -168,7 +169,10 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     config = argparser.parse_args(args=args)
-    config.__dict__.update(specs)
+    print("Specs:", specs)
+    print("Config:", config.__dict__)
+    if specs is not None:
+        config.__dict__.update(specs)
     return config
 
 

@@ -133,3 +133,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+*.DS_store
+*.zip
+/multinli/
+/waterbirds/
+/celebA/

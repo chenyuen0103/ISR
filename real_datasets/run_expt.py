@@ -11,7 +11,7 @@ from configs.model_config import model_attributes
 from data import dataset_attributes, shift_types, prepare_data, log_data
 from train import train
 from utils.train_utils import set_seed, Logger, CSVBatchLogger, log_args
-
+import pdb
 
 def main():
     parser = argparse.ArgumentParser()
@@ -94,6 +94,7 @@ def main():
 
     ## Initialize logs
     if not os.path.exists(args.log_dir):
+        print(args.log_dir)
         os.makedirs(args.log_dir)
 
     logger = Logger(os.path.join(args.log_dir, 'log.txt'), mode)

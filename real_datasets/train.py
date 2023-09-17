@@ -7,8 +7,10 @@ from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
 
 from utils.loss_utils import LossComputer
+import pdb
 
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger, args,
               is_training, show_progress=False, log_every=50, scheduler=None):
     """
@@ -16,9 +18,12 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     """
 
     if is_training:
+        print("Start Training")
+        breakpoint()
         model.train()
         if args.model == 'bert':
             model.zero_grad()
+        print("End training")
     else:
         model.eval()
 
@@ -29,8 +34,8 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
 
     with torch.set_grad_enabled(is_training):
         for batch_idx, batch in enumerate(prog_bar_loader):
-
-            batch = tuple(t.cuda() for t in batch)
+            batch = tuple(t.to(device) for t in batch)
+            # batch = tuple(t.cuda() for t in batch)
             x = batch[0]
             y = batch[1]
             g = batch[2]
@@ -78,6 +83,9 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
 def train(model, criterion, dataset,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
           args, epoch_offset):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model = model.to(device)
+    breakpoint()
     model = model.cuda()
 
     # process generalization adjustment stuff

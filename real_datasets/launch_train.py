@@ -2,6 +2,7 @@ import os
 from itertools import product
 from tqdm import tqdm
 from configs import get_train_command
+import pdb
 
 gpu_idx = 0  # could be None if you want to use cpu
 
