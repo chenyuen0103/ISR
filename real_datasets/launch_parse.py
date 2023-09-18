@@ -4,7 +4,7 @@ import numpy as np
 
 from configs import LOG_FOLDER, get_parse_command
 
-dataset = 'CUB'
+dataset = 'MultiNLI'
 gpu_idx = 0  # could be None if you want to use cpu
 
 # Suppose we already trained the models for seeds 0, 1, 2, 3, 4,
@@ -24,6 +24,6 @@ log_dir = LOG_FOLDER
 
 command = get_parse_command(dataset=dataset, algos=algos, model_selects=model_selects,
                             train_log_seeds=train_log_seeds, log_dir=log_dir, gpu_idx=gpu_idx,
-                            parse_script='parse_features.py')
+                            parse_script='parse_features_clip.py')
 print('Command:', command)
 os.system(command)
