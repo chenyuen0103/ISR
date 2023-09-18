@@ -43,7 +43,7 @@ class MultiNLIDataset(ConfounderDataset):
             'data')
         self.glue_dir = os.path.join(
             self.root_dir,
-            '../multinli/glue_data',
+            'glue_data',
             'MNLI')
         if not os.path.exists(self.data_dir):
             raise ValueError(
