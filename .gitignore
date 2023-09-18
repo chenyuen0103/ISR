@@ -136,6 +136,9 @@ dmypy.json
 
 *.DS_store
 *.zip
-/multinli/
-/waterbirds/
-/celebA/
+*/multinli/
+*/waterbirds/
+*/celebA/
+
+__MACOSX/
+
