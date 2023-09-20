@@ -130,7 +130,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
         save_df(df, os.path.join(args.save_dir,
-                                 f'{args.dataset}_results{args.file_suffix}.csv'), subset=None, verbose=args.verbose)
+                                 f'{args.dataset}_results{args.file_suffix}_{args.seed}.csv'), subset=None, verbose=args.verbose)
     return df
 
 
@@ -145,7 +145,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--model_select', type=str,
                            default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
 
-    argparser.add_argument('--seed', type=int, default=0)
+    argparser.add_argument('--seed', type=int, default=1)
     argparser.add_argument('--n_components', type=int, default=100)
     argparser.add_argument('--C', type=float, default=1)
     argparser.add_argument('--ISR_version', type=str, default='mean', choices=['mean', 'cov'])
