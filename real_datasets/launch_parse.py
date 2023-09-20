@@ -4,7 +4,7 @@ import numpy as np
 
 from configs import LOG_FOLDER, get_parse_command
 
-dataset = 'MultiNLI'
+dataset = 'CelebA'
 gpu_idx = 0  # could be None if you want to use cpu
 
 # Suppose we already trained the models for seeds 0, 1, 2, 3, 4,
