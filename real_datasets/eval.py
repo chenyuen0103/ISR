@@ -136,7 +136,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 def parse_args(args: list = None, specs: dict = None):
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--root_dir', type=str,
-                           default=LOG_FOLDER)
+                           default='inv-features/logs')
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
@@ -153,7 +153,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0, 0.5])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='inv-features/logs/')
+    argparser.add_argument('--save_dir', type=str, default='../logs/')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
 
