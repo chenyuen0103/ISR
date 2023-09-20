@@ -19,6 +19,7 @@ import pdb
 
 import pickle
 from itertools import product
+import gc
 
 parser = argparse.ArgumentParser()
 
@@ -243,3 +244,5 @@ for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)),
 
         del results
         del parsed_data
+
+gc.collect()
