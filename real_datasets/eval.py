@@ -121,7 +121,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                    'worst_acc': worst_acc, 'env_label_ratio': args.env_label_ratio}
             if not args.use_orig_clf:
                 row.update({'C': args.C, 'pca_dim': args.n_components, })
-            df = df.append(row, ignore_index=True)
+            df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
 
     if args.verbose:
         print('Evaluation result')
