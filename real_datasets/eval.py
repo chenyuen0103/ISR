@@ -136,7 +136,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 def parse_args(args: list = None, specs: dict = None):
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--root_dir', type=str,
-                           default='inv-features/logs')
+                           default='inv-feature/logs')
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
