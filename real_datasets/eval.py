@@ -71,7 +71,8 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                                                                                    include_avg_acc=True)
             row = {**base_row, 'split': split, 'method': 'orig', **eval_group_accs, 'clf_type': 'orig',
                    'worst_acc': eval_worst_acc, 'worst_group': eval_worst_group}
-            df = df.append(row, ignore_index=True)
+            # df = df.append(row, ignore_index=True)
+            df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
         args.n_components = -1
         given_clf = orig_clf
         clf_type = 'orig'
