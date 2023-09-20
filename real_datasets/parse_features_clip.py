@@ -15,6 +15,11 @@ from utils.train_utils import check_args
 from utils.train_utils import set_seed
 import open_clip
 import pdb
+
+
+import pickle
+from itertools import product
+
 parser = argparse.ArgumentParser()
 
 # Settings
@@ -22,14 +27,19 @@ parser.add_argument('-d', '--dataset',
                     choices=dataset_attributes.keys(), required=True)
 parser.add_argument('-s', '--shift_type',
                     choices=shift_types, default='confounder')
+
+
 # Confounders
 parser.add_argument('-t', '--target_name')
 parser.add_argument('-c', '--confounder_names', nargs='+')
+
 # Resume?
 parser.add_argument('--resume', default=False, action='store_true')
+
 # Label shifts
 parser.add_argument('--minority_fraction', type=float)
 parser.add_argument('--imbalance_ratio', type=float)
+
 # Data
 parser.add_argument('--fraction', type=float, default=1.0)
 parser.add_argument('--root_dir', default=None)
@@ -157,39 +167,40 @@ output_layer = None
 
 
 def process_batch(model, x, y=None, g=None, bert=True):
-    # if bert:
-    #     input_ids = x[:, :, 0]
-    #     input_masks = x[:, :, 1]
-    #     segment_ids = x[:, :, 2]
-    #     outputs = model.bert(
-    #         input_ids=input_ids,
-    #         attention_mask=input_masks,
-    #         token_type_ids=segment_ids,
-    #     )
-    #     pooled_output = outputs[1]
-    #     logits = model.classifier(pooled_output)
-    #     result = {'feature': pooled_output.detach().cpu().numpy(),
-    #               'pred': np.argmax(logits.detach().cpu().numpy(), axis=1),
-    #               }
-    # else:
-    features = encoder(x)
-    result = {'feature': features.detach().cpu().numpy(), }
+    if args.dataset in ['MultiNLI']:
+        input_ids = x[:, :, 0]
+        input_masks = x[:, :, 1]
+        segment_ids = x[:, :, 2]
+        outputs = model.encode_text(
+            input_ids=input_ids,
+            attention_mask=input_masks,
+            token_type_ids=segment_ids,
+        )
+        pooled_output = outputs[1]
+        logits = model.classifier(pooled_output)
+        result = {'feature': pooled_output.detach().cpu().numpy(),
+                  'pred': np.argmax(logits.detach().cpu().numpy(), axis=1),}
+    else:
+        features = encoder(x)
+        result = {'feature': features.detach().cpu().numpy(), }
+
+
     if output_layer is not None:
         logits = output_layer(features)
         result['pred'] = np.argmax(logits.detach().cpu().numpy(), axis=1)
+
+
+
     if y is not None: result['label'] = y.detach().cpu().numpy()
     if g is not None: result['group'] = g.detach().cpu().numpy()
     return result
 
 
-# %%
-load_ckpt
-# %%
-import pickle
-from itertools import product
+
 
 algos = ['ERM', 'reweight', 'groupDRO']
 # algos = ['ERM']
+
 model_selects = ['init']
 seeds = np.arange(10)
 for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)), desc='Iter'):
@@ -223,7 +234,7 @@ for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)),
         for key in results[0].keys():
             parsed_data[key] = np.concatenate([result[key] for result in results])
 
-        # breakpoint()
+
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         pickle.dump(parsed_data, open(save_dir + '/' + fname, 'wb'))
