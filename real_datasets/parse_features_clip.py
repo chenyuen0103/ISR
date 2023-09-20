@@ -188,7 +188,7 @@ load_ckpt
 import pickle
 from itertools import product
 
-algos = ['ERM', ]
+algos = ['ERM', 'reweight', 'groupDRO']
 # algos = ['ERM']
 model_selects = ['init']
 seeds = np.arange(10)
