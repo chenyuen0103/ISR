@@ -112,6 +112,7 @@ def run_experiment(args):
             callback=args["callback"])
 
     # compute the train, validation and test errors
+
     for split in ("train", "validation", "test"):
         key = "error_" + split
         if "ISR" in args["model"]:
@@ -133,10 +134,10 @@ def run_experiment(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Synthetic invariances')
-    parser.add_argument('--model', type=str, default="ERM")
+    parser.add_argument('--model', type=str, default="HISR_mean")
     parser.add_argument('--num_iterations', type=int, default=10000)
     parser.add_argument('--hparams', type=str, default="default")
-    parser.add_argument('--dataset', type=str, default="Example1")
+    parser.add_argument('--dataset', type=str, default="Example2")
     parser.add_argument('--dim_inv', type=int, default=5)
     parser.add_argument('--dim_spu', type=int, default=5)
     parser.add_argument('--n_envs', type=int, default=3)
@@ -146,7 +147,7 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', type=str, default="results")
     parser.add_argument('--callback', action='store_true')
     parser.add_argument('--exp_name', type=str, default="default")
-    parser.add_argument('--result_dir', type=str, default=None)
+    parser.add_argument('--result_dir', type=str, default="test_results")
     args = parser.parse_args()
 
     pprint.pprint(run_experiment(vars(args)))

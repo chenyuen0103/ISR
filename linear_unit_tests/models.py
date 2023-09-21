@@ -2,6 +2,7 @@
 
 from torch.autograd import grad
 from isr import ISR
+from hisr import HISR
 import utils
 import torch
 import random
@@ -291,5 +292,6 @@ MODELS = {
     "ANDMask": AndMask,
     "IGA": IGA,
     "Oracle": ERM,
-    "ISR": ISR
+    "ISR": ISR,
+    "HISR": HISR,
 }

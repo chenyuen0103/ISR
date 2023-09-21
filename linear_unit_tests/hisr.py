@@ -6,7 +6,7 @@ import random
 import json
 
 
-class ISR():
+class HISR():
     def __init__(self, dim_inv, fit_method='cov', l2_reg=0.01,
                  verbose=False, regression=False, spu_proj=False,
                  logistic_regression=False,
@@ -91,7 +91,6 @@ class ISR():
             concat_projs = np.concatenate([proj for proj in cov_projs], axis=1)
             P = np.linalg.svd(concat_projs, full_matrices=True)[0]  # compute the flag-mean
 
-
         elif fit_method == 'mean-flag':
             # should focus on the spurious dims, and find the rest dimensions at the end
             mean_projs = []
@@ -160,12 +159,17 @@ class ISR():
     def fit_subspace_clf(self, envs, proj_mat, spu_proj=False):
         features = []
         labels = []
-        es = []
-        for feature, label in envs:
+        envs_indices = []
+        for i, (feature, label) in enumerate(envs):
             features.append(feature)
             labels.append(label)
+
+            # Add the current environment index for each feature-label pair in this environment
+            envs_indices.extend([i] * len(feature))
+
         zs = np.concatenate(features, axis=0)
         ys = np.concatenate(labels, axis=0)
+
         if self.logistic_regression:
             if self.regression:
                 clf = Ridge(alpha=self.l2_reg, max_iter=self.num_iterations)
@@ -182,7 +186,7 @@ class ISR():
             proj_mat = scipy.linalg.null_space(proj_mat.T)
             self.proj_mat = proj_mat
         zs_proj = zs @ (proj_mat)
-        clf.fit(zs_proj, ys)
+        clf.fit(zs_proj, ys, envs_indices)
         return clf
 
     def predict(self, x):
@@ -242,14 +246,55 @@ class ERM(Model):
             lr=self.hparams["lr"],
             weight_decay=self.hparams["wd"])
 
-    def fit(self, x, y):
+    def fit(self, x, y, envs_indices, alpha = 10e-5, beta = 10e-5):
         x = torch.Tensor(x)
         y = torch.Tensor(y)
+        envs_indices = torch.Tensor(envs_indices).long()
 
         for epoch in range(self.num_iterations):
-            self.optimizer.zero_grad()
-            loss = self.loss(self.network(x).squeeze(), y)
-            loss.backward()
+            # Initialize Python scalar to accumulate loss from each environment
+            total_loss_val = 0.0
+
+            # Loop over unique environment indices to collect gradients and hessians
+            env_gradients = []
+            env_hessian = []
+            for env_idx in envs_indices.unique():
+                self.optimizer.zero_grad()
+                idx = (envs_indices == env_idx).nonzero().squeeze()
+                loss = self.loss(self.network(x[idx]).squeeze(), y[idx])
+                loss.backward(retain_graph=True)
+                # Store the gradients
+                grads = [param.grad.clone().detach().requires_grad_(True) for param in self.network.parameters()]
+                env_gradients.append(grads)
+                grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
+                grad_norm.backward(retain_graph=True)
+
+                hessian = [grad_norm * param.grad for param in self.network.parameters()]
+                env_hessian.append(hessian)
+
+            # Compute average gradient and hessian
+            avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
+                            range(len(env_gradients[0]))]
+            avg_hessian = [torch.mean(torch.stack([hess[i] for hess in env_hessian]), dim=0) for i in
+                           range(len(env_hessian[0]))]
+
+            # Loop over environments again to compute total loss
+            for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessian)):
+                idx = (envs_indices == env_idx).nonzero().squeeze()
+                loss = self.loss(self.network(x[idx]).squeeze(), y[idx])
+
+                reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+                reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
+
+                total_loss_val += loss.item() + alpha * reg_term1.item() + beta * reg_term2.item()
+
+            n_unique_envs = len(envs_indices.unique())
+            # Normalize total loss by number of unique environments
+            total_loss = total_loss_val / n_unique_envs
+            total_loss = torch.tensor(total_loss, requires_grad=True)
+
+            # Perform the backward pass and update the model parameters
+            total_loss.backward()
             self.optimizer.step()
 
     def predict(self, x):
@@ -257,3 +302,5 @@ class ERM(Model):
 
     def score(self, x, y):
         return 1 - self.network(x.float()).gt(0).float().squeeze(1).ne(y).float().mean().item()
+
+
