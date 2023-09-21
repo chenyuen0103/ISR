@@ -246,14 +246,16 @@ class ERM(Model):
             lr=self.hparams["lr"],
             weight_decay=self.hparams["wd"])
 
-    def fit(self, x, y, envs_indices, alpha = 10e-5, beta = 10e-5):
+    def fit(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
         x = torch.Tensor(x)
         y = torch.Tensor(y)
         envs_indices = torch.Tensor(envs_indices).long()
 
         for epoch in range(self.num_iterations):
             # Initialize Python scalar to accumulate loss from each environment
-            total_loss_val = 0.0
+            # Initialize total_loss as a zero tensor
+            torch.autograd.set_detect_anomaly(True)
+            total_loss = torch.tensor(0.0, requires_grad=True)
 
             # Loop over unique environment indices to collect gradients and hessians
             env_gradients = []
@@ -269,7 +271,7 @@ class ERM(Model):
                 grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
                 grad_norm.backward(retain_graph=True)
 
-                hessian = [grad_norm * param.grad for param in self.network.parameters()]
+                hessian = [grad_norm * param.grad.clone().detach().requires_grad_(True) for param in self.network.parameters()]
                 env_hessian.append(hessian)
 
             # Compute average gradient and hessian
@@ -286,12 +288,21 @@ class ERM(Model):
                 reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
                 reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
 
-                total_loss_val += loss.item() + alpha * reg_term1.item() + beta * reg_term2.item()
+            #     total_loss_val += loss.item() + alpha * reg_term1.item() + beta * reg_term2.item()
+            #
+            # n_unique_envs = len(envs_indices.unique())
+            # # Normalize total loss by number of unique environments
+            # total_loss = total_loss_val / n_unique_envs
+            # total_loss = torch.tensor(total_loss, requires_grad=True)
 
-            n_unique_envs = len(envs_indices.unique())
+                # Update total_loss
+                total_loss = total_loss + (loss + alpha * reg_term1 + beta * reg_term2)
+                # total_loss = total_loss + loss
+
             # Normalize total loss by number of unique environments
-            total_loss = total_loss_val / n_unique_envs
-            total_loss = torch.tensor(total_loss, requires_grad=True)
+            n_unique_envs = len(envs_indices.unique())
+            total_loss = total_loss / n_unique_envs
+
 
             # Perform the backward pass and update the model parameters
             total_loss.backward()
