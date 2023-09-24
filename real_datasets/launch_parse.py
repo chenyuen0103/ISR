@@ -12,7 +12,8 @@ gpu_idx = 0  # could be None if you want to use cpu
 train_log_seeds = np.arange(10)
 
 # The training algorithms we want to parse
-algos = ['ERM', 'reweight', 'groupDRO']
+# algos = ['ERM', 'reweight', 'groupDRO']
+algos = ['reweight', 'groupDRO']
 
 # load checkpoint with a model selection rule
 # best: take the model at the epoch of largest worst-group validation accuracy

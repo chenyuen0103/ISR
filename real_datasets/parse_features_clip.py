@@ -203,7 +203,7 @@ algos = ['ERM', 'reweight', 'groupDRO']
 # algos = ['ERM']
 
 model_selects = ['init']
-seeds = np.arange(10)
+seeds = np.arange(5)
 for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)), desc='Iter'):
     print('Current iter:', algo, model_select, seed)
     save_dir = f'./inv-feature/logs/{args.dataset}/{algo}/s{seed}/'
