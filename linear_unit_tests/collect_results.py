@@ -4,6 +4,7 @@ import os
 import json
 import argparse
 import plot_results
+import numpy as np
 
 
 def print_row(row, col_width=15, latex=False):
@@ -103,9 +104,17 @@ def build_table(dirname, models=None, n_envs=None, num_dim=None, latex=False, st
         for model in df["model"].unique():
             # filtered by model
             df_d_m = df_d[df_d["model"] == model]
+            # Create a dictionary with columns as keys and aggregation methods as values
+            agg_dict = {col: 'mean' if df_d_m[col].dtype in [np.number] else 'first' for col in df_d_m.columns}
 
-            best_model_seed = df_d_m.groupby("model_seed").mean().filter(
-                regex='error_validation').sum(1).idxmin()
+            # best_model_seed = df_d_m.groupby("model_seed").agg(agg_dict).mean().filter(
+            #     regex='error_validation').sum(1).idxmin()
+
+            grouped_data = df_d_m.groupby("model_seed").agg(agg_dict)
+            filtered_data = grouped_data.filter(regex='error_validation')
+            sums_for_each_seed = filtered_data.sum(axis=1)
+            best_model_seed = sums_for_each_seed.idxmin()
+
 
             # filtered by hparams
             df_d_m_s = df_d_m[df_d_m["model_seed"] == best_model_seed].filter(

@@ -92,7 +92,9 @@ def build_df(dirname):
                         std=std
                     )
                     # print(single_dic)
-                    df = df.append(single_dic, ignore_index=True)
+                    # df = df.append(single_dic, ignore_index=True)
+                    df = pd.concat([df, pd.DataFrame([single_dic])], ignore_index=True)
+
     return df
 
 
