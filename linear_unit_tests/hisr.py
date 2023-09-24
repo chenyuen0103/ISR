@@ -288,12 +288,6 @@ class ERM(Model):
                 reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
                 reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
 
-            #     total_loss_val += loss.item() + alpha * reg_term1.item() + beta * reg_term2.item()
-            #
-            # n_unique_envs = len(envs_indices.unique())
-            # # Normalize total loss by number of unique environments
-            # total_loss = total_loss_val / n_unique_envs
-            # total_loss = torch.tensor(total_loss, requires_grad=True)
 
                 # Update total_loss
                 total_loss = total_loss + (loss + alpha * reg_term1 + beta * reg_term2)

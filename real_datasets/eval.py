@@ -11,7 +11,8 @@ from tqdm.auto import tqdm
 
 from configs import DATA_FOLDER
 from configs import LOG_FOLDER
-from isr import ISRClassifier, check_clf
+from hisr import HISRClassifier, check_clf
+from isr import ISRClassifier
 from utils.eval_utils import extract_data, save_df, measure_group_accs, load_data, group2env
 
 warnings.filterwarnings('ignore')  # filter out Pandas append warnings
@@ -94,9 +95,12 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 
     clf_kwargs = dict(C=args.C, max_iter=args.max_iter, random_state=args.seed)
     if args.ISR_version == 'mean': args.d_spu = n_spu_attr - 1
-
-    isr_clf = ISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
+    if args.align_hessian:
+        isr_clf = HISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
                             clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
+    else:
+        isr_clf = ISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
+                                clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
 
@@ -111,7 +115,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         else:
             raise ValueError('Unknown ISR version')
 
-        isr_clf.fit_clf(zs, ys, given_clf=given_clf, sample_weight=sample_weight)
+        isr_clf.fit_clf(zs, ys, given_clf=given_clf, sample_weight=sample_weight, use_hessian=args.align_hessian)
         for (split, eval_zs, eval_ys, eval_gs) in [('val', val_zs, val_ys, val_gs),
                                                    ('test', test_zs, test_ys, test_gs)]:
             group_accs, worst_acc, worst_group = measure_group_accs(
@@ -131,6 +135,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                                   exist_ok=True)  # make dir if not exists
         save_df(df, os.path.join(args.save_dir,
                                  f'{args.dataset}_results{args.file_suffix}_{args.seed}.csv'), subset=None, verbose=args.verbose)
+        print(f"Saved to {args.save_dir} as {args.dataset}_results{args.file_suffix}_{args.seed}_{'hessian' if args.align_hessian else ''}.csv")
     return df
 
 
@@ -169,6 +174,8 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
+
+    argparser.add_argument('--align_hessian', default=True, action='store_true')
     config = argparser.parse_args(args=args)
     print("Specs:", specs)
     print("Config:", config.__dict__)
