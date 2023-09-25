@@ -89,7 +89,7 @@ parser.add_argument('--parse_model_selects', nargs='+',
                     default=['best', 'best_avg_acc', 'last'],
                     help='best is based on worst-group validation accuracy.')
 parser.add_argument('--parse_seeds', nargs='+',
-                    default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+                    default=[0])
 parser.add_argument(
     '--parse_dir', default='/data/common/inv-feature/logs/', type=str)
 
@@ -199,8 +199,8 @@ def process_batch(model, x, y=None, g=None, bert=True):
 
 
 
-algos = ['ERM', 'reweight', 'groupDRO']
-# algos = ['ERM']
+# algos = ['ERM', 'reweight', 'groupDRO']
+algos = ['ERM']
 
 model_selects = ['init']
 seeds = np.arange(5)

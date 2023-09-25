@@ -238,7 +238,7 @@ class HISRClassifier:
         x = torch.Tensor(x).to(device)
         y = torch.Tensor(y).to(device)
         envs_indices = torch.Tensor(envs_indices).long().to(device)
-        print("Starting training on ", device)
+        print("Starting training on", device)
         for epoch in tqdm(range(num_iterations), desc = 'Hessian iter', leave = False):
             torch.autograd.set_detect_anomaly(True)
             total_loss = torch.tensor(0.0, requires_grad=True)
@@ -279,6 +279,7 @@ class HISRClassifier:
 
             total_loss.backward()
             optimizer.step()
+            torch.cuda.empty_cache()
         self.clf = model.to('cpu')
         return self.clf
 
