@@ -2,10 +2,12 @@ import numpy as np
 import scipy
 import torch
 import torch.nn as nn
-import  torch.optim as optim
+import torch.optim as optim
+from tqdm.auto import tqdm
 from sklearn import linear_model
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
+
 
 
 def to_numpy(tensor):
@@ -218,7 +220,7 @@ class HISRClassifier:
 
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 1000):
         # Create the model based on the model type
-        print(y.shape)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if self.clf_type == 'LogisticRegression':
             model = self.LogisticRegression(x.shape[1], 1)
         elif self.clf_type == 'RidgeClassifier':
@@ -228,15 +230,16 @@ class HISRClassifier:
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
 
+        model = model.to(device)
         # Define a suitable loss function
-        # For simplicity, let's use Binary Cross Entropy Loss for logistic regression
         loss_fn = nn.BCEWithLogitsLoss()
         optimizer = optim.SGD(model.parameters(), lr=0.01)
 
-        x = torch.Tensor(x)
-        y = torch.Tensor(y)
-        envs_indices = torch.Tensor(envs_indices).long()
-        for epoch in range(num_iterations):
+        x = torch.Tensor(x).to(device)
+        y = torch.Tensor(y).to(device)
+        envs_indices = torch.Tensor(envs_indices).long().to(device)
+        print("Starting training on ", device)
+        for epoch in tqdm(range(num_iterations), desc = 'Hessian iter', leave = False):
             torch.autograd.set_detect_anomaly(True)
             total_loss = torch.tensor(0.0, requires_grad=True)
 
@@ -276,7 +279,7 @@ class HISRClassifier:
 
             total_loss.backward()
             optimizer.step()
-        self.clf = model
+        self.clf = model.to('cpu')
         return self.clf
 
 
