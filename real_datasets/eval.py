@@ -99,7 +99,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         isr_clf = HISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
                             clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
     else:
-        isr_clf = ISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
+        isr_clf = HISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
                                 clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
@@ -115,7 +115,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         else:
             raise ValueError('Unknown ISR version')
 
-        isr_clf.fit_clf(zs, ys, given_clf=given_clf, sample_weight=sample_weight, use_hessian=args.align_hessian)
+        isr_clf.fit_clf(zs, ys, es, given_clf=given_clf, sample_weight=sample_weight, use_hessian=args.align_hessian)
         for (split, eval_zs, eval_ys, eval_gs) in [('val', val_zs, val_ys, val_gs),
                                                    ('test', test_zs, test_ys, test_gs)]:
             group_accs, worst_acc, worst_group = measure_group_accs(

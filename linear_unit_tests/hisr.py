@@ -242,7 +242,7 @@ class ERM(Model):
         super().__init__(in_features, out_features, task, hparams)
 
         self.optimizer = torch.optim.Adam(
-            self.network.parameters(),
+            self.network.parameters()
             lr=self.hparams["lr"],
             weight_decay=self.hparams["wd"])
 
@@ -259,7 +259,7 @@ class ERM(Model):
 
             # Loop over unique environment indices to collect gradients and hessians
             env_gradients = []
-            env_hessian = []
+            env_hgp = []
             for env_idx in envs_indices.unique():
                 self.optimizer.zero_grad()
                 idx = (envs_indices == env_idx).nonzero().squeeze()
@@ -268,30 +268,32 @@ class ERM(Model):
                 # Store the gradients
                 grads = [param.grad.clone().detach().requires_grad_(True) for param in self.network.parameters()]
                 env_gradients.append(grads)
+                # ||Gradient||
                 grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
                 grad_norm.backward(retain_graph=True)
+                # gradient of ||Gradient||
+                grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
 
-                hessian = [grad_norm * param.grad.clone().detach().requires_grad_(True) for param in self.network.parameters()]
-                env_hessian.append(hessian)
+                # Approx. hessian-gradient-product
+                hessian_gradient_product = [grad_norm * param.grad.clone().detach() for param in grads_of_grad_norm]
+                env_hgp.append(hessian_gradient_product)
 
             # Compute average gradient and hessian
             avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
                             range(len(env_gradients[0]))]
-            avg_hessian = [torch.mean(torch.stack([hess[i] for hess in env_hessian]), dim=0) for i in
-                           range(len(env_hessian[0]))]
+            avg_hgp = [torch.mean(torch.stack([hess[i] for hess in env_hgp]), dim=0) for i in
+                       range(len(env_hgp[0]))]
 
             # Loop over environments again to compute total loss
-            for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessian)):
+            for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hgp)):
                 idx = (envs_indices == env_idx).nonzero().squeeze()
                 loss = self.loss(self.network(x[idx]).squeeze(), y[idx])
 
-                reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-                reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
-
+                grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+                hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
 
                 # Update total_loss
-                total_loss = total_loss + (loss + alpha * reg_term1 + beta * reg_term2)
-                # total_loss = total_loss + loss
+                total_loss = total_loss + (loss + alpha * hgp_reg + beta * grad_reg)
 
             # Normalize total loss by number of unique environments
             n_unique_envs = len(envs_indices.unique())

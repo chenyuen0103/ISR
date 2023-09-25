@@ -106,6 +106,7 @@ class HISRClassifier:
         self.Us = {}  # stores computed projection matrices
         assert self.clf_type in ['LogisticRegression', 'RidgeClassifier', 'SGDClassifier'], \
             f"Unknown classifier type: {self.clf_type}"
+        self.loss_fn = nn.BCEWithLogitsLoss() if self.clf_type == 'LogisticRegression' else nn.MSELoss()
 
     def set_params(self, **params):
         for name, val in params.items():
@@ -219,6 +220,60 @@ class HISRClassifier:
 
         return self.U
 
+
+    def get_grads(self, model):
+        return [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
+    def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
+        pass
+    def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5, optimizer = None):
+        torch.autograd.set_detect_anomaly(True)
+        total_loss = torch.tensor(0.0, requires_grad=True)
+        if optimizer is None:
+            optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+        env_gradients = []
+        env_hgp = []
+        for env_idx in envs_indices_batch.unique():
+            optimizer.zero_grad()
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
+            # get gradient of loss with respect to parameters
+            loss.backward(retain_graph=True)
+
+            # Gradient
+            grads = self.get_grads(model)
+            env_gradients.append(grads)
+
+            # ||Gradient||
+            grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
+            grad_norm.backward(retain_graph=True)
+            # gradient of ||Gradient||
+            grads_of_grad_norm = self.get_grads(model)
+            # grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
+
+            # Approx. hessian-gradient-product
+            hessian_gradient_product = [grad_norm * param.grad.clone().detach() for param in grads_of_grad_norm]
+            env_hgp.append(hessian_gradient_product)
+        # Compute average gradient and hessian
+        avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
+                        range(len(env_gradients[0]))]
+        avg_hgp = [torch.mean(torch.stack([hess[i] for hess in env_hgp]), dim=0) for i in
+                   range(len(env_hgp[0]))]
+
+        for env_idx, (grads, hessian_gradient_product) in enumerate(zip(env_gradients, env_hgp)):
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
+
+            grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+            hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
+
+            total_loss = total_loss + (loss + alpha * hgp_reg + beta * grad_reg)
+
+        n_unique_envs = len(envs_indices_batch.unique())
+        total_loss = total_loss / n_unique_envs
+
+        return total_loss
+
+
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 1000):
         # Create the model based on the model type
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -232,68 +287,35 @@ class HISRClassifier:
             raise ValueError(f"Unknown model type: {self.clf_type}")
 
         model = model.to(device)
-        # Define a suitable loss function
-        loss_fn = nn.BCEWithLogitsLoss()
-        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        self.optimizer = optim.SGD(model.parameters(), lr=0.001)
 
-        # Wrap data into a DataLoader
+
         dataset = TensorDataset(x, y, envs_indices)
         dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-        # x = torch.Tensor(x).to(device)
-        # y = torch.Tensor(y).to(device)
-        # envs_indices = torch.Tensor(envs_indices).long().to(device)
         print("Starting training on", device)
         for epoch in tqdm(range(num_iterations), desc = 'Hessian iter', leave = False):
             for x_batch, y_batch, envs_indices_batch in dataloader:
                 x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
                     device)
-                torch.autograd.set_detect_anomaly(True)
-                total_loss = torch.tensor(0.0, requires_grad=True)
+                if approx_type == "HGP":
+                    total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta, optimizer = self.optimizer)
+                elif approx_type == "HUT":
+                    total_loss = self.hut_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta, optimizer = self.optimizer)
+                else:
+                    raise ValueError(f"Unknown hessian approximation type: {approx_type}")
+                total_loss.backward()
 
-                env_gradients = []
-                env_hessian = []
-                for env_idx in envs_indices_batch.unique():
-                    optimizer.zero_grad()
-                    idx = (envs_indices == env_idx).nonzero().squeeze()
-                    loss = loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
-                    loss.backward(retain_graph=True)
+                self.optimizer.step()
+                self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
+                torch.cuda.empty_cache()
 
-                    grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
-                    env_gradients.append(grads)
-                    grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
-                    grad_norm.backward(retain_graph=True)
-
-                    hessian = [grad_norm * param.grad.clone().detach().requires_grad_(True) for param in
-                               model.parameters()]
-                    env_hessian.append(hessian)
-
-                avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
-                                range(len(env_gradients[0]))]
-                avg_hessian = [torch.mean(torch.stack([hess[i] for hess in env_hessian]), dim=0) for i in
-                               range(len(env_hessian[0]))]
-
-                for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessian)):
-                    idx = (envs_indices == env_idx).nonzero().squeeze()
-                    loss = loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
-
-                    reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-                    reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
-
-                    total_loss = total_loss + (loss + alpha * reg_term1 + beta * reg_term2)
-
-            n_unique_envs = len(envs_indices.unique())
-            total_loss = total_loss / n_unique_envs
-
-            total_loss.backward()
-            optimizer.step()
-            torch.cuda.empty_cache()
         self.clf = model.to('cpu')
         return self.clf
 
 
 
-    def fit_clf(self, features=None, labels=None, given_clf=None, sample_weight=None, use_hessian = False):
+    def fit_clf(self, features=None, labels=None, envs = None, given_clf=None, sample_weight=None, use_hessian = False):
         if not use_hessian:
             if given_clf is None:
                 assert features is not None and labels is not None
@@ -305,7 +327,7 @@ class HISRClassifier:
                 self.clf.coef_ = self.clf.coef_ @ self.U
             return self.clf
         else:
-            return self.fit_hessian_clf(features, labels, envs_indices=features)
+            return self.fit_hessian_clf(features, labels, envs_indices=envs)
 
     def transform(self, features, ):
         if self.pca is not None:
@@ -329,7 +351,7 @@ class HISRClassifier:
     # build custom module for logistic regression
     class LogisticRegression(torch.nn.Module):
         # build the constructor
-        def __init__(self, n_inputs, n_outputs):
+        def __init__(self, n_inputs, n_outputs=1):
             super().__init__()
             self.linear = torch.nn.Linear(n_inputs, n_outputs)
 
