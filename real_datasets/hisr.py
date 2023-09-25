@@ -3,6 +3,7 @@ import scipy
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
 from sklearn import linear_model
 from sklearn.decomposition import PCA
@@ -235,44 +236,51 @@ class HISRClassifier:
         loss_fn = nn.BCEWithLogitsLoss()
         optimizer = optim.SGD(model.parameters(), lr=0.01)
 
-        x = torch.Tensor(x).to(device)
-        y = torch.Tensor(y).to(device)
-        envs_indices = torch.Tensor(envs_indices).long().to(device)
+        # Wrap data into a DataLoader
+        dataset = TensorDataset(x, y, envs_indices)
+        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+        # x = torch.Tensor(x).to(device)
+        # y = torch.Tensor(y).to(device)
+        # envs_indices = torch.Tensor(envs_indices).long().to(device)
         print("Starting training on", device)
         for epoch in tqdm(range(num_iterations), desc = 'Hessian iter', leave = False):
-            torch.autograd.set_detect_anomaly(True)
-            total_loss = torch.tensor(0.0, requires_grad=True)
+            for x_batch, y_batch, envs_indices_batch in dataloader:
+                x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
+                    device)
+                torch.autograd.set_detect_anomaly(True)
+                total_loss = torch.tensor(0.0, requires_grad=True)
 
-            env_gradients = []
-            env_hessian = []
-            for env_idx in envs_indices.unique():
-                optimizer.zero_grad()
-                idx = (envs_indices == env_idx).nonzero().squeeze()
-                loss = loss_fn(model(x[idx]).squeeze(), y[idx])
-                loss.backward(retain_graph=True)
+                env_gradients = []
+                env_hessian = []
+                for env_idx in envs_indices_batch.unique():
+                    optimizer.zero_grad()
+                    idx = (envs_indices == env_idx).nonzero().squeeze()
+                    loss = loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
+                    loss.backward(retain_graph=True)
 
-                grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
-                env_gradients.append(grads)
-                grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
-                grad_norm.backward(retain_graph=True)
+                    grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
+                    env_gradients.append(grads)
+                    grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
+                    grad_norm.backward(retain_graph=True)
 
-                hessian = [grad_norm * param.grad.clone().detach().requires_grad_(True) for param in
-                           model.parameters()]
-                env_hessian.append(hessian)
+                    hessian = [grad_norm * param.grad.clone().detach().requires_grad_(True) for param in
+                               model.parameters()]
+                    env_hessian.append(hessian)
 
-            avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
-                            range(len(env_gradients[0]))]
-            avg_hessian = [torch.mean(torch.stack([hess[i] for hess in env_hessian]), dim=0) for i in
-                           range(len(env_hessian[0]))]
+                avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
+                                range(len(env_gradients[0]))]
+                avg_hessian = [torch.mean(torch.stack([hess[i] for hess in env_hessian]), dim=0) for i in
+                               range(len(env_hessian[0]))]
 
-            for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessian)):
-                idx = (envs_indices == env_idx).nonzero().squeeze()
-                loss = loss_fn(model(x[idx]).squeeze(), y[idx])
+                for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessian)):
+                    idx = (envs_indices == env_idx).nonzero().squeeze()
+                    loss = loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
 
-                reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-                reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
+                    reg_term1 = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+                    reg_term2 = sum((hess - avg_hess).norm(2) ** 2 for hess, avg_hess in zip(hessian, avg_hessian))
 
-                total_loss = total_loss + (loss + alpha * reg_term1 + beta * reg_term2)
+                    total_loss = total_loss + (loss + alpha * reg_term1 + beta * reg_term2)
 
             n_unique_envs = len(envs_indices.unique())
             total_loss = total_loss / n_unique_envs
