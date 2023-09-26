@@ -274,7 +274,7 @@ class HISRClassifier:
         return total_loss
 
 
-    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 5):
+    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 1000):
         # Create the model based on the model type
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         num_classes = len(np.unique(y))
@@ -334,6 +334,8 @@ class HISRClassifier:
                 self.clf.coef_ = self.clf.coef_ @ self.U
             return self.clf
         else:
+            assert features is not None and labels is not None
+            features = self.transform(features, )
             return self.fit_hessian_clf(features, labels, envs_indices=envs)
 
     def transform(self, features, ):
@@ -369,6 +371,7 @@ class HISRClassifier:
             # Just return the logits (raw scores). Softmax will be applied in the loss function.
             if not isinstance(x, torch.Tensor):
                 x = torch.tensor(x).float()
+            # print(x.shape)
             return self.linear(x)
 
         def predict(self, x):

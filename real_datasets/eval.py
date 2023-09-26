@@ -59,7 +59,10 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     es, val_es, test_es = group2env(gs, n_spu_attr), group2env(val_gs, n_spu_attr), group2env(test_gs, n_spu_attr)
 
     # eval_groups = np.array([0] + list(range(n_groups)))
-    method = f'ISR-{args.ISR_version.capitalize()}'
+    if args.align_hessian:
+        method = f'HISR-{args.hessian_approx_method}-{args.ISR_version.capitalize()}'
+    else:
+        method = f'ISR-{args.ISR_version.capitalize()}'
     if args.no_reweight and (not args.use_orig_clf) and args.algo != 'ERM':
         method += '_noRW'
     if args.use_orig_clf:
@@ -134,8 +137,8 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
         save_df(df, os.path.join(args.save_dir,
-                                 f'{args.dataset}_results{args.file_suffix}_{args.seed}.csv'), subset=None, verbose=args.verbose)
-        print(f"Saved to {args.save_dir} as {args.dataset}_results{args.file_suffix}_{args.seed}_{'hessian' if args.align_hessian else ''}.csv")
+                                 f"{args.dataset}_results{args.file_suffix}_{args.seed}{'_hessian' if args.align_hessian else ''}.csv"), subset=None, verbose=args.verbose)
+        print(f"Saved to {args.save_dir} as {args.dataset}_results{args.file_suffix}_{args.seed}{'_hessian' if args.align_hessian else ''}.csv")
     return df
 
 
@@ -176,6 +179,7 @@ def parse_args(args: list = None, specs: dict = None):
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
 
     argparser.add_argument('--align_hessian', default=True, action='store_true')
+    argparser.add_argument('hessian_approx_method', default='HGP', type=str, )
     config = argparser.parse_args(args=args)
     print("Specs:", specs)
     print("Config:", config.__dict__)
