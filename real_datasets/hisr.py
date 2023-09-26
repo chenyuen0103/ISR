@@ -249,11 +249,11 @@ class HISRClassifier:
             grad_norm.backward(retain_graph=True)
 
             # gradient of ||Gradient||
-            grads_of_grad_norm = [param.grad for param in model.parameters()]
+            grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
             # grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
 
             # Approx. hessian-gradient-product
-            hessian_gradient_product = [grad_norm * param for param in grads_of_grad_norm]
+            hessian_gradient_product = [grad_norm.clone().detach() * param for param in grads_of_grad_norm]
             env_hgp.append(hessian_gradient_product)
         # Compute average gradient and hessian
         avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
