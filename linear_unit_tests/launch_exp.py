@@ -11,8 +11,8 @@ dim_spu = 5
 list_n_envs = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 n_threads = 60 # -1 means to use all available CPU cores/threads; otherwise, use the specified number of threads
 datasets = ["Example2", "Example2s", "Example3", "Example3s", "Example3_Modified", "Example3s_Modified"]
-# models = ["HISR_mean", "ISR_mean", "ISR_cov-flag", "ERM", "IRMv1", "IGA", "Oracle"]
-models = ["HISR_mean"]
+models = ["HISR_mean", "ISR_mean", "ISR_cov-flag", "ERM", "IRMv1", "IGA", "Oracle"]
+# models = ["HISR_mean"]
 for n_envs in list_n_envs:
     print('n_envs: {}'.format(n_envs))
     command = f"python sweep.py \
