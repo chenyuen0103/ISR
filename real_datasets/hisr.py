@@ -234,7 +234,7 @@ class HISRClassifier:
         for env_idx in envs_indices_batch.unique():
             model.zero_grad()
             idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
+            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
             # get gradient of loss with respect to parameters
             loss.backward(retain_graph=True)
 
@@ -261,7 +261,7 @@ class HISRClassifier:
 
         for env_idx, (grads, hessian_gradient_product) in enumerate(zip(env_gradients, env_hgp)):
             idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
+            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
 
             grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
             hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
