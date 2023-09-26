@@ -221,19 +221,16 @@ class HISRClassifier:
         return self.U
 
 
-    def get_grads(self, model):
-        return [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
+
     def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
         pass
-    def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5, optimizer = None):
+    def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
         torch.autograd.set_detect_anomaly(True)
         total_loss = torch.tensor(0.0, requires_grad=True)
-        if optimizer is None:
-            optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+
         env_gradients = []
         env_hgp = []
         for env_idx in envs_indices_batch.unique():
-            optimizer.zero_grad()
             idx = (envs_indices_batch == env_idx).nonzero().squeeze()
             loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
             # get gradient of loss with respect to parameters
@@ -290,6 +287,7 @@ class HISRClassifier:
 
         model = model.to(device)
         self.optimizer = optim.SGD(model.parameters(), lr=0.001)
+        self.optimizer.zero_grad()
         # Transform the data to tensors
         if not isinstance(x, torch.Tensor):
             x = torch.tensor(x).float()
@@ -306,9 +304,9 @@ class HISRClassifier:
                 x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
                     device)
                 if approx_type == "HGP":
-                    total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta, optimizer = self.optimizer)
+                    total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
                 elif approx_type == "HUT":
-                    total_loss = self.hut_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta, optimizer = self.optimizer)
+                    total_loss = self.hut_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
                 else:
                     raise ValueError(f"Unknown hessian approximation type: {approx_type}")
                 total_loss.backward()
@@ -367,6 +365,34 @@ class HISRClassifier:
             y_pred = torch.sigmoid(self.linear(x))
             return y_pred
 
+        def score(self, X, y, sample_weight=None):
+            """
+            Return the mean accuracy on the given test data and labels.
+
+            In multi-label classification, this is the subset accuracy
+            which is a harsh metric since you require for each sample that
+            each label set be correctly predicted.
+
+            Parameters
+            ----------
+            X : array-like of shape (n_samples, n_features)
+                Test samples.
+
+            y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+                True labels for `X`.
+
+            sample_weight : array-like of shape (n_samples,), default=None
+                Sample weights.
+
+            Returns
+            -------
+            score : float
+                Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
+            """
+            from sklearn.metrics import accuracy_score
+
+            return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+
     class RidgeRegression(torch.nn.Module):
         def __init__(self, n_inputs):
             super(RidgeClassifier, self).__init__()
@@ -375,6 +401,34 @@ class HISRClassifier:
         def forward(self, x):
             y_pred = self.linear(x)
             return y_pred
+
+        def score(self, X, y, sample_weight=None):
+            """
+            Return the mean accuracy on the given test data and labels.
+
+            In multi-label classification, this is the subset accuracy
+            which is a harsh metric since you require for each sample that
+            each label set be correctly predicted.
+
+            Parameters
+            ----------
+            X : array-like of shape (n_samples, n_features)
+                Test samples.
+
+            y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+                True labels for `X`.
+
+            sample_weight : array-like of shape (n_samples,), default=None
+                Sample weights.
+
+            Returns
+            -------
+            score : float
+                Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
+            """
+            from sklearn.metrics import accuracy_score
+
+            return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     class SGDClassifier(torch.nn.Module):
         def __init__(self, n_inputs):
@@ -385,3 +439,30 @@ class HISRClassifier:
             y_pred = torch.sigmoid(self.linear(x))
             return y_pred
 
+        def score(self, X, y, sample_weight=None):
+            """
+            Return the mean accuracy on the given test data and labels.
+
+            In multi-label classification, this is the subset accuracy
+            which is a harsh metric since you require for each sample that
+            each label set be correctly predicted.
+
+            Parameters
+            ----------
+            X : array-like of shape (n_samples, n_features)
+                Test samples.
+
+            y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+                True labels for `X`.
+
+            sample_weight : array-like of shape (n_samples,), default=None
+                Sample weights.
+
+            Returns
+            -------
+            score : float
+                Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
+            """
+            from sklearn.metrics import accuracy_score
+
+            return accuracy_score(y, self.predict(X), sample_weight=sample_weight)

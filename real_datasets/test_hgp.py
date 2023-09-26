@@ -1,6 +1,11 @@
 import torch
 import pytest
 from hisr import HISRClassifier
+import copy
+torch.manual_seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
+
 
 
 def test_hessian_gradient_product():
@@ -11,20 +16,20 @@ def test_hessian_gradient_product():
 
     # 2. Define the model
     model = HISRClassifier.LogisticRegression(10)
-
+    original_model = copy.deepcopy(model)
     # 3. Initialize an instance of the HISR class
     hisr = HISRClassifier(clf_type='LogisticRegression')
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
     # 4. Compute the hgp_loss
-    loss = hisr.hgp_loss(model, x, y, envs_indices, optimizer = optimizer)
+    loss = hisr.hgp_loss(model, x, y, envs_indices)
 
     # 5. Compute the analytical gradient using PyTorch's autograd
     loss.backward()
     analytical_gradients = [param.grad for param in model.parameters()]
-
+    model = copy.deepcopy(original_model)
     # 6. Compute numerical gradients using the finite difference method
-    epsilon = 1e-5
+    epsilon = 1e-4
     numerical_gradients = []
     for param in model.parameters():
         param_grads = torch.zeros_like(param)
