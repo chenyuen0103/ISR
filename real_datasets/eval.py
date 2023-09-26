@@ -179,7 +179,7 @@ def parse_args(args: list = None, specs: dict = None):
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
 
     argparser.add_argument('--align_hessian', default=True, action='store_true')
-    argparser.add_argument('hessian_approx_method', default='HGP', type=str, )
+    argparser.add_argument('--hessian_approx_method', default='HGP', type=str, )
     config = argparser.parse_args(args=args)
     print("Specs:", specs)
     print("Config:", config.__dict__)
