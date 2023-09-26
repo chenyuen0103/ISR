@@ -40,7 +40,7 @@ def run_experiment(args):
     train_split = "train" if args["model"] != "Oracle" else "test"
 
     # sample the envs
-    if "ISR" in args["model"]:
+    if "ISR" in args["model"] or "HISR" in args["model"]:
         envs = {}
         for key_split, split in zip(("train", "validation", "test"),
                                     (train_split, train_split, "test")):
@@ -73,7 +73,7 @@ def run_experiment(args):
         regression = False
     # selecting model
     args["num_dim"] = args["dim_inv"] + args["dim_spu"]
-    if "ISR" not in args["model"]:
+    if "ISR" not in args["model"] and "HISR" not in args["model"]:
         if args["model"] in ['ERM', 'Oracle']:
             model = models.MODELS[args["model"]](
                 in_features=args["num_dim"],
@@ -102,7 +102,7 @@ def run_experiment(args):
         )
 
     # fit the dataset
-    if "ISR" in args["model"]:
+    if "ISR" in args["model"] or "HISR" in args["model"]:
         model.fit(envs['train'])
         args["hparams"] = model.hparams
     else:

@@ -242,67 +242,83 @@ class ERM(Model):
         super().__init__(in_features, out_features, task, hparams)
 
         self.optimizer = torch.optim.Adam(
-            self.network.parameters()
+            self.network.parameters(),
             lr=self.hparams["lr"],
             weight_decay=self.hparams["wd"])
 
-    def fit(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
-        x = torch.Tensor(x)
-        y = torch.Tensor(y)
-        envs_indices = torch.Tensor(envs_indices).long()
+    def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
+        pass
 
+    def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
+        torch.autograd.set_detect_anomaly(True)
+        total_loss = torch.tensor(0.0, requires_grad=True)
+
+        env_gradients = []
+        env_hgp = []
+        for env_idx in envs_indices_batch.unique():
+            model.zero_grad()
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+            # get gradient of loss with respect to parameters
+            loss.backward(retain_graph=True)
+
+            # Gradient
+            # grads = self.get_grads(model)
+            grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
+            env_gradients.append(grads)
+
+            # ||Gradient||
+            grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
+            grad_norm.backward(retain_graph=True)
+
+            # gradient of ||Gradient||
+            grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
+
+            # Approx. hessian-gradient-product
+            hessian_gradient_product = [grad_norm.clone().detach() * param for param in grads_of_grad_norm]
+            env_hgp.append(hessian_gradient_product)
+        # Compute average gradient and hessian
+        avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
+                        range(len(env_gradients[0]))]
+        avg_hgp = [torch.mean(torch.stack([hess[i] for hess in env_hgp]), dim=0) for i in
+                   range(len(env_hgp[0]))]
+
+        for env_idx, (grads, hessian_gradient_product) in enumerate(zip(env_gradients, env_hgp)):
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+
+            grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+            hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
+
+            total_loss = total_loss + (loss + alpha * hgp_reg + beta * grad_reg)
+
+        n_unique_envs = len(envs_indices_batch.unique())
+        total_loss = total_loss / n_unique_envs
+
+        return total_loss
+
+
+    def fit(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        x = torch.Tensor(x).to(device)
+        y = torch.Tensor(y).to(device)
+        envs_indices = torch.Tensor(envs_indices).to(device)
+        model = self.network.to(device)
         for epoch in range(self.num_iterations):
             # Initialize Python scalar to accumulate loss from each environment
             # Initialize total_loss as a zero tensor
-            torch.autograd.set_detect_anomaly(True)
-            total_loss = torch.tensor(0.0, requires_grad=True)
-
-            # Loop over unique environment indices to collect gradients and hessians
-            env_gradients = []
-            env_hgp = []
-            for env_idx in envs_indices.unique():
-                self.optimizer.zero_grad()
-                idx = (envs_indices == env_idx).nonzero().squeeze()
-                loss = self.loss(self.network(x[idx]).squeeze(), y[idx])
-                loss.backward(retain_graph=True)
-                # Store the gradients
-                grads = [param.grad.clone().detach().requires_grad_(True) for param in self.network.parameters()]
-                env_gradients.append(grads)
-                # ||Gradient||
-                grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
-                grad_norm.backward(retain_graph=True)
-                # gradient of ||Gradient||
-                grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
-
-                # Approx. hessian-gradient-product
-                hessian_gradient_product = [grad_norm * param.grad.clone().detach() for param in grads_of_grad_norm]
-                env_hgp.append(hessian_gradient_product)
-
-            # Compute average gradient and hessian
-            avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
-                            range(len(env_gradients[0]))]
-            avg_hgp = [torch.mean(torch.stack([hess[i] for hess in env_hgp]), dim=0) for i in
-                       range(len(env_hgp[0]))]
-
-            # Loop over environments again to compute total loss
-            for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hgp)):
-                idx = (envs_indices == env_idx).nonzero().squeeze()
-                loss = self.loss(self.network(x[idx]).squeeze(), y[idx])
-
-                grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-                hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
-
-                # Update total_loss
-                total_loss = total_loss + (loss + alpha * hgp_reg + beta * grad_reg)
-
-            # Normalize total loss by number of unique environments
-            n_unique_envs = len(envs_indices.unique())
-            total_loss = total_loss / n_unique_envs
-
-
-            # Perform the backward pass and update the model parameters
+            # torch.autograd.set_detect_anomaly(True)
+            if approx_type == "HGP":
+                total_loss = self.hgp_loss(model, x, y, envs_indices, alpha, beta)
+            elif approx_type == "HUT":
+                total_loss = self.hut_loss(model, x, y, envs_indices, alpha, beta)
+            else:
+                raise ValueError(f"Unknown hessian approximation type: {approx_type}")
             total_loss.backward()
             self.optimizer.step()
+            self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
+            torch.cuda.empty_cache()
+        self.network = model.to("cpu")
 
     def predict(self, x):
         return self.network(x.float())
