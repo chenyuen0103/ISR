@@ -240,18 +240,20 @@ class HISRClassifier:
             loss.backward(retain_graph=True)
 
             # Gradient
-            grads = self.get_grads(model)
+            # grads = self.get_grads(model)
+            grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
             env_gradients.append(grads)
 
             # ||Gradient||
             grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
             grad_norm.backward(retain_graph=True)
+
             # gradient of ||Gradient||
-            grads_of_grad_norm = self.get_grads(model)
+            grads_of_grad_norm = [param.grad for param in model.parameters()]
             # grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
 
             # Approx. hessian-gradient-product
-            hessian_gradient_product = [grad_norm * param.grad.clone().detach() for param in grads_of_grad_norm]
+            hessian_gradient_product = [grad_norm * param for param in grads_of_grad_norm]
             env_hgp.append(hessian_gradient_product)
         # Compute average gradient and hessian
         avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
@@ -288,8 +290,13 @@ class HISRClassifier:
 
         model = model.to(device)
         self.optimizer = optim.SGD(model.parameters(), lr=0.001)
-
-
+        # Transform the data to tensors
+        if not isinstance(x, torch.Tensor):
+            x = torch.tensor(x).float()
+        if not isinstance(y, torch.Tensor):
+            y = torch.tensor(y).float()
+        if not isinstance(envs_indices, torch.Tensor):
+            envs_indices = torch.tensor(envs_indices).int()
         dataset = TensorDataset(x, y, envs_indices)
         dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
