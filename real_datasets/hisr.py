@@ -277,7 +277,7 @@ class HISRClassifier:
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 1000):
         # Create the model based on the model type
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        num_classes = y.nunique()
+        num_classes = len(np.unique(y))
         if self.clf_type == 'LogisticRegression':
             model = self.LogisticRegression(x.shape[1], num_classes)
         elif self.clf_type == 'RidgeClassifier':
