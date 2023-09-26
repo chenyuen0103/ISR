@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
 from sklearn import linear_model
+from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 
@@ -106,7 +107,7 @@ class HISRClassifier:
         self.Us = {}  # stores computed projection matrices
         assert self.clf_type in ['LogisticRegression', 'RidgeClassifier', 'SGDClassifier'], \
             f"Unknown classifier type: {self.clf_type}"
-        self.loss_fn = nn.BCEWithLogitsLoss() if self.clf_type == 'LogisticRegression' else nn.MSELoss()
+        self.loss_fn = nn.CrossEntropyLoss() if self.clf_type == 'LogisticRegression' else nn.MSELoss()
 
     def set_params(self, **params):
         for name, val in params.items():
@@ -231,6 +232,7 @@ class HISRClassifier:
         env_gradients = []
         env_hgp = []
         for env_idx in envs_indices_batch.unique():
+            model.zero_grad()
             idx = (envs_indices_batch == env_idx).nonzero().squeeze()
             loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx])
             # get gradient of loss with respect to parameters
@@ -247,7 +249,6 @@ class HISRClassifier:
 
             # gradient of ||Gradient||
             grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
-            # grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
 
             # Approx. hessian-gradient-product
             hessian_gradient_product = [grad_norm.clone().detach() * param for param in grads_of_grad_norm]
@@ -276,12 +277,13 @@ class HISRClassifier:
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 1000):
         # Create the model based on the model type
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        num_classes = y.nunique()
         if self.clf_type == 'LogisticRegression':
-            model = self.LogisticRegression(x.shape[1], 1)
+            model = self.LogisticRegression(x.shape[1], num_classes)
         elif self.clf_type == 'RidgeClassifier':
             model = self.RidgeRegression(x.shape[1])
         elif self.clf_type == 'SGDClassifier':
-            model = self.SGDClassifier(x.shape[1])
+            model = self.SGDClassifier(x.shape[1], num_classes)
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
 
@@ -356,41 +358,20 @@ class HISRClassifier:
     # build custom module for logistic regression
     class LogisticRegression(torch.nn.Module):
         # build the constructor
-        def __init__(self, n_inputs, n_outputs=1):
+        def __init__(self, n_inputs, n_outputs):
             super().__init__()
             self.linear = torch.nn.Linear(n_inputs, n_outputs)
 
         # make predictions
         def forward(self, x):
-            y_pred = torch.sigmoid(self.linear(x))
-            return y_pred
+            # Just return the logits (raw scores). Softmax will be applied in the loss function.
+            return self.linear(x)
+
+        def predict(self, x):
+            logits = self.forward(x)
+            return torch.argmax(logits, dim=1)
 
         def score(self, X, y, sample_weight=None):
-            """
-            Return the mean accuracy on the given test data and labels.
-
-            In multi-label classification, this is the subset accuracy
-            which is a harsh metric since you require for each sample that
-            each label set be correctly predicted.
-
-            Parameters
-            ----------
-            X : array-like of shape (n_samples, n_features)
-                Test samples.
-
-            y : array-like of shape (n_samples,) or (n_samples, n_outputs)
-                True labels for `X`.
-
-            sample_weight : array-like of shape (n_samples,), default=None
-                Sample weights.
-
-            Returns
-            -------
-            score : float
-                Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
-            """
-            from sklearn.metrics import accuracy_score
-
             return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     class RidgeRegression(torch.nn.Module):
@@ -403,31 +384,6 @@ class HISRClassifier:
             return y_pred
 
         def score(self, X, y, sample_weight=None):
-            """
-            Return the mean accuracy on the given test data and labels.
-
-            In multi-label classification, this is the subset accuracy
-            which is a harsh metric since you require for each sample that
-            each label set be correctly predicted.
-
-            Parameters
-            ----------
-            X : array-like of shape (n_samples, n_features)
-                Test samples.
-
-            y : array-like of shape (n_samples,) or (n_samples, n_outputs)
-                True labels for `X`.
-
-            sample_weight : array-like of shape (n_samples,), default=None
-                Sample weights.
-
-            Returns
-            -------
-            score : float
-                Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
-            """
-            from sklearn.metrics import accuracy_score
-
             return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
     class SGDClassifier(torch.nn.Module):
@@ -440,29 +396,4 @@ class HISRClassifier:
             return y_pred
 
         def score(self, X, y, sample_weight=None):
-            """
-            Return the mean accuracy on the given test data and labels.
-
-            In multi-label classification, this is the subset accuracy
-            which is a harsh metric since you require for each sample that
-            each label set be correctly predicted.
-
-            Parameters
-            ----------
-            X : array-like of shape (n_samples, n_features)
-                Test samples.
-
-            y : array-like of shape (n_samples,) or (n_samples, n_outputs)
-                True labels for `X`.
-
-            sample_weight : array-like of shape (n_samples,), default=None
-                Sample weights.
-
-            Returns
-            -------
-            score : float
-                Mean accuracy of ``self.predict(X)`` w.r.t. `y`.
-            """
-            from sklearn.metrics import accuracy_score
-
             return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
