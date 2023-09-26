@@ -368,7 +368,7 @@ class HISRClassifier:
         def forward(self, x):
             # Just return the logits (raw scores). Softmax will be applied in the loss function.
             if not isinstance(x, torch.Tensor):
-                zs = torch.tensor(x).float()
+                x = torch.tensor(x).float()
             return self.linear(x)
 
         def predict(self, x):
