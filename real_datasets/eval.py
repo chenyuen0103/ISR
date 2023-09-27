@@ -137,7 +137,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
         save_df(df, os.path.join(args.save_dir,
-                                 f"{args.dataset}_results{args.file_suffix}_{args.seed}{'_hessian' if args.align_hessian else ''}.csv"), subset=None, verbose=args.verbose)
+                                 f"{args.dataset}_results{args.file_suffix}_{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.align_hessian else ''}.csv"), subset=None, verbose=args.verbose)
         print(f"Saved to {args.save_dir} as {args.dataset}_results{args.file_suffix}_{args.seed}{'_hessian' if args.align_hessian else ''}.csv")
     return df
 
