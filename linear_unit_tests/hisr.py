@@ -4,16 +4,18 @@ from sklearn.linear_model import LogisticRegression, Ridge
 import scipy
 import random
 import json
+from tqdm import tqdm
 
 
 class HISR():
-    def __init__(self, dim_inv, fit_method='cov', l2_reg=0.01,
+    def __init__(self, dim_inv, fit_method='cov',hessian_approx_method = "HUT", l2_reg=0.01,
                  verbose=False, regression=False, spu_proj=False,
                  logistic_regression=False,
                  hparams=None, num_iterations=1000,
                  ):
         self.dim_inv = dim_inv
         self.fit_method = fit_method
+        self.hessian_approx_method = hessian_approx_method
         self.l2_reg = l2_reg
         self.verbose = verbose
         self.regression = regression
@@ -186,7 +188,7 @@ class HISR():
             proj_mat = scipy.linalg.null_space(proj_mat.T)
             self.proj_mat = proj_mat
         zs_proj = zs @ (proj_mat)
-        clf.fit(zs_proj, ys, envs_indices)
+        clf.fit(zs_proj, ys, envs_indices, approx_type=self.hessian_approx_method)
         return clf
 
     def predict(self, x):
@@ -246,12 +248,82 @@ class ERM(Model):
             lr=self.hparams["lr"],
             weight_decay=self.hparams["wd"])
 
+    def _flatten_grad(self, grads):
+        flatten_grad = torch.cat([g.flatten() for g in grads])
+        return flatten_grad
+
+    def calc_hessian_diag(self, model, loss_grad, repeat=1000):
+        diag = []
+        gg = torch.cat([g.flatten() for g in loss_grad])
+        assert gg.requires_grad, "Gradient tensor does not require gradient"
+        for _ in range(repeat):
+            z = 2*torch.randint_like(gg, high=2)-1
+            loss = torch.dot(gg,z)
+            assert loss.requires_grad, "Surrogate loss does not require gradient"
+            Hz = torch.autograd.grad(loss, model.parameters(), retain_graph=True, create_graph=True)
+            for name, param in model.named_parameters():
+                if param.grad is None:
+                    print(name)
+            Hz = torch.cat([torch.flatten(g) for g in Hz])
+            diag.append(z*Hz)
+        return sum(diag)/len(diag)
+
     def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
-        pass
+        total_loss = torch.tensor(0.0, requires_grad=True)
+        env_gradients = []
+        env_hessian_diag = []
+        for env_idx in envs_indices_batch.unique():
+            model.zero_grad()
+
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+            assert loss.requires_grad, "Original loss does not require gradient"
+
+            # get gradient of loss with respect to parameters
+            loss.backward(retain_graph=True)
+
+            # Gradient
+            # grads = self.get_grads(model)
+            # grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
+            grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+            original_grads = [grad.clone().requires_grad_(True) for grad in grads]
+
+            # flatten gradient
+            flatten_grad = self._flatten_grad(grads)
+            flatten_original_grad = self._flatten_grad(original_grads)
+            env_gradients.append(flatten_grad)
+
+            # ||Gradient||
+            grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in flatten_grad))
+            grad_norm.backward(retain_graph=True)
+
+            # Diag of Hessian, the arguments are: model, gradient of the current environment, number of mc steps to take
+            Hg = self.calc_hessian_diag(model, flatten_original_grad, repeat = 150)
+            env_hessian_diag.append(Hg)
+
+            average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
+            average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+
+
+            for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
+                idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+                loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+
+                grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
+                hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
+
+                total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
+
+            n_unique_envs = len(envs_indices_batch.unique())
+            total_loss = total_loss / n_unique_envs
+
+            return total_loss
+
 
     def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
         torch.autograd.set_detect_anomaly(True)
         total_loss = torch.tensor(0.0, requires_grad=True)
+
 
         env_gradients = []
         env_hgp = []
@@ -304,14 +376,14 @@ class ERM(Model):
         y = torch.Tensor(y).to(device)
         envs_indices = torch.Tensor(envs_indices).to(device)
         model = self.network.to(device)
-        for epoch in range(self.num_iterations):
+        for epoch in tqdm(range(self.num_iterations), total = self.num_iterations, desc = "Training"):
             # Initialize Python scalar to accumulate loss from each environment
             # Initialize total_loss as a zero tensor
             # torch.autograd.set_detect_anomaly(True)
             if approx_type == "HGP":
                 total_loss = self.hgp_loss(model, x, y, envs_indices, alpha, beta)
             elif approx_type == "HUT":
-                total_loss = self.hut_loss(model, x, y, envs_indices, alpha, beta)
+                total_loss = self.hutchinson_loss(model, x, y, envs_indices, alpha, beta)
             else:
                 raise ValueError(f"Unknown hessian approximation type: {approx_type}")
             total_loss.backward()

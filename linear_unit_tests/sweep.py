@@ -26,6 +26,8 @@ if __name__ == "__main__":
     parser.add_argument('--callback', action='store_true')
     parser.add_argument('--n_threads', type=int, default=-1)
     parser.add_argument('--exp_name', type=str, default="default")
+    parser.add_argument('--align_hessian', default=True, action='store_true')
+    parser.add_argument('--hessian_approx_method', default='HUT', type=str, )
     args = vars(parser.parse_args())
 
     all_jobs = []

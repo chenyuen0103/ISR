@@ -99,10 +99,10 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     clf_kwargs = dict(C=args.C, max_iter=args.max_iter, random_state=args.seed)
     if args.ISR_version == 'mean': args.d_spu = n_spu_attr - 1
     if args.align_hessian:
-        isr_clf = HISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
+        isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
                             clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
     else:
-        isr_clf = HISRClassifier(version=args.ISR_version, pca_dim=args.n_components, d_spu=args.d_spu,
+        isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
                                 clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
@@ -179,7 +179,7 @@ def parse_args(args: list = None, specs: dict = None):
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
 
     argparser.add_argument('--align_hessian', default=True, action='store_true')
-    argparser.add_argument('--hessian_approx_method', default='HGP', type=str, )
+    argparser.add_argument('--hessian_approx_method', default='HUT', type=str, )
     config = argparser.parse_args(args=args)
     print("Specs:", specs)
     print("Config:", config.__dict__)

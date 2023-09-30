@@ -92,10 +92,15 @@ def run_experiment(args):
         # update this field for printing purposes
         args["hparams"] = model.hparams
     else:
-        model_n, model_m = args["model"].split('_')
+        if len(args['model'].split('_')) > 2:
+            hessian_approx_method = args['model'].split('_')[2]
+        else:
+            hessian_approx_method = "HGP"
+        model_n, model_m = args["model"].split('_')[0], args["model"].split('_')[1]
         model = models.MODELS[model_n](
             dim_inv=max(1, args["dim_inv"]),
             fit_method=model_m,
+            hessian_approx_method = hessian_approx_method,
             regression=regression,
             hparams=args["hparams"],
             num_iterations=args["num_iterations"]
@@ -134,7 +139,7 @@ def run_experiment(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Synthetic invariances')
-    parser.add_argument('--model', type=str, default="HISR_mean")
+    parser.add_argument('--model', type=str, default="HISR_mean_HUT")
     parser.add_argument('--num_iterations', type=int, default=10000)
     parser.add_argument('--hparams', type=str, default="default")
     parser.add_argument('--dataset', type=str, default="Example2")
@@ -148,6 +153,8 @@ if __name__ == "__main__":
     parser.add_argument('--callback', action='store_true')
     parser.add_argument('--exp_name', type=str, default="default")
     parser.add_argument('--result_dir', type=str, default="test_results")
+    parser.add_argument('--align_hessian', default=True, action='store_true')
+    parser.add_argument('--hessian_approx_method', default='HUT', type=str, )
     args = parser.parse_args()
 
     pprint.pprint(run_experiment(vars(args)))

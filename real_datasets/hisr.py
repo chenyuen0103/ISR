@@ -93,10 +93,11 @@ def check_clf(clf, n_classes):
 class HISRClassifier:
     default_clf_kwargs = dict(C=1, max_iter=1000, random_state=0)
 
-    def __init__(self, version: str = 'mean', pca_dim: int = -1, d_spu: int = -1, spu_scale: float = 0,
+    def __init__(self, version: str = 'mean', hessian_approx_method = "HGP", pca_dim: int = -1, d_spu: int = -1, spu_scale: float = 0,
                  chosen_class=None, clf_type: str = 'LogisticRegression', clf_kwargs: dict = None,
                  ):
         self.version = version
+        self.hessian_approx_method = hessian_approx_method
         self.pca_dim = pca_dim
         self.d_spu = d_spu
         self.spu_scale = spu_scale
@@ -223,8 +224,77 @@ class HISRClassifier:
 
 
 
+    def _flatten_grad(self, grads):
+        flatten_grad = torch.cat([g.flatten() for g in grads])
+        return flatten_grad
+
+    def calc_hessian_diag(self, model, loss_grad, repeat=1000):
+        diag = []
+        gg = torch.cat([g.flatten() for g in loss_grad])
+        assert gg.requires_grad, "Gradient tensor does not require gradient"
+        for _ in range(repeat):
+            z = 2*torch.randint_like(gg, high=2)-1
+            loss = torch.dot(gg,z)
+            assert loss.requires_grad, "Surrogate loss does not require gradient"
+            Hz = torch.autograd.grad(loss, model.parameters(), retain_graph=True, create_graph=True)
+            for name, param in model.named_parameters():
+                if param.grad is None:
+                    print(name)
+            Hz = torch.cat([torch.flatten(g) for g in Hz])
+            diag.append(z*Hz)
+        return sum(diag)/len(diag)
+
     def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
-        pass
+        total_loss = torch.tensor(0.0, requires_grad=True)
+        env_gradients = []
+        env_hessian_diag = []
+        for env_idx in envs_indices_batch.unique():
+            model.zero_grad()
+
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+            assert loss.requires_grad, "Original loss does not require gradient"
+
+            # get gradient of loss with respect to parameters
+            loss.backward(retain_graph=True)
+
+            # Gradient
+            # grads = self.get_grads(model)
+            # grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
+            grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+            original_grads = [grad.clone().requires_grad_(True) for grad in grads]
+
+            # flatten gradient
+            flatten_grad = self._flatten_grad(grads)
+            flatten_original_grad = self._flatten_grad(original_grads)
+            env_gradients.append(flatten_grad)
+
+            # ||Gradient||
+            grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in flatten_grad))
+            grad_norm.backward(retain_graph=True)
+
+            # Diag of Hessian, the arguments are: model, gradient of the current environment, number of mc steps to take
+            Hg = self.calc_hessian_diag(model, flatten_original_grad, repeat = 150)
+            env_hessian_diag.append(Hg)
+
+            average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
+            average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+
+
+            for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
+                idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+                loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+
+                grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
+                hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
+
+                total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
+
+            n_unique_envs = len(envs_indices_batch.unique())
+            total_loss = total_loss / n_unique_envs
+
+            return total_loss
+
     def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
         torch.autograd.set_detect_anomaly(True)
         total_loss = torch.tensor(0.0, requires_grad=True)
@@ -308,7 +378,7 @@ class HISRClassifier:
                 if approx_type == "HGP":
                     total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
                 elif approx_type == "HUT":
-                    total_loss = self.hut_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                    total_loss = self.hutchinson_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
                 else:
                     raise ValueError(f"Unknown hessian approximation type: {approx_type}")
                 total_loss.backward()
@@ -336,7 +406,7 @@ class HISRClassifier:
         else:
             assert features is not None and labels is not None
             features = self.transform(features, )
-            return self.fit_hessian_clf(features, labels, envs_indices=envs)
+            return self.fit_hessian_clf(features, labels, envs_indices=envs, approx_type=self.hessian_approx_method)
 
     def transform(self, features, ):
         if self.pca is not None:
