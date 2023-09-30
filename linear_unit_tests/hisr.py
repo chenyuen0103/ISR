@@ -376,7 +376,8 @@ class ERM(Model):
         y = torch.Tensor(y).to(device)
         envs_indices = torch.Tensor(envs_indices).to(device)
         model = self.network.to(device)
-        for epoch in tqdm(range(self.num_iterations), total = self.num_iterations, desc = "Training"):
+        # for epoch in tqdm(range(self.num_iterations), total = self.num_iterations, desc = "Training"):
+        for epoch in range(self.num_iterations):
             # Initialize Python scalar to accumulate loss from each environment
             # Initialize total_loss as a zero tensor
             # torch.autograd.set_detect_anomaly(True)
