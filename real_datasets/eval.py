@@ -15,6 +15,7 @@ from hisr import HISRClassifier, check_clf
 from isr import ISRClassifier
 from utils.eval_utils import extract_data, save_df, measure_group_accs, load_data, group2env
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 warnings.filterwarnings('ignore')  # filter out Pandas append warnings
 
 
