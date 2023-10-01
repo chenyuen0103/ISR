@@ -252,7 +252,7 @@ class HISRClassifier:
             model.zero_grad()
 
             idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
             assert loss.requires_grad, "Original loss does not require gradient"
 
             # get gradient of loss with respect to parameters
@@ -283,7 +283,7 @@ class HISRClassifier:
 
             for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
                 idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-                loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+                loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
 
                 grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
                 hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
