@@ -7,7 +7,8 @@ import json
 import gc
 from tqdm import tqdm
 
-device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 class HISR():
     def __init__(self, dim_inv, fit_method='cov',hessian_approx_method = "HUT", l2_reg=0.01,
                  verbose=False, regression=False, spu_proj=False,
