@@ -4,6 +4,7 @@ from sklearn.linear_model import LogisticRegression, Ridge
 import scipy
 import random
 import json
+import gc
 from tqdm import tqdm
 
 
@@ -392,8 +393,13 @@ class ERM(Model):
             self.optimizer.step()
             self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
             torch.cuda.empty_cache()
-        self.network = model.to("cpu")
+        x = x.to("cpu")
+        y = y.to("cpu")
+        envs_indices = envs_indices.to("cpu")
 
+        self.network = model.to("cpu")
+        del x, y, envs_indices
+        gc.collect()
     def predict(self, x):
         return self.network(x.float())
 
