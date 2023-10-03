@@ -396,10 +396,8 @@ class ERM(Model):
         x = x.to("cpu")
         y = y.to("cpu")
         envs_indices = envs_indices.to("cpu")
+        torch.cuda.empty_cache()
 
-        self.network = model.to("cpu")
-        del x, y, envs_indices
-        gc.collect()
     def predict(self, x):
         return self.network(x.float())
 
