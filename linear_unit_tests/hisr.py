@@ -7,7 +7,7 @@ import json
 import gc
 from tqdm import tqdm
 
-
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 class HISR():
     def __init__(self, dim_inv, fit_method='cov',hessian_approx_method = "HUT", l2_reg=0.01,
                  verbose=False, regression=False, spu_proj=False,
@@ -373,7 +373,6 @@ class ERM(Model):
 
 
     def fit(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
-        device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
         x = torch.Tensor(x).to(device)
         y = torch.Tensor(y).to(device)
         envs_indices = torch.Tensor(envs_indices).to(device)
