@@ -281,19 +281,19 @@ class HISRClassifier:
             # average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
 
 
-            for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
-                idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-                loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
+        for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
 
-                grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
-                hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
+            grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
+            hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
 
-                total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
+            total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
 
-            n_unique_envs = len(envs_indices_batch.unique())
-            total_loss = total_loss / n_unique_envs
+        n_unique_envs = len(envs_indices_batch.unique())
+        total_loss = total_loss / n_unique_envs
 
-            return total_loss
+        return total_loss
 
     def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
         torch.autograd.set_detect_anomaly(True)
