@@ -237,9 +237,6 @@ class HISRClassifier:
             loss = torch.dot(gg,z)
             assert loss.requires_grad, "Surrogate loss does not require gradient"
             Hz = torch.autograd.grad(loss, model.parameters(), retain_graph=True, create_graph=True)
-            for name, param in model.named_parameters():
-                if param.grad is None:
-                    print(name)
             Hz = torch.cat([torch.flatten(g) for g in Hz])
             diag.append(z*Hz)
         return sum(diag)/len(diag)
@@ -248,6 +245,9 @@ class HISRClassifier:
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
         env_hessian_diag = []
+        combine_loss = self.loss_fn(model(x_batch).squeeze(), y_batch.long())
+        average_gradient = torch.autograd.grad(combine_loss, model.parameters(), create_graph=True)
+        average_Hg = self.calc_hessian_diag(model, average_gradient, repeat=150)
         for env_idx in envs_indices_batch.unique():
             model.zero_grad()
 
@@ -277,8 +277,8 @@ class HISRClassifier:
             Hg = self.calc_hessian_diag(model, flatten_original_grad, repeat = 150)
             env_hessian_diag.append(Hg)
 
-            average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
-            average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+            # average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
+            # average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
 
 
             for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
