@@ -269,7 +269,8 @@ class ERM(Model):
         return sum(diag)/len(diag)
 
     def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
-        total_loss = torch.tensor(0.0, requires_grad=True)
+        # total_loss = torch.tensor(0.0, requires_grad=True)
+        total_loss = torch.tensor(0.0, requires_grad=True, device=x_batch.device)
         env_gradients = []
         env_hessian_diag = []
         for env_idx in envs_indices_batch.unique():
