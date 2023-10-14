@@ -150,7 +150,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
 
@@ -179,8 +179,8 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
 
-    argparser.add_argument('--align_hessian', default=False, action='store_true')
-    argparser.add_argument('--hessian_approx_method', default='HUT', type=str, )
+    argparser.add_argument('--align_hessian', default=True, action='store_true')
+    argparser.add_argument('--hessian_approx_method', default='exact', type=str, )
     config = argparser.parse_args(args=args)
     print("Specs:", specs)
     print("Config:", config.__dict__)

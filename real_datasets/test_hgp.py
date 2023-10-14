@@ -63,7 +63,7 @@ def test_loss_backward():
     envs_indices = torch.randint(0, 4, (16,))
     num_classes = torch.unique(y).numel()
     # 2. Define the model and initialize an instance of the HISRTester class
-    model = HISRClassifier.LogisticRegression(5, num_classes)
+    model = HISRClassifier.LogisticRegression(5, num_classes-1)
     original_model = copy.deepcopy(model)
     hisr = HISRTester(clf_type='LogisticRegression')
 

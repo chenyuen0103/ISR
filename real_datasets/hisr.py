@@ -2,15 +2,17 @@ import numpy as np
 import scipy
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
+
+
 from sklearn import linear_model
 from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
-
-
+import matplotlib.pyplot as plt
 
 def to_numpy(tensor):
     if isinstance(tensor, torch.Tensor):
@@ -91,7 +93,7 @@ def check_clf(clf, n_classes):
 
 
 class HISRClassifier:
-    default_clf_kwargs = dict(C=1, max_iter=1000, random_state=0)
+    default_clf_kwargs = dict(C=1, max_iter=10000, random_state=0)
 
     def __init__(self, version: str = 'mean', hessian_approx_method = "HGP", pca_dim: int = -1, d_spu: int = -1, spu_scale: float = 0,
                  chosen_class=None, clf_type: str = 'LogisticRegression', clf_kwargs: dict = None,
@@ -109,7 +111,7 @@ class HISRClassifier:
         assert self.clf_type in ['LogisticRegression', 'RidgeClassifier', 'SGDClassifier'], \
             f"Unknown classifier type: {self.clf_type}"
         self.loss_fn = nn.CrossEntropyLoss() if self.clf_type == 'LogisticRegression' else nn.MSELoss()
-
+        # self.loss_fn = nn.BCEWithLogitsLoss()
     def set_params(self, **params):
         for name, val in params.items():
             setattr(self, name, val)
@@ -228,6 +230,72 @@ class HISRClassifier:
         flatten_grad = torch.cat([g.flatten() for g in grads])
         return flatten_grad
 
+    def hessian(self, model, x):
+        '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
+        for params in model.parameters():
+            params.requires_grad = True
+
+        logits = model(x)
+        p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
+
+        # Compute the Hessian for each sample in the batch, then average
+        batch_size = x.shape[0]
+        hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+
+        hessian_w_class0 = sum(hessian_list_class0) / batch_size
+
+        # Hessian for class 1 is just the negative of the Hessian for class 0
+        hessian_w_class1 = -hessian_w_class0
+
+
+        # Stacking the Hessians for both classes
+        hessian_w = torch.stack([hessian_w_class0, hessian_w_class1])
+
+        return hessian_w
+
+
+    def gradient(self,model, x, y):
+        for param in model.parameters():
+            param.requires_grad = True
+
+        # Compute logits and probabilities
+        logits = model(x)
+        if logits.dim() == 1:
+            p = F.softmax(logits, dim=0)
+        else:
+            p = F.softmax(logits, dim=1)
+
+
+        y_onehot = torch.zeros_like(p)
+        if len(y.shape) == 0:
+            y = y.unsqueeze(0)
+        # Check if p is 1D and if so, reshape it to 2D
+        if len(p.shape) == 1:
+            p = p.unsqueeze(0)
+
+        # Ensure y_onehot is 2D: (batch_size, num_classes)
+        num_classes = 2  # or whatever the number of classes is in your problem
+        if len(y_onehot.shape) == 1:
+            y_onehot = y_onehot.unsqueeze(0)
+
+        # Now, scatter should work without errors
+        y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
+        try:
+            y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
+        except:
+            y_onehot = y_onehot.scatter(1, y.unsqueeze(1), 1)
+
+        # print("y.shape:", y.shape)
+        # print("y_onehot.shape:", y_onehot.shape)
+
+        # Compute the gradient using the analytical form for each class
+        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
+        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
+
+        # Stack the gradients for both classes
+        grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
+        return grad_w
+
     def calc_hessian_diag(self, model, loss_grad, repeat=1000):
         diag = []
         gg = torch.cat([g.flatten() for g in loss_grad])
@@ -241,7 +309,7 @@ class HISRClassifier:
             diag.append(z*Hz)
         return sum(diag)/len(diag)
 
-    def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
+    def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-4, beta=10e-4):
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
         env_hessian_diag = []
@@ -296,9 +364,7 @@ class HISRClassifier:
             return total_loss
 
     def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
-        torch.autograd.set_detect_anomaly(True)
         total_loss = torch.tensor(0.0, requires_grad=True)
-
         env_gradients = []
         env_hgp = []
         for env_idx in envs_indices_batch.unique():
@@ -343,10 +409,102 @@ class HISRClassifier:
 
         return total_loss
 
+    def compute_pytorch_hessian(self, model, x, y):
+        batch_size = x.shape[0]
+        for param in model.parameters():
+            param.requires_grad = True
 
-    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5, num_iterations = 1000):
+        logits = model(x).squeeze()
+
+        criterion = torch.nn.CrossEntropyLoss()
+        loss = criterion(logits, y.long())
+
+        # First order gradients
+        grads = torch.autograd.grad(loss, model.linear.weight, create_graph=True)[0]
+
+        hessian = []
+        for i in range(grads.size(1)):
+            row = torch.autograd.grad(grads[0][i], model.linear.weight, create_graph=True, retain_graph=True)[0]
+            hessian.append(row)
+
+        return torch.stack(hessian).squeeze()
+
+
+    def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
+        total_loss = torch.tensor(0.0, requires_grad=True)
+        env_gradients = []
+        env_hessians = []
+        initial_state = model.state_dict()
+        for env_idx in envs_indices.unique():
+            model.zero_grad()
+            total_loss.backward()
+            idx = (envs_indices == env_idx).nonzero().squeeze()
+            loss = self.loss_fn(model(x[idx]).squeeze(), y[idx].long())
+            # # Gradient and Hessian Computation assumes negative log loss
+            # # grads = self.gradient(model, x[idx], y[idx])
+            # get grads, hessian of loss with respect to parameters, and those to be backwarded later
+            loss.backward(retain_graph=True)
+            # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+            grads = self.gradient(model, x[idx], y[idx])
+            # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
+            hessian = self.hessian(model, x[idx])
+            env_gradients.append(grads)
+            env_hessians.append(hessian)
+
+            model.load_state_dict(initial_state)
+            model.zero_grad()
+
+        # Compute average gradient and hessian
+        # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
+        #                 range(len(env_gradients[0]))]
+        weight_gradients = [g[0] for g in env_gradients]
+        avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
+
+        # avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+        avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
+
+        erm_loss = 0
+        hess_loss = 0
+        grad_loss = 0
+        for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
+            idx = (envs_indices == env_idx).nonzero().squeeze()
+            loss = self.loss_fn(model(x[idx]).squeeze(), y[idx].long())
+            # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
+            grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
+
+            # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
+            hessian_diff = hessian - avg_hessian
+            hessian_diff_norm = torch.norm(hessian_diff, p='fro')
+
+
+            # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+            # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
+
+            grad_reg = alpha * grad_diff_norm ** 2
+            hessian_reg = beta * hessian_diff_norm ** 2
+
+            total_loss = total_loss + (loss + alpha * hessian_reg + beta * grad_reg)
+            # total_loss = total_loss + loss
+            erm_loss += loss
+            hess_loss += alpha * hessian_reg
+            grad_loss += beta * grad_reg
+
+        n_unique_envs = len(envs_indices.unique())
+        # print("Number of unique envs:", n_unique_envs)
+        total_loss = total_loss / n_unique_envs
+        erm_loss = erm_loss / n_unique_envs
+        hess_loss = hess_loss / n_unique_envs
+        grad_loss = grad_loss / n_unique_envs
+        # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
+        return total_loss, erm_loss, hess_loss, grad_loss
+        # return total_loss, 0, 0, 0
+
+    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
         # Create the model based on the model type
+        num_iterations = self.clf_kwargs['max_iter']
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # if approx_type == "exact":
+        #     device = "cpu"
         num_classes = len(np.unique(y))
         if self.clf_type == 'LogisticRegression':
             model = self.LogisticRegression(x.shape[1], num_classes)
@@ -358,8 +516,9 @@ class HISRClassifier:
             raise ValueError(f"Unknown model type: {self.clf_type}")
 
         model = model.to(device)
-        self.optimizer = optim.SGD(model.parameters(), lr=0.001)
+        self.optimizer = optim.SGD(model.parameters(), lr=0.01)
         self.optimizer.zero_grad()
+
         # Transform the data to tensors
         if not isinstance(x, torch.Tensor):
             x = torch.tensor(x).float()
@@ -367,28 +526,60 @@ class HISRClassifier:
             y = torch.tensor(y).float()
         if not isinstance(envs_indices, torch.Tensor):
             envs_indices = torch.tensor(envs_indices).int()
+
         dataset = TensorDataset(x, y, envs_indices)
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-
         print("Starting training on", device)
-        for epoch in tqdm(range(num_iterations), desc = 'Hessian iter', leave = False):
-            for x_batch, y_batch, envs_indices_batch in dataloader:
-                x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
-                    device)
-                if approx_type == "HGP":
-                    total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
-                elif approx_type == "HUT":
-                    total_loss = self.hutchinson_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
-                else:
-                    raise ValueError(f"Unknown hessian approximation type: {approx_type}")
-                total_loss.backward()
 
-                self.optimizer.step()
-                self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
-                torch.cuda.empty_cache()
+        if approx_type == 'exact':
+            dataloader = DataLoader(dataset, batch_size=5000, shuffle=True)
+            erm_loss_list = []
+            hess_loss_list = []
+            grad_loss_list = []
+            pbar = tqdm(list(range(num_iterations)), desc='Hessian iter', leave=False)
+            for epoch in pbar:
+                for x, y, envs_indices in dataloader:
+                    x, y, envs_indices = x.to(device), y.to(device), envs_indices.to(device)
+                    total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(model, x, y, envs_indices, alpha, beta)
+                    erm_loss_list.append(erm_loss)
+                    hess_loss_list.append(hess_penalty)
+                    grad_loss_list.append(grad_penalty)
 
-        self.clf = model.to('cpu')
-        return self.clf
+                    total_loss.backward()
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
+                    torch.cuda.empty_cache()
+                if epoch % 500 == 0:
+                    # info = {
+                    #     "Loss": total_loss.item(),
+                    #     "ERM Loss": erm_loss.item(),
+                    #     "Hessian Reg": hess_penalty.item(),
+                    #     "Gradient Reg": grad_penalty.item()
+                    # }
+                    # pbar.set_postfix(info)
+                    print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss.item(), "; Hessian Reg:", hess_penalty.item(), "; Gradient Reg:", grad_penalty.item())
+            self.clf = model.to('cpu')
+            return self.clf
+        else:
+            dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+            for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
+                for x_batch, y_batch, envs_indices_batch in dataloader:
+                    x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
+                        device)
+                    if approx_type == "HGP":
+                        total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                    elif approx_type == "HUT":
+                        total_loss = self.hutchinson_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                    else:
+                        raise ValueError(f"Unknown hessian approximation type: {approx_type}")
+                    total_loss.backward()
+
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
+                    torch.cuda.empty_cache()
+            self.clf = model.to('cpu')
+            return self.clf
+
+
 
 
 
