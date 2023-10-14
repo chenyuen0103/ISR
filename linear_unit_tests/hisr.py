@@ -4,9 +4,11 @@ from sklearn.linear_model import LogisticRegression, Ridge
 import scipy
 import random
 import json
+import gc
 from tqdm import tqdm
 
-
+# device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 class HISR():
     def __init__(self, dim_inv, fit_method='cov',hessian_approx_method = "HUT", l2_reg=0.01,
                  verbose=False, regression=False, spu_proj=False,
@@ -269,7 +271,8 @@ class ERM(Model):
         return sum(diag)/len(diag)
 
     def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
-        total_loss = torch.tensor(0.0, requires_grad=True)
+        # total_loss = torch.tensor(0.0, requires_grad=True)
+        total_loss = torch.tensor(0.0, requires_grad=True, device=x_batch.device)
         env_gradients = []
         env_hessian_diag = []
         for env_idx in envs_indices_batch.unique():
@@ -301,23 +304,23 @@ class ERM(Model):
             Hg = self.calc_hessian_diag(model, flatten_original_grad, repeat = 150)
             env_hessian_diag.append(Hg)
 
-            average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
-            average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+        average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
+        average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
 
 
-            for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
-                idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-                loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
+        for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
+            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+            loss = self.loss(model(x_batch[idx]).squeeze(), y_batch[idx])
 
-                grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
-                hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
+            grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
+            hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
 
-                total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
+            total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
 
-            n_unique_envs = len(envs_indices_batch.unique())
-            total_loss = total_loss / n_unique_envs
+        n_unique_envs = len(envs_indices_batch.unique())
+        total_loss = total_loss / n_unique_envs
 
-            return total_loss
+        return total_loss
 
 
     def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
@@ -371,7 +374,6 @@ class ERM(Model):
 
 
     def fit(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         x = torch.Tensor(x).to(device)
         y = torch.Tensor(y).to(device)
         envs_indices = torch.Tensor(envs_indices).to(device)
@@ -391,7 +393,10 @@ class ERM(Model):
             self.optimizer.step()
             self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
             torch.cuda.empty_cache()
-        self.network = model.to("cpu")
+        x = x.to("cpu")
+        y = y.to("cpu")
+        envs_indices = envs_indices.to("cpu")
+        torch.cuda.empty_cache()
 
     def predict(self, x):
         return self.network(x.float())
