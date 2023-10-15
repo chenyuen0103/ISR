@@ -51,10 +51,11 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 
     df = pd.DataFrame(
         columns=['dataset', 'algo', 'seed', 'ckpt', 'split', 'method', 'clf_type', 'C', 'pca_dim', 'd_spu', 'ISR_class',
-                 'ISR_scale', 'env_label_ratio'] +
+                 'ISR_scale', 'env_label_ratio','num_iter'] +
                 [f'acc-{g}' for g in groups] + ['worst_group', 'avg_acc', 'worst_acc', ])
     base_row = {'dataset': args.dataset, 'algo': args.algo,
-                'seed': args.seed, 'ckpt': args.model_select, }
+                'seed': args.seed, 'ckpt': args.model_select,
+                'num_iter': args.max_iter}
 
     # Need to convert group labels to env labels (i.e., spurious-attribute labels)
     es, val_es, test_es = group2env(gs, n_spu_attr), group2env(val_gs, n_spu_attr), group2env(test_gs, n_spu_attr)
@@ -142,7 +143,6 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         print(f"Saved to {args.save_dir} as {args.dataset}_results{args.file_suffix}_{args.seed}{'_hessian' if args.align_hessian else ''}.csv")
     return df
 
-
 def parse_args(args: list = None, specs: dict = None):
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--root_dir', type=str,
@@ -173,7 +173,7 @@ def parse_args(args: list = None, specs: dict = None):
                            type=float, help='ratio of env label')
     argparser.add_argument('--feature_file_prefix', default='',
                            type=str, help='Prefix of the feature files to load')
-    argparser.add_argument('--max_iter', default=1000, type=int,
+    argparser.add_argument('--max_iter', default=5000, type=int,
                            help='Max iterations for the logistic solver')
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',

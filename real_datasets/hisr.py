@@ -531,7 +531,7 @@ class HISRClassifier:
         print("Starting training on", device)
 
         if approx_type == 'exact':
-            dataloader = DataLoader(dataset, batch_size=5000, shuffle=True)
+            dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
             erm_loss_list = []
             hess_loss_list = []
             grad_loss_list = []
