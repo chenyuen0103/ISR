@@ -6,6 +6,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
+import gc
+from memory_profiler import profile
+import cProfile
+
+
 
 
 from sklearn import linear_model
@@ -250,7 +255,6 @@ class HISRClassifier:
 
         # Stacking the Hessians for both classes
         hessian_w = torch.stack([hessian_w_class0, hessian_w_class1])
-
         return hessian_w
 
 
@@ -430,6 +434,7 @@ class HISRClassifier:
         return torch.stack(hessian).squeeze()
 
 
+    @profile
     def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
@@ -437,7 +442,6 @@ class HISRClassifier:
         initial_state = model.state_dict()
         for env_idx in envs_indices.unique():
             model.zero_grad()
-            total_loss.backward()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             loss = self.loss_fn(model(x[idx]).squeeze(), y[idx].long())
             # # Gradient and Hessian Computation assumes negative log loss
@@ -496,9 +500,14 @@ class HISRClassifier:
         hess_loss = hess_loss / n_unique_envs
         grad_loss = grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
+        del grads
+        del hessian
+        del env_gradients
+        del env_hessians
+
         return total_loss, erm_loss, hess_loss, grad_loss
         # return total_loss, 0, 0, 0
-
+    # @profile
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
         # Create the model based on the model type
         num_iterations = self.clf_kwargs['max_iter']
@@ -516,7 +525,7 @@ class HISRClassifier:
             raise ValueError(f"Unknown model type: {self.clf_type}")
 
         model = model.to(device)
-        self.optimizer = optim.SGD(model.parameters(), lr=0.01)
+        self.optimizer = optim.SGD(model.parameters(), lr=0.001)
         self.optimizer.zero_grad()
 
         # Transform the data to tensors
@@ -530,24 +539,34 @@ class HISRClassifier:
         dataset = TensorDataset(x, y, envs_indices)
         print("Starting training on", device)
 
-        if approx_type == 'exact':
+        if approx_type in ['exact','control']:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
-            erm_loss_list = []
-            hess_loss_list = []
-            grad_loss_list = []
             pbar = tqdm(list(range(num_iterations)), desc='Hessian iter', leave=False)
+            # profiler = cProfile.Profile()
+            # profiler.enable()
             for epoch in pbar:
-                for x, y, envs_indices in dataloader:
-                    x, y, envs_indices = x.to(device), y.to(device), envs_indices.to(device)
-                    total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(model, x, y, envs_indices, alpha, beta)
-                    erm_loss_list.append(erm_loss)
-                    hess_loss_list.append(hess_penalty)
-                    grad_loss_list.append(grad_penalty)
+                for x_batch, y_batch, envs_indices_batch in dataloader:
+                    x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
+                    if approx_type == "control":
+                        total_loss = self.loss_fn(model(x_batch).squeeze(), y_batch.long())
+                        erm_loss = total_loss.item
+                        hess_penalty = 0
+                        grad_penalty = 0
+                    else:
+                        total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                        erm_loss = erm_loss.item()
+                        hess_penalty = hess_penalty.item()
+                        grad_penalty = grad_penalty.item()
+                    # erm_loss_list.append(erm_loss.item())
+                    # hess_loss_list.append(hess_penalty.item())
+                    # grad_loss_list.append(grad_penalty.item())
 
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
                     torch.cuda.empty_cache()
+                    gc.collect()
+
                 if epoch % 500 == 0:
                     # info = {
                     #     "Loss": total_loss.item(),
@@ -556,8 +575,17 @@ class HISRClassifier:
                     #     "Gradient Reg": grad_penalty.item()
                     # }
                     # pbar.set_postfix(info)
-                    print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss.item(), "; Hessian Reg:", hess_penalty.item(), "; Gradient Reg:", grad_penalty.item())
+                    print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss, "; Hessian Reg:", hess_penalty, "; Gradient Reg:", grad_penalty)
+                torch.cuda.empty_cache()
+                del total_loss
+                del erm_loss
+                del hess_penalty
+                del grad_penalty
+                gc.collect()
+
             self.clf = model.to('cpu')
+            # profiler.disable()
+            # profiler.print_stats(sort='time')
             return self.clf
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
