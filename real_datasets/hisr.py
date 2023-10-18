@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
 import gc
-from memory_profiler import profile
+# from memory_profiler import profile
 import cProfile
 
 
