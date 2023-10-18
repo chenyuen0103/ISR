@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
-from memory_profiler import profile
+# from memory_profiler import profile
 
 from configs import DATA_FOLDER
 from configs import LOG_FOLDER
