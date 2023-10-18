@@ -434,7 +434,7 @@ class HISRClassifier:
         return torch.stack(hessian).squeeze()
 
 
-    @profile
+    # @profile
     def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
