@@ -110,7 +110,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
 
-    for ISR_class, ISR_scale in tqdm(list(product(ISR_classes, args.ISR_scales)), desc='ISR iter', leave=False):
+    for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, args.alpha, args.beta)), desc='ISR iter', leave=False):
 
         isr_clf.set_params(chosen_class=ISR_class, spu_scale=ISR_scale)
 
@@ -184,7 +184,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--hessian_approx_method', default='exact', type=str, )
     argparser.add_argument('--alpha', default=10e-5, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=10e-5, type=float, help='hessian hyperparameter')
-    argparser.add_argument('cuda', default=1, type=int, help='cuda device')
+    argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     config = argparser.parse_args(args=args)
 
     print("Specs:", specs)
