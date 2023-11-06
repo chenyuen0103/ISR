@@ -138,7 +138,7 @@ class HISRClassifier:
         else:
             raise ValueError(f"Unknown ISR version: {self.version}")
 
-        self.fit_clf(features, labels, given_clf=given_clf, spu_scale=spu_scale)
+        self.fit_clf(features, labels, given_clf=given_clf, spu_scale=spu_scale,alpha=10e-5, beta=10e-5)
         return self
 
     def fit_data(self, features, labels, envs, n_classes=None, n_envs=None):
@@ -360,7 +360,7 @@ class HISRClassifier:
             grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
             hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
 
-            total_loss = total_loss + (loss + alpha * hg_reg + beta * grad_reg)
+            total_loss = total_loss + (loss + alpha * grad_reg + beta * hg_reg)
 
         n_unique_envs = len(envs_indices_batch.unique())
         total_loss = total_loss / n_unique_envs
@@ -406,7 +406,7 @@ class HISRClassifier:
             grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
             hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
 
-            total_loss = total_loss + (loss + alpha * hgp_reg + beta * grad_reg)
+            total_loss = total_loss + (loss + alpha * grad_reg + beta * hgp_reg)
 
         n_unique_envs = len(envs_indices_batch.unique())
         total_loss = total_loss / n_unique_envs
@@ -434,7 +434,7 @@ class HISRClassifier:
         return torch.stack(hessian).squeeze()
 
 
-    # @profile
+
     def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
@@ -487,11 +487,11 @@ class HISRClassifier:
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
 
-            total_loss = total_loss + (loss + alpha * hessian_reg + beta * grad_reg)
+            total_loss = total_loss + (loss + hessian_reg + grad_reg)
             # total_loss = total_loss + loss
             erm_loss += loss
-            hess_loss += alpha * hessian_reg
-            grad_loss += beta * grad_reg
+            grad_loss += alpha * grad_reg
+            hess_loss += beta * hessian_reg
 
         n_unique_envs = len(envs_indices.unique())
         # print("Number of unique envs:", n_unique_envs)
@@ -557,9 +557,7 @@ class HISRClassifier:
                         erm_loss = erm_loss.item()
                         hess_penalty = hess_penalty.item()
                         grad_penalty = grad_penalty.item()
-                    # erm_loss_list.append(erm_loss.item())
-                    # hess_loss_list.append(hess_penalty.item())
-                    # grad_loss_list.append(grad_penalty.item())
+
 
                     total_loss.backward()
                     self.optimizer.step()
@@ -611,7 +609,7 @@ class HISRClassifier:
 
 
 
-    def fit_clf(self, features=None, labels=None, envs = None, given_clf=None, sample_weight=None, use_hessian = False):
+    def fit_clf(self, features=None, labels=None, envs = None, given_clf=None, sample_weight=None, use_hessian = False, alpha = 10e-5, beta = 10e-5, spu_scale = None):
         if not use_hessian:
             if given_clf is None:
                 assert features is not None and labels is not None
@@ -625,7 +623,7 @@ class HISRClassifier:
         else:
             assert features is not None and labels is not None
             features = self.transform(features, )
-            return self.fit_hessian_clf(features, labels, envs_indices=envs, approx_type=self.hessian_approx_method)
+            return self.fit_hessian_clf(features, labels, envs_indices=envs, approx_type=self.hessian_approx_method, alpha=alpha, beta=beta)
 
     def transform(self, features, ):
         if self.pca is not None:

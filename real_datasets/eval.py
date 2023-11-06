@@ -16,7 +16,7 @@ from hisr import HISRClassifier, check_clf
 from isr import ISRClassifier
 from utils.eval_utils import extract_data, save_df, measure_group_accs, load_data, group2env
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 warnings.filterwarnings('ignore')  # filter out Pandas append warnings
 
 
@@ -52,11 +52,11 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 
     df = pd.DataFrame(
         columns=['dataset', 'algo', 'seed', 'ckpt', 'split', 'method', 'clf_type', 'C', 'pca_dim', 'd_spu', 'ISR_class',
-                 'ISR_scale', 'env_label_ratio','num_iter'] +
+                 'ISR_scale', 'env_label_ratio','num_iter','gradient_alpha','hessian_beta'] +
                 [f'acc-{g}' for g in groups] + ['worst_group', 'avg_acc', 'worst_acc', ])
     base_row = {'dataset': args.dataset, 'algo': args.algo,
                 'seed': args.seed, 'ckpt': args.model_select,
-                'num_iter': args.max_iter}
+                'num_iter': args.max_iter, 'gradient_alpha': args.alpha, 'hessian_beta': args.beta}
 
     # Need to convert group labels to env labels (i.e., spurious-attribute labels)
     es, val_es, test_es = group2env(gs, n_spu_attr), group2env(val_gs, n_spu_attr), group2env(test_gs, n_spu_attr)
@@ -99,7 +99,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     ISR_classes = np.arange(
         n_classes) if args.ISR_class is None else [args.ISR_class]
 
-    clf_kwargs = dict(C=args.C, max_iter=args.max_iter, random_state=args.seed)
+    clf_kwargs = dict(C=args.C, max_iter=args.max_iter, random_state=args.seed, gradient_hyperparam = args.alpha, hessian_hyperparam = args.beta)
     if args.ISR_version == 'mean': args.d_spu = n_spu_attr - 1
     if args.align_hessian:
         isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
@@ -121,7 +121,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         else:
             raise ValueError('Unknown ISR version')
 
-        isr_clf.fit_clf(zs, ys, es, given_clf=given_clf, sample_weight=sample_weight, use_hessian=args.align_hessian)
+        isr_clf.fit_clf(zs, ys, es, given_clf=given_clf, sample_weight=sample_weight, use_hessian=args.align_hessian, alpha=args.alpha, beta=args.beta)
         for (split, eval_zs, eval_ys, eval_gs) in [('val', val_zs, val_ys, val_gs),
                                                    ('test', test_zs, test_ys, test_gs)]:
             group_accs, worst_acc, worst_group = measure_group_accs(
@@ -181,8 +181,12 @@ def parse_args(args: list = None, specs: dict = None):
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
 
     argparser.add_argument('--align_hessian', default=True, action='store_true')
-    argparser.add_argument('--hessian_approx_method', default='control', type=str, )
+    argparser.add_argument('--hessian_approx_method', default='exact', type=str, )
+    argparser.add_argument('--alpha', default=10e-5, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=10e-5, type=float, help='hessian hyperparameter')
+    argparser.add_argument('cuda', default=1, type=int, help='cuda device')
     config = argparser.parse_args(args=args)
+
     print("Specs:", specs)
     print("Config:", config.__dict__)
     if specs is not None:
@@ -192,4 +196,5 @@ def parse_args(args: list = None, specs: dict = None):
 
 if __name__ == '__main__':
     args = parse_args()
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
     eval_ISR(args)
