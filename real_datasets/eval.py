@@ -196,5 +196,5 @@ def parse_args(args: list = None, specs: dict = None):
 
 if __name__ == '__main__':
     args = parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     eval_ISR(args)
