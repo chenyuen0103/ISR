@@ -109,8 +109,16 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                                 clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
+    if type(args.alpha) != list:
+        alphas = [args.alpha]
+    else:
+        alphas = args.alpha
+    if type(args.beta) != list:
+        betas = [args.beta]
+    else:
+        betas = args.beta
 
-    for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, args.alpha, args.beta)), desc='ISR iter', leave=False):
+    for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, alphas, betas)), desc='ISR iter', leave=False):
 
         isr_clf.set_params(chosen_class=ISR_class, spu_scale=ISR_scale)
 
