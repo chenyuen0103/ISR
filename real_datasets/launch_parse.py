@@ -23,7 +23,7 @@ model_selects = ['best', ]
 
 log_dir = LOG_FOLDER
 
-command = get_parse_command(dataset=dataset, algos=algos, model_selects=model_selects,
+command = get_parse_command(dataset='MultiNLI', algos=algos, model_selects=model_selects,
                             train_log_seeds=train_log_seeds, log_dir=log_dir, gpu_idx=gpu_idx,
                             parse_script='parse_features_clip.py')
 print('Command:', command)

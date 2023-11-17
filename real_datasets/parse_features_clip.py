@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser()
 
 # Settings
 parser.add_argument('-d', '--dataset',
-                    choices=dataset_attributes.keys(), required=True)
+                    choices=dataset_attributes.keys(), default='MultiNLI')
 parser.add_argument('-s', '--shift_type',
                     choices=shift_types, default='confounder')
 
@@ -95,7 +95,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 check_args(args)
-
 
 model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
 tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
@@ -167,11 +166,12 @@ else:
 output_layer = None
 
 
-def process_batch(model, x, y=None, g=None, bert=True):
+def process_batch(model,  x, y=None, g=None):
     if args.dataset in ['MultiNLI']:
         input_ids = x[:, :, 0]
         input_masks = x[:, :, 1]
         segment_ids = x[:, :, 2]
+        breakpoint()
         outputs = model.encode_text(
             input_ids=input_ids,
             attention_mask=input_masks,

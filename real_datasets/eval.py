@@ -190,8 +190,8 @@ def parse_args(args: list = None, specs: dict = None):
 
     argparser.add_argument('--align_hessian', default=True, action='store_true')
     argparser.add_argument('--hessian_approx_method', default='exact', type=str, )
-    argparser.add_argument('--alpha', default=10e-5, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=10e-5, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--alpha', default=1e-5, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     config = argparser.parse_args(args=args)
 
