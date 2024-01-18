@@ -7,8 +7,8 @@ import pdb
 gpu_idx = 0  # could be None if you want to use cpu
 
 algos = ['ERM','reweight','groupDRO']
-dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
-
+# dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
+dataset = 'CUB'
 # can add some suffix to the algo name to flag the version,
 # e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
 algo_suffix = ""

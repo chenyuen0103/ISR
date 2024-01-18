@@ -5,11 +5,12 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torchvision
+import open_clip
 
 import configs
 from configs.model_config import model_attributes
 from data import dataset_attributes, shift_types, prepare_data, log_data
-from train import train
+from train_hessian import train
 from utils.train_utils import set_seed, Logger, CSVBatchLogger, log_args
 import pdb
 
@@ -47,7 +48,7 @@ def main():
     parser.add_argument(
         '--model',
         choices=model_attributes.keys(),
-        default='resnet50')
+        default='clip')
     parser.add_argument('--train_from_scratch', action='store_true', default=False)
 
     # Optimization
@@ -140,6 +141,10 @@ def main():
         d = train_data.input_size()[0]
         model = nn.Linear(d, n_classes)
         model.has_aux_logits = False
+    elif args.model == 'clip':
+        model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms(
+            'hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
+        tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
     elif args.model == 'resnet50':
         model = torchvision.models.resnet50(pretrained=pretrained)
         d = model.fc.in_features
@@ -198,7 +203,7 @@ def main():
     train_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'train.csv'), train_data.n_groups, mode=mode)
     val_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'val.csv'), train_data.n_groups, mode=mode)
     test_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'test.csv'), train_data.n_groups, mode=mode)
-
+    breakpoint()
     train(model, criterion, data, logger, train_csv_logger, val_csv_logger, test_csv_logger, args,
           epoch_offset=epoch_offset)
 
