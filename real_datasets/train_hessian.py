@@ -51,11 +51,10 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                 )[1]  # [1] returns logits
             elif args.model == 'clip':
                 # Reshape x to [batch_size, channels, height, width]
-                x = x.view(128, 3, 224, 224)  # Replace 224, 224 with the correct dimensions if different
-                outputs = model(x)
-            else:
-                breakpoint()
-                outputs = model(x)
+                x = x.view(x.size(0), 3, 224, 224) # Replace 224, 224 with the correct dimensions if different
+                # outputs = model(x)
+            # else:
+            #     outputs = model(x)
 
             loss_main = loss_computer.exact_hessian_loss(model, x, y, g, is_training)
 

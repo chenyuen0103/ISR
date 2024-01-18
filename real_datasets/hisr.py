@@ -504,6 +504,7 @@ class HISRClassifier:
         del hessian
         del env_gradients
         del env_hessians
+        torch.cuda.empty_cache()
 
         return total_loss, erm_loss, hess_loss, grad_loss
         # return total_loss, 0, 0, 0
