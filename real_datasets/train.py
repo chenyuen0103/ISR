@@ -120,7 +120,8 @@ def train(model, criterion, dataset,
             optimizer_grouped_parameters,
             lr=args.lr,
             eps=args.adam_epsilon)
-        t_total = len(dataset['train_loader']) * args.n_epochs
+        t_total = len(dataset['train_loader'
+                      ]) * args.n_epochs
         print(f'\nt_total is {t_total}\n')
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
