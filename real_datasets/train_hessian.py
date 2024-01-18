@@ -66,7 +66,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                     model.zero_grad()
                 else:
                     optimizer.zero_grad()
-                    breakpoint()
+                    # breakpoint()
                     loss_main.backward()
                     optimizer.step()
 
