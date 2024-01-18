@@ -49,6 +49,10 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                     token_type_ids=segment_ids,
                     labels=y
                 )[1]  # [1] returns logits
+            elif args.model == 'clip':
+                # Reshape x to [batch_size, channels, height, width]
+                x = x.view(128, 3, 224, 224)  # Replace 224, 224 with the correct dimensions if different
+                outputs = model(x)
             else:
                 breakpoint()
                 outputs = model(x)
