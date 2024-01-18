@@ -84,9 +84,9 @@ def train(model, criterion, dataset,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
           args, epoch_offset):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # model = model.to(device)
+    model = model.to(device)
     # breakpoint()
-    # model = model.cuda()
+    model = model.cuda()
 
     # process generalization adjustment stuff
     adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
