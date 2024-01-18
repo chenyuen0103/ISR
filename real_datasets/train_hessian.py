@@ -55,7 +55,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
             # else:
             #     outputs = model(x)
 
-            loss_main = loss_computer.exact_hessian_loss(model, x, y, g, is_training)
+            loss_main, _, _, _ = loss_computer.exact_hessian_loss(model, x, y, g, is_training)
 
             if is_training:
                 if args.model == 'bert':
@@ -66,6 +66,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                     model.zero_grad()
                 else:
                     optimizer.zero_grad()
+                    breakpoint()
                     loss_main.backward()
                     optimizer.step()
 
