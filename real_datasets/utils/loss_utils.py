@@ -170,7 +170,11 @@ class LossComputer:
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
-            loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
+            # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
+            outputs = model(x[idx])
+            # Assuming the first element of the tuple is the output you need
+            main_output = outputs[0] if isinstance(outputs, tuple) else outputs
+            loss = self.criterion(main_output.squeeze(), y[idx].long())
             # # Gradient and Hessian Computation assumes negative log loss
             # # grads = self.gradient(model, x[idx], y[idx])
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
