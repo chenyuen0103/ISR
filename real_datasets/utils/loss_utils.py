@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class LossComputer:
@@ -95,6 +96,144 @@ class LossComputer:
         _, unsort_idx = sorted_idx.sort()
         unsorted_weights = weights[unsort_idx]
         return robust_loss, unsorted_weights
+
+    def hessian(self, model, x):
+        '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
+        for params in model.parameters():
+            params.requires_grad = True
+
+        logits = model(x)
+        p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
+
+        # Compute the Hessian for each sample in the batch, then average
+        batch_size = x.shape[0]
+        hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+
+        hessian_w_class0 = sum(hessian_list_class0) / batch_size
+
+        # Hessian for class 1 is just the negative of the Hessian for class 0
+        hessian_w_class1 = -hessian_w_class0
+
+
+        # Stacking the Hessians for both classes
+        hessian_w = torch.stack([hessian_w_class0, hessian_w_class1])
+        return hessian_w
+
+
+    def gradient(self,model, x, y):
+        for param in model.parameters():
+            param.requires_grad = True
+
+        # Compute logits and probabilities
+        logits = model(x)
+        if logits.dim() == 1:
+            p = F.softmax(logits, dim=0)
+        else:
+            p = F.softmax(logits, dim=1)
+
+
+        y_onehot = torch.zeros_like(p)
+        if len(y.shape) == 0:
+            y = y.unsqueeze(0)
+        # Check if p is 1D and if so, reshape it to 2D
+        if len(p.shape) == 1:
+            p = p.unsqueeze(0)
+
+        # Ensure y_onehot is 2D: (batch_size, num_classes)
+        num_classes = 2  # or whatever the number of classes is in your problem
+        if len(y_onehot.shape) == 1:
+            y_onehot = y_onehot.unsqueeze(0)
+
+        # Now, scatter should work without errors
+        y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
+        try:
+            y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
+        except:
+            y_onehot = y_onehot.scatter(1, y.unsqueeze(1), 1)
+
+        # print("y.shape:", y.shape)
+        # print("y_onehot.shape:", y_onehot.shape)
+
+        # Compute the gradient using the analytical form for each class
+        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
+        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
+
+        # Stack the gradients for both classes
+        grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
+        return grad_w
+
+    def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
+        total_loss = torch.tensor(0.0, requires_grad=True)
+        env_gradients = []
+        env_hessians = []
+        initial_state = model.state_dict()
+        for env_idx in envs_indices.unique():
+            model.zero_grad()
+            idx = (envs_indices == env_idx).nonzero().squeeze()
+            loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
+            # # Gradient and Hessian Computation assumes negative log loss
+            # # grads = self.gradient(model, x[idx], y[idx])
+            # get grads, hessian of loss with respect to parameters, and those to be backwarded later
+            loss.backward(retain_graph=True)
+            # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+            grads = self.gradient(model, x[idx], y[idx])
+            # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
+            hessian = self.hessian(model, x[idx])
+            env_gradients.append(grads)
+            env_hessians.append(hessian)
+
+            model.load_state_dict(initial_state)
+            model.zero_grad()
+
+        # Compute average gradient and hessian
+        # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
+        #                 range(len(env_gradients[0]))]
+        weight_gradients = [g[0] for g in env_gradients]
+        avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
+
+        # avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+        avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
+
+        erm_loss = 0
+        hess_loss = 0
+        grad_loss = 0
+        for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
+            idx = (envs_indices == env_idx).nonzero().squeeze()
+            loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
+            # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
+            grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
+
+            # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
+            hessian_diff = hessian - avg_hessian
+            hessian_diff_norm = torch.norm(hessian_diff, p='fro')
+
+
+            # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
+            # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
+
+            grad_reg = alpha * grad_diff_norm ** 2
+            hessian_reg = beta * hessian_diff_norm ** 2
+
+            total_loss = total_loss + (loss + hessian_reg + grad_reg)
+            # total_loss = total_loss + loss
+            erm_loss += loss
+            grad_loss += alpha * grad_reg
+            hess_loss += beta * hessian_reg
+
+        n_unique_envs = len(envs_indices.unique())
+        # print("Number of unique envs:", n_unique_envs)
+        total_loss = total_loss / n_unique_envs
+        erm_loss = erm_loss / n_unique_envs
+        hess_loss = hess_loss / n_unique_envs
+        grad_loss = grad_loss / n_unique_envs
+        # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
+        del grads
+        del hessian
+        del env_gradients
+        del env_hessians
+        torch.cuda.empty_cache()
+
+        return total_loss, erm_loss, hess_loss, grad_loss
 
     def compute_group_avg(self, losses, group_idx):
         # compute observed counts and mean loss for each group
