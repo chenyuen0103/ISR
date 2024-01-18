@@ -20,7 +20,6 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     if is_training:
         print("Start Training")
         model.train()
-        breakpoint()
         if args.model == 'bert':
             model.zero_grad()
         print("End training")
