@@ -164,7 +164,7 @@ class LossComputer:
 
     def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
-        self.criterion = torch.nn.CrossEntropyLoss()
+        self.criterion2 = torch.nn.CrossEntropyLoss()
         env_gradients = []
         env_hessians = []
         initial_state = model.state_dict()
@@ -172,10 +172,13 @@ class LossComputer:
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
-            outputs = model(x[idx])
+            yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
-            main_output = outputs[0] if isinstance(outputs, tuple) else outputs
-            loss = self.criterion(main_output.squeeze(), y[idx].long())
+            main_output = yhat[0] if isinstance(yhat, tuple) else yhat
+            loss = self.loss(main_output, y[idx].long(), env_idx, is_training=True)
+            loss2 = self.criterion2(main_output, y[idx].long())
+
+            assert loss == loss2
             # # Gradient and Hessian Computation assumes negative log loss
             # # grads = self.gradient(model, x[idx], y[idx])
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
