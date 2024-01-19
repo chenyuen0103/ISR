@@ -125,8 +125,8 @@ class LossComputer:
             param.requires_grad = True
 
         # Compute logits and probabilities
-        breakpoint()
         logits = model(x)
+        logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             p = F.softmax(logits, dim=0)
         else:
