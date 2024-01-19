@@ -24,7 +24,7 @@ for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     print('Command:', command)
 
     # Run the command in the background
-    os.system(command + " &")
+    os.system(command)
 
     # Rotate the GPU index
     gpu_idx = (gpu_idx + 1) % gpu_count
