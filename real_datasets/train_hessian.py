@@ -157,7 +157,7 @@ def train(model, criterion, dataset,
 
     best_val_acc = 0
     best_avg_val_acc = 0
-    for epoch in range(epoch_offset, epoch_offset + args.n_epochs):
+    for epoch in tqdm(range(epoch_offset, epoch_offset + args.n_epochs)):
         logger.write('\nEpoch [%d]:\n' % epoch)
         logger.write(f'Training:\n')
         run_epoch(
