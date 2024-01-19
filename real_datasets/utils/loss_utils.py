@@ -218,7 +218,7 @@ class LossComputer:
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
             grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            hessian = self.compute_pytorch_hessian(model, x[idx])
+            hessian = self.compute_pytorch_hessian(model, x[idx], y)
             env_gradients.append(grads)
             env_hessians.append(hessian)
 
