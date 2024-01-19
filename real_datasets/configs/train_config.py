@@ -5,23 +5,23 @@ TRAIN_COMMANDS = dict(
     CelebA=
     {
         "ERM": "-s confounder -d CelebA -t Blond_Hair -c Male --model resnet50 --weight_decay 0.01 --lr 0.0001 "
-               "--batch_size 32 --n_epochs 50",  # ERM
+               "--batch_size 128 --n_epochs 50",  # ERM
         "groupDRO": "-s confounder -d CelebA -t Blond_Hair -c Male --model resnet50 --weight_decay 0.1 --lr 1e-05 "
-                    "--batch_size 32 --n_epochs 50 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 3",
+                    "--batch_size 128 --n_epochs 50 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 3",
         # groupDRO
         "reweight": "-s confounder -d CelebA -t Blond_Hair -c Male --model resnet50 --weight_decay 0.1 --lr 1e-05 "
-                    "--batch_size 32 --n_epochs 50 --reweight_groups"  # reweight,
+                    "--batch_size 128 --n_epochs 50 --reweight_groups"  # reweight,
     }
     ,
     CUB={
         # "ERM": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 0.1 --lr 0.0001 '
         #        '--batch_size 128 --n_epochs 300',  # ERM
         "ERM": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model clip --weight_decay 0.1 --lr 0.0001 '
-                '--batch_size 128 --n_epochs 300',  # ERM
+                '--batch_size 32 --n_epochs 300',  # ERM
         "reweight": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model clip --weight_decay 1 --lr 1e-05 '
-                    '--batch_size 128 --n_epochs 300 --reweight_groups',  # reweight
+                    '--batch_size 32 --n_epochs 300 --reweight_groups',  # reweight
         "groupDRO": ' -s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model clip --weight_decay 1 --lr 1e-05 '
-                    '--batch_size 128 --n_epochs 300 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 2',
+                    '--batch_size 32 --n_epochs 300 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 2',
         # groupDRO
     },
     MultiNLI={
