@@ -202,7 +202,7 @@ class LossComputer:
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
-            breakpoint()
+            # breakpoint()
             yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
             main_output = yhat[0] if isinstance(yhat, tuple) else yhat
