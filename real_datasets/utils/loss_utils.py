@@ -124,6 +124,8 @@ class LossComputer:
             # Flatten and append to the Hessian
             row = torch.cat([g.reshape(-1) for g in row_grads])
             hessian.append(row)
+            del row_grads, row  # Free up these variables
+            torch.cuda.empty_cache()  # Free up CUDA memory
 
         # Convert list of rows into a full Hessian tensor
         hessian = torch.stack(hessian)
@@ -233,7 +235,11 @@ class LossComputer:
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             env_gradients.append(grads)
+            del grads  # Free up the variable
+            torch.cuda.empty_cache()
             env_hessians.append(hessian)
+            del hessian  # Free up the variable
+            torch.cuda.empty_cache()
 
             model.load_state_dict(initial_state)
             model.zero_grad()
