@@ -156,8 +156,9 @@ class LossComputer:
         # print("y_onehot.shape:", y_onehot.shape)
 
         # Compute the gradient using the analytical form for each class
-        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
-        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
+        breakpoint()
+        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(1), x) / x.size(0)
+        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(1), x) / x.size(0)
 
         # Stack the gradients for both classes
         grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
