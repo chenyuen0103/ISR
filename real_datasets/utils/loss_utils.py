@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 # Set the default CUDA device to GPU 2
-torch.cuda.set_device(2)
+torch.cuda.set_device(0)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class LossComputer:
     def __init__(self, criterion, is_robust, dataset, alpha=None, gamma=0.1, adj=None, min_var_weight=0, step_size=0.01,
