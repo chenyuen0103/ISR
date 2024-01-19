@@ -29,7 +29,7 @@ model_attributes = {
     },
     'clip': {
             'feature_type': 'image',
-            'target_resolution': (224, 224),
-            'flatten': True,
+            'target_resolution': (10, 10),
+            'flatten': False,
     }
 }
