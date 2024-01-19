@@ -114,7 +114,7 @@ class LossComputer:
                                     create_graph=True, allow_unused=True)
 
         # Flatten all gradients to a single vector (for a full Hessian)
-        grad_vector = torch.cat([grad.view(-1) for grad in grads])
+        grad_vector = torch.cat([grad.view(-1) for grad in grads  if grad is not None])
 
         # Initialize the Hessian matrix
         hessian = []
