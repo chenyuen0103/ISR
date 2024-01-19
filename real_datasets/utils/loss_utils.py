@@ -105,6 +105,7 @@ class LossComputer:
             params.requires_grad = True
 
         logits = model(x)
+        logits = logits[0] if isinstance(logits, tuple) else logits
         p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
         # Compute the Hessian for each sample in the batch, then average
