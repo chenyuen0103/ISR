@@ -10,6 +10,8 @@ from transformers import get_linear_schedule_with_warmup
 
 from utils.loss_utils import LossComputer
 import pdb
+from torch.profiler import profile, record_function, ProfilerActivity
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -28,64 +30,68 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     else:
         model.eval()
 
-    if show_progress:
-        prog_bar_loader = tqdm(loader)
-    else:
-        prog_bar_loader = loader
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                 record_shapes=True,
+                 profile_memory=True,
+                 with_stack=True) as prof:
+        if show_progress:
+            prog_bar_loader = tqdm(loader)
+        else:
+            prog_bar_loader = loader
 
-    with torch.set_grad_enabled(is_training):
-        for batch_idx, batch in enumerate(prog_bar_loader):
-            batch = tuple(t.to(device) for t in batch)
-            # batch = tuple(t.cuda() for t in batch)
-            x = batch[0]
-            y = batch[1]
-            g = batch[2]
-            if args.model == 'bert':
-                input_ids = x[:, :, 0]
-                input_masks = x[:, :, 1]
-                segment_ids = x[:, :, 2]
-                outputs = model(
-                    input_ids=input_ids,
-                    attention_mask=input_masks,
-                    token_type_ids=segment_ids,
-                    labels=y
-                )[1]  # [1] returns logits
-            elif args.model == 'clip':
-                # Reshape x to [batch_size, channels, height, width]
-                x = x.view(x.size(0), 3, 224, 224) # Replace 224, 224 with the correct dimensions if different
-                # outputs = model(x)
-            # else:
-            #     outputs = model(x)
-
-            loss_main, _, _, _ = loss_computer.exact_hessian_loss(model, x, y, g, is_training)
-
-            if is_training:
+        with torch.set_grad_enabled(is_training):
+            for batch_idx, batch in enumerate(prog_bar_loader):
+                batch = tuple(t.to(device) for t in batch)
+                # batch = tuple(t.cuda() for t in batch)
+                x = batch[0]
+                y = batch[1]
+                g = batch[2]
                 if args.model == 'bert':
-                    loss_main.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-                    optimizer.step()
-                    scheduler.step()
-                    model.zero_grad()
-                else:
-                    optimizer.zero_grad()
-                    # breakpoint()
-                    loss_main.backward()
-                    optimizer.step()
+                    input_ids = x[:, :, 0]
+                    input_masks = x[:, :, 1]
+                    segment_ids = x[:, :, 2]
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=input_masks,
+                        token_type_ids=segment_ids,
+                        labels=y
+                    )[1]  # [1] returns logits
+                elif args.model == 'clip':
+                    # Reshape x to [batch_size, channels, height, width]
+                    x = x.view(x.size(0), 3, 224, 224) # Replace 224, 224 with the correct dimensions if different
+                    # outputs = model(x)
+                # else:
+                #     outputs = model(x)
 
-            if is_training and (batch_idx + 1) % log_every == 0:
+                loss_main, _, _, _ = loss_computer.exact_hessian_loss(model, x, y, g, is_training)
+
+                if is_training:
+                    if args.model == 'bert':
+                        loss_main.backward()
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                        optimizer.step()
+                        scheduler.step()
+                        model.zero_grad()
+                    else:
+                        optimizer.zero_grad()
+                        # breakpoint()
+                        loss_main.backward()
+                        optimizer.step()
+
+                if is_training and (batch_idx + 1) % log_every == 0:
+                    csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
+                    csv_logger.flush()
+                    loss_computer.log_stats(logger, is_training)
+                    loss_computer.reset_stats()
+
+            if (not is_training) or loss_computer.batch_count > 0:
                 csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
                 csv_logger.flush()
                 loss_computer.log_stats(logger, is_training)
-                loss_computer.reset_stats()
-
-        if (not is_training) or loss_computer.batch_count > 0:
-            csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
-            csv_logger.flush()
-            loss_computer.log_stats(logger, is_training)
-            if is_training:
-                loss_computer.reset_stats()
-    del x, y, g, outputs, loss_main
-    torch.cuda.empty_cache()
+                if is_training:
+                    loss_computer.reset_stats()
+        del x, y, g, outputs, loss_main
+        torch.cuda.empty_cache()
 
 
 def train(model, criterion, dataset,
