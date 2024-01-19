@@ -38,8 +38,8 @@ TRAIN_COMMANDS = dict(
 
 def get_train_command(dataset: str, algo: str, gpu_idx: int = None, train_script: str = 'run_expt.py',
                       algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True):
-    # prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''
-    prefix = ''
+    prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''
+    # prefix = ''
     suffix = f' --algo_suffix {algo_suffix}' if algo_suffix else ''
     if save_best:
         suffix += ' --save_best'
