@@ -103,8 +103,9 @@ class LossComputer:
         for param in model.parameters():
             param.requires_grad = True
 
-        logits = model(x).squeeze()
-
+        logits = model(x)
+        logits = logits[0] if isinstance(logits, tuple) else logits
+        logits = logits.squeeze()
         loss = self.criterion2(logits, y.long())
 
         # First order gradients
