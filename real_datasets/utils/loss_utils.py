@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from tqdm import tqdm
 
 # Set the default CUDA device to GPU 2
 # torch.cuda.set_device(3)
@@ -117,7 +118,7 @@ class LossComputer:
 
         # Initialize the Hessian matrix
         hessian = []
-        for i in range(len(grad_vector)):
+        for i in tqdm(range((len(grad_vector))):
             # Compute gradients with respect to each element of the gradient vector
             # row_grads = torch.autograd.grad(grad_vector[i], [param for param in model.parameters() if param.requires_grad], create_graph=True, retain_graph=True, allow_unused=True)
             row_grads = torch.autograd.grad(grad_vector[i],
