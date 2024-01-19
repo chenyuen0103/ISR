@@ -122,7 +122,7 @@ class LossComputer:
             row_grads = torch.autograd.grad(grad_vector[i], [param for param in model.parameters() if param.requires_grad], create_graph=True, retain_graph=True, allow_unused=True)
 
             # Flatten and append to the Hessian
-            row = torch.cat([g.view(-1) for g in row_grads])
+            row = torch.cat([g.reshape(-1) for g in row_grads])
             hessian.append(row)
 
         # Convert list of rows into a full Hessian tensor
