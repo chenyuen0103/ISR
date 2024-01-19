@@ -32,8 +32,7 @@ for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     # Optional: Introduce a slight delay if needed
     # time.sleep(1)
 
-# Wait for all background processes to finish
-os.system("wait")
+
 
 # for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
 #     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
