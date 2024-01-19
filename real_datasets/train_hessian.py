@@ -84,6 +84,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
             loss_computer.log_stats(logger, is_training)
             if is_training:
                 loss_computer.reset_stats()
+    del x, y, g, outputs, loss_main
     torch.cuda.empty_cache()
 
 
