@@ -98,6 +98,24 @@ class LossComputer:
         _, unsort_idx = sorted_idx.sort()
         unsorted_weights = weights[unsort_idx]
         return robust_loss, unsorted_weights
+    def compute_pytorch_hessian(self, model, x, y):
+        batch_size = x.shape[0]
+        for param in model.parameters():
+            param.requires_grad = True
+
+        logits = model(x).squeeze()
+
+        loss = self.criterion2(logits, y.long())
+
+        # First order gradients
+        grads = torch.autograd.grad(loss, model.linear.weight, create_graph=True)[0]
+
+        hessian = []
+        for i in range(grads.size(1)):
+            row = torch.autograd.grad(grads[0][i], model.linear.weight, create_graph=True, retain_graph=True)[0]
+            hessian.append(row)
+
+        return torch.stack(hessian).squeeze()
 
     def hessian(self, model, x):
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
@@ -200,7 +218,7 @@ class LossComputer:
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
             grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            hessian = self.hessian(model, x[idx])
+            hessian = self.compute_pytorch_hessian(model, x[idx])
             env_gradients.append(grads)
             env_hessians.append(hessian)
 
