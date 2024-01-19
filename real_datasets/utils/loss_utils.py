@@ -175,7 +175,8 @@ class LossComputer:
             yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
             main_output = yhat[0] if isinstance(yhat, tuple) else yhat
-            loss = self.loss(main_output, y[idx].long(), env_idx, is_training=True)
+            per_sample_loss = self.criterion(main_output, y[idx].long())
+            loss = per_sample_loss.mean()
             loss2 = self.criterion2(main_output, y[idx].long())
             breakpoint()
             assert loss == loss2
