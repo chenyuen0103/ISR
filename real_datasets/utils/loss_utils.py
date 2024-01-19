@@ -111,7 +111,7 @@ class LossComputer:
         # First order gradients
         # grads = torch.autograd.grad(loss, model.linear.weight, create_graph=True)[0]
         grads = torch.autograd.grad(loss, [param for param in model.parameters() if param.requires_grad],
-                                    create_graph=True)
+                                    create_graph=True, allow_unused=True)
 
         # Flatten all gradients to a single vector (for a full Hessian)
         grad_vector = torch.cat([grad.view(-1) for grad in grads])
@@ -122,7 +122,7 @@ class LossComputer:
             # Compute gradients with respect to each element of the gradient vector
             row_grads = torch.autograd.grad(grad_vector[i],
                                             [param for param in model.parameters() if param.requires_grad],
-                                            create_graph=True, retain_graph=True)
+                                            create_graph=True, retain_graph=True, allow_unused=True)
 
             # Flatten and append to the Hessian
             row = torch.cat([g.view(-1) for g in row_grads])
