@@ -177,7 +177,7 @@ class LossComputer:
             main_output = yhat[0] if isinstance(yhat, tuple) else yhat
             loss = self.loss(main_output, y[idx].long(), env_idx, is_training=True)
             loss2 = self.criterion2(main_output, y[idx].long())
-
+            breakpoint()
             assert loss == loss2
             # # Gradient and Hessian Computation assumes negative log loss
             # # grads = self.gradient(model, x[idx], y[idx])
