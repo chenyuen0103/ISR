@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 # Set the default CUDA device to GPU 2
-torch.cuda.set_device(2)
+# torch.cuda.set_device(2)
 from torch.optim import AdamW
 from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
