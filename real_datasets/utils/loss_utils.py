@@ -231,7 +231,7 @@ class LossComputer:
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
             # breakpoint()
             loss.backward(retain_graph=True)
-            grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+            grads = torch.autograd.grad(loss, model.parameters(), create_graph=True, allow_unused=True)
             # grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
