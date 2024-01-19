@@ -175,11 +175,10 @@ class LossComputer:
             yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
             main_output = yhat[0] if isinstance(yhat, tuple) else yhat
-            per_sample_loss = self.criterion(main_output, y[idx].long())
-            loss = per_sample_loss.mean()
-            loss2 = self.criterion2(main_output, y[idx].long())
-            breakpoint()
-            assert loss == loss2
+            # per_sample_loss = self.criterion(main_output, y[idx].long())
+            # loss = per_sample_loss.mean()
+            loss = self.criterion2(main_output, y[idx].long())
+
             # # Gradient and Hessian Computation assumes negative log loss
             # # grads = self.gradient(model, x[idx], y[idx])
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
