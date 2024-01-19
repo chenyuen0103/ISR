@@ -4,7 +4,7 @@ from tqdm import tqdm
 from configs import get_train_command
 import pdb
 
-gpu_idx = 1  # could be None if you want to use cpu
+gpu_idx = 2  # could be None if you want to use cpu
 
 algos = ['ERM','reweight','groupDRO']
 # dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
