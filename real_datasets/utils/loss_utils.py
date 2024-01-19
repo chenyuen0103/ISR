@@ -109,14 +109,29 @@ class LossComputer:
         loss = self.criterion2(logits, y.long())
 
         # First order gradients
-        grads = torch.autograd.grad(loss, model.linear.weight, create_graph=True)[0]
+        # grads = torch.autograd.grad(loss, model.linear.weight, create_graph=True)[0]
+        grads = torch.autograd.grad(loss, [param for param in model.parameters() if param.requires_grad],
+                                    create_graph=True)
 
+        # Flatten all gradients to a single vector (for a full Hessian)
+        grad_vector = torch.cat([grad.view(-1) for grad in grads])
+
+        # Initialize the Hessian matrix
         hessian = []
-        for i in range(grads.size(1)):
-            row = torch.autograd.grad(grads[0][i], model.linear.weight, create_graph=True, retain_graph=True)[0]
+        for i in range(len(grad_vector)):
+            # Compute gradients with respect to each element of the gradient vector
+            row_grads = torch.autograd.grad(grad_vector[i],
+                                            [param for param in model.parameters() if param.requires_grad],
+                                            create_graph=True, retain_graph=True)
+
+            # Flatten and append to the Hessian
+            row = torch.cat([g.view(-1) for g in row_grads])
             hessian.append(row)
 
-        return torch.stack(hessian).squeeze()
+        # Convert list of rows into a full Hessian tensor
+        hessian = torch.stack(hessian)
+
+        return hessian
 
     def hessian(self, model, x):
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
@@ -216,8 +231,8 @@ class LossComputer:
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
             # breakpoint()
             loss.backward(retain_graph=True)
-            # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
-            grads = self.gradient(model, x[idx], y[idx])
+            grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
+            # grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             env_gradients.append(grads)
