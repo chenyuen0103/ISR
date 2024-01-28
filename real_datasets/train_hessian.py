@@ -163,7 +163,7 @@ def train(model, criterion, dataset,
     best_avg_val_acc = 0
     for epoch in tqdm(range(epoch_offset, epoch_offset + args.n_epochs)):
         with torch.autograd.profiler.profile(use_cuda=True) as prof:
-            `logger.write('\nEpoch [%d]:\n' % epoch)
+            logger.write('\nEpoch [%d]:\n' % epoch)
             logger.write(f'Training:\n')
             run_epoch(
                 epoch, model, optimizer,
