@@ -98,71 +98,72 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
 def train(model, criterion, dataset,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
           args, epoch_offset):
-    with torch.autograd.profiler.profile(use_cuda=True) as prof:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = model.to(device)
-        model = model.cuda()
 
-        # process generalization adjustment stuff
-        adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
-        assert len(adjustments) in (1, dataset['train_data'].n_groups)
-        if len(adjustments) == 1:
-            adjustments = np.array(adjustments * dataset['train_data'].n_groups)
-        else:
-            adjustments = np.array(adjustments)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    model = model.cuda()
 
-        train_loss_computer = LossComputer(
-            criterion,
-            is_robust=args.robust,
-            dataset=dataset['train_data'],
-            alpha=args.alpha,
-            gamma=args.gamma,
-            adj=adjustments,
-            step_size=args.robust_step_size,
-            normalize_loss=args.use_normalized_loss,
-            btl=args.btl,
-            min_var_weight=args.minimum_variational_weight)
+    # process generalization adjustment stuff
+    adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
+    assert len(adjustments) in (1, dataset['train_data'].n_groups)
+    if len(adjustments) == 1:
+        adjustments = np.array(adjustments * dataset['train_data'].n_groups)
+    else:
+        adjustments = np.array(adjustments)
 
-        # BERT uses its own scheduler and optimizer
-        if args.model == 'bert':
-            no_decay = ['bias', 'LayerNorm.weight']
-            optimizer_grouped_parameters = [
-                {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                 'weight_decay': args.weight_decay},
-                {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-            ]
-            optimizer = AdamW(
-                optimizer_grouped_parameters,
-                lr=args.lr,
-                eps=args.adam_epsilon)
-            t_total = len(dataset['train_loader']) * args.n_epochs
-            print(f'\nt_total is {t_total}\n')
-            scheduler = get_linear_schedule_with_warmup(
+    train_loss_computer = LossComputer(
+        criterion,
+        is_robust=args.robust,
+        dataset=dataset['train_data'],
+        alpha=args.alpha,
+        gamma=args.gamma,
+        adj=adjustments,
+        step_size=args.robust_step_size,
+        normalize_loss=args.use_normalized_loss,
+        btl=args.btl,
+        min_var_weight=args.minimum_variational_weight)
+
+    # BERT uses its own scheduler and optimizer
+    if args.model == 'bert':
+        no_decay = ['bias', 'LayerNorm.weight']
+        optimizer_grouped_parameters = [
+            {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+             'weight_decay': args.weight_decay},
+            {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+        optimizer = AdamW(
+            optimizer_grouped_parameters,
+            lr=args.lr,
+            eps=args.adam_epsilon)
+        t_total = len(dataset['train_loader']) * args.n_epochs
+        print(f'\nt_total is {t_total}\n')
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=args.warmup_steps,
+            num_training_steps=t_total)
+    else:
+        optimizer = torch.optim.SGD(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=args.lr,
+            momentum=0.9,
+            weight_decay=args.weight_decay)
+        if args.scheduler:
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
-                num_warmup_steps=args.warmup_steps,
-                num_training_steps=t_total)
+                'min',
+                factor=0.1,
+                patience=5,
+                threshold=0.0001,
+                min_lr=0,
+                eps=1e-08)
         else:
-            optimizer = torch.optim.SGD(
-                filter(lambda p: p.requires_grad, model.parameters()),
-                lr=args.lr,
-                momentum=0.9,
-                weight_decay=args.weight_decay)
-            if args.scheduler:
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer,
-                    'min',
-                    factor=0.1,
-                    patience=5,
-                    threshold=0.0001,
-                    min_lr=0,
-                    eps=1e-08)
-            else:
-                scheduler = None
+            scheduler = None
 
-        best_val_acc = 0
-        best_avg_val_acc = 0
-        for epoch in tqdm(range(epoch_offset, epoch_offset + args.n_epochs)):
-            logger.write('\nEpoch [%d]:\n' % epoch)
+    best_val_acc = 0
+    best_avg_val_acc = 0
+    for epoch in tqdm(range(epoch_offset, epoch_offset + args.n_epochs)):
+        with torch.autograd.profiler.profile(use_cuda=True) as prof:
+            `logger.write('\nEpoch [%d]:\n' % epoch)
             logger.write(f'Training:\n')
             run_epoch(
                 epoch, model, optimizer,
@@ -249,4 +250,4 @@ def train(model, criterion, dataset,
                         f'  {train_loss_computer.get_group_name(group_idx)}:\t'
                         f'adj = {train_loss_computer.adj[group_idx]:.3f}\n')
             logger.write('\n')
-    print(prof)
+        print(prof)
