@@ -7,7 +7,7 @@ import torch
 from torch.optim import AdamW
 from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
-
+from sklearn.metrics import accuracy_score
 from utils.loss_utils import LossComputer
 import pdb
 from torch.profiler import profile, record_function, ProfilerActivity
@@ -16,6 +16,28 @@ from torch.profiler import profile, record_function, ProfilerActivity
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 torch.cuda.empty_cache()
+
+class LogisticRegression(torch.nn.Module):
+    # build the constructor
+    def __init__(self, n_inputs, n_outputs):
+        super().__init__()
+        self.linear = torch.nn.Linear(n_inputs, n_outputs)
+
+    # make predictions
+    def forward(self, x):
+        # Just return the logits (raw scores). Softmax will be applied in the loss function.
+        if not isinstance(x, torch.Tensor):
+            x = torch.tensor(x).float()
+        # print(x.shape)
+        return self.linear(x)
+
+    def predict(self, x):
+        logits = self.forward(x)
+        return torch.argmax(logits, dim=1)
+
+    def score(self, X, y, sample_weight=None):
+        return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+
 
 def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger, args,
               is_training, show_progress=False, log_every=50, scheduler=None):
@@ -62,8 +84,9 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                 outputs = encoder(x)
             # else:
             #     outputs = model(x)
-
-            loss_main, _, _, _ = loss_computer.exact_hessian_loss(model, x, y, g, is_training)
+            num_classes = len(np.unique(y))
+            clf = LogisticRegression(outputs.shape[0], num_classes).cuda()
+            loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, x, y, g, is_training)
 
             if is_training:
                 if args.model == 'bert':
