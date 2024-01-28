@@ -16,7 +16,7 @@ algo_suffix = ""
 # Assuming seeds, algos, dataset, and get_train_command are defined
 
 gpu_count = 4  # Number of GPUs available
-gpu_idx = 3    # Start with GPU 0
+gpu_idx = 0   # Start with GPU 0
 # seeds = range(10)
 seeds = [0]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
