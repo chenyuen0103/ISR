@@ -152,7 +152,7 @@ class LossComputer:
 
         # Compute the Hessian for each sample in the batch, then average
         batch_size = x.shape[0]
-        breakpoint()
+        # breakpoint()
         hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i].flatten(), x[i].flatten()) for i in range(batch_size)]
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
@@ -222,7 +222,7 @@ class LossComputer:
         env_gradients = []
         env_hessians = []
         initial_state = model.state_dict()
-        breakpoint()
+        # breakpoint()
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
@@ -233,7 +233,7 @@ class LossComputer:
             main_output = yhat[0] if isinstance(yhat, tuple) else yhat
             # per_sample_loss = self.criterion(main_output, y[idx].long())
             # loss = per_sample_loss.mean()
-            loss = self.criterion2(main_output, y[idx].long())
+            # loss = self.criterion2(main_output, y[idx].long())
 
             # # Gradient and Hessian Computation assumes negative log loss
             # # grads = self.gradient(model, x[idx], y[idx])
@@ -282,7 +282,7 @@ class LossComputer:
 
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
-
+            breakpoint()
             total_loss = total_loss + (loss + hessian_reg + grad_reg)
             # total_loss = total_loss + loss
             erm_loss += loss
