@@ -15,6 +15,8 @@ from torch.profiler import profile, record_function, ProfilerActivity
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
+torch.cuda.empty_cache()
+
 def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger, args,
               is_training, show_progress=False, log_every=50, scheduler=None):
     """
