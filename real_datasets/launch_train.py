@@ -6,7 +6,8 @@ import pdb
 
 # gpu_idx = 0,1,2,3  # could be None if you want to use cpu
 
-algos = ['ERM','reweight','groupDRO']
+# algos = ['ERM','reweight','groupDRO']
+algos = ['ERM']
 # dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
 dataset = 'CUB'
 # can add some suffix to the algo name to flag the version,
@@ -15,8 +16,9 @@ algo_suffix = ""
 # Assuming seeds, algos, dataset, and get_train_command are defined
 
 gpu_count = 4  # Number of GPUs available
-gpu_idx = 1    # Start with GPU 0
-seeds = range(10)
+gpu_idx = 3    # Start with GPU 0
+# seeds = range(10)
+seeds = [0]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     # Generate the command
     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
@@ -27,7 +29,7 @@ for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     os.system(command)
 
     # Rotate the GPU index
-    gpu_idx = (gpu_idx + 1) % gpu_count
+    # gpu_idx = (gpu_idx + 1) % gpu_count
 
     # Optional: Introduce a slight delay if needed
     # time.sleep(1)

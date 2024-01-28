@@ -98,7 +98,6 @@ def train(model, criterion, dataset,
           args, epoch_offset):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    # breakpoint()
     model = model.cuda()
 
     # process generalization adjustment stuff
