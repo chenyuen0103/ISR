@@ -162,92 +162,92 @@ def train(model, criterion, dataset,
     best_val_acc = 0
     best_avg_val_acc = 0
     for epoch in tqdm(range(epoch_offset, epoch_offset + args.n_epochs)):
-        with torch.autograd.profiler.profile(use_cuda=True) as prof:
-            logger.write('\nEpoch [%d]:\n' % epoch)
-            logger.write(f'Training:\n')
-            run_epoch(
-                epoch, model, optimizer,
-                dataset['train_loader'],
-                train_loss_computer,
-                logger, train_csv_logger, args,
-                is_training=True,
-                show_progress=args.show_progress,
-                log_every=args.log_every,
-                scheduler=scheduler)
+        # with torch.autograd.profiler.profile(use_cuda=True) as prof:
+        logger.write('\nEpoch [%d]:\n' % epoch)
+        logger.write(f'Training:\n')
+        run_epoch(
+            epoch, model, optimizer,
+            dataset['train_loader'],
+            train_loss_computer,
+            logger, train_csv_logger, args,
+            is_training=True,
+            show_progress=args.show_progress,
+            log_every=args.log_every,
+            scheduler=scheduler)
 
-            logger.write(f'\nValidation:\n')
-            val_loss_computer = LossComputer(
+        logger.write(f'\nValidation:\n')
+        val_loss_computer = LossComputer(
+            criterion,
+            is_robust=args.robust,
+            dataset=dataset['val_data'],
+            step_size=args.robust_step_size,
+            alpha=args.alpha)
+        run_epoch(
+            epoch, model, optimizer,
+            dataset['val_loader'],
+            val_loss_computer,
+            logger, val_csv_logger, args,
+            is_training=False)
+
+        # Test set; don't print to avoid peeking
+        if dataset['test_data'] is not None:
+            test_loss_computer = LossComputer(
                 criterion,
                 is_robust=args.robust,
-                dataset=dataset['val_data'],
+                dataset=dataset['test_data'],
                 step_size=args.robust_step_size,
                 alpha=args.alpha)
             run_epoch(
                 epoch, model, optimizer,
-                dataset['val_loader'],
-                val_loss_computer,
-                logger, val_csv_logger, args,
+                dataset['test_loader'],
+                test_loss_computer,
+                None, test_csv_logger, args,
                 is_training=False)
 
-            # Test set; don't print to avoid peeking
-            if dataset['test_data'] is not None:
-                test_loss_computer = LossComputer(
-                    criterion,
-                    is_robust=args.robust,
-                    dataset=dataset['test_data'],
-                    step_size=args.robust_step_size,
-                    alpha=args.alpha)
-                run_epoch(
-                    epoch, model, optimizer,
-                    dataset['test_loader'],
-                    test_loss_computer,
-                    None, test_csv_logger, args,
-                    is_training=False)
+        # Inspect learning rates
+        if (epoch + 1) % 1 == 0:
+            for param_group in optimizer.param_groups:
+                curr_lr = param_group['lr']
+                logger.write('Current lr: %f\n' % curr_lr)
 
-            # Inspect learning rates
-            if (epoch + 1) % 1 == 0:
-                for param_group in optimizer.param_groups:
-                    curr_lr = param_group['lr']
-                    logger.write('Current lr: %f\n' % curr_lr)
+        if args.scheduler and args.model != 'bert':
+            if args.robust:
+                val_loss, _ = val_loss_computer.compute_robust_loss_greedy(val_loss_computer.avg_group_loss,
+                                                                           val_loss_computer.avg_group_loss)
+            else:
+                val_loss = val_loss_computer.avg_actual_loss
+            scheduler.step(val_loss)  # scheduler step to update lr at the end of epoch
 
-            if args.scheduler and args.model != 'bert':
-                if args.robust:
-                    val_loss, _ = val_loss_computer.compute_robust_loss_greedy(val_loss_computer.avg_group_loss,
-                                                                               val_loss_computer.avg_group_loss)
-                else:
-                    val_loss = val_loss_computer.avg_actual_loss
-                scheduler.step(val_loss)  # scheduler step to update lr at the end of epoch
+        # if epoch % args.save_step == 0:
+        #     torch.save(model, os.path.join(args.log_dir, '%d_model.pth' % epoch))
 
-            # if epoch % args.save_step == 0:
-            #     torch.save(model, os.path.join(args.log_dir, '%d_model.pth' % epoch))
+        if args.save_last:
+            torch.save(model, os.path.join(args.log_dir, 'last_model.pth'))
 
-            if args.save_last:
-                torch.save(model, os.path.join(args.log_dir, 'last_model.pth'))
+        if args.save_best:
 
-            if args.save_best:
+            curr_val_acc = min(val_loss_computer.avg_group_acc)
+            curr_avg_val_acc = val_loss_computer.avg_acc
 
-                curr_val_acc = min(val_loss_computer.avg_group_acc)
-                curr_avg_val_acc = val_loss_computer.avg_acc
+            logger.write(f'Current average validation accuracy: {curr_avg_val_acc}\n')
+            logger.write(f'Current worst-group validation accuracy: {curr_val_acc}\n')
+            if curr_val_acc > best_val_acc:
+                best_val_acc = curr_val_acc
+                torch.save(model, os.path.join(args.log_dir, 'best_model.pth'))
+                logger.write(f'Best worst-group model saved at epoch {epoch}\n')
+            if curr_avg_val_acc > best_avg_val_acc:
+                best_avg_val_acc = curr_avg_val_acc
+                torch.save(model, os.path.join(args.log_dir, 'best_avg_acc_model.pth'))
+                logger.write(f'Best average-accuracy model saved at epoch {epoch}\n')
 
-                logger.write(f'Current average validation accuracy: {curr_avg_val_acc}\n')
-                logger.write(f'Current worst-group validation accuracy: {curr_val_acc}\n')
-                if curr_val_acc > best_val_acc:
-                    best_val_acc = curr_val_acc
-                    torch.save(model, os.path.join(args.log_dir, 'best_model.pth'))
-                    logger.write(f'Best worst-group model saved at epoch {epoch}\n')
-                if curr_avg_val_acc > best_avg_val_acc:
-                    best_avg_val_acc = curr_avg_val_acc
-                    torch.save(model, os.path.join(args.log_dir, 'best_avg_acc_model.pth'))
-                    logger.write(f'Best average-accuracy model saved at epoch {epoch}\n')
-
-            if args.automatic_adjustment:
-                gen_gap = val_loss_computer.avg_group_loss - train_loss_computer.exp_avg_loss
-                adjustments = gen_gap * torch.sqrt(train_loss_computer.group_counts)
-                train_loss_computer.adj = adjustments
-                logger.write('Adjustments updated\n')
-                for group_idx in range(train_loss_computer.n_groups):
-                    logger.write(
-                        f'  {train_loss_computer.get_group_name(group_idx)}:\t'
-                        f'adj = {train_loss_computer.adj[group_idx]:.3f}\n')
-            logger.write('\n')
-        print(prof)
+        if args.automatic_adjustment:
+            gen_gap = val_loss_computer.avg_group_loss - train_loss_computer.exp_avg_loss
+            adjustments = gen_gap * torch.sqrt(train_loss_computer.group_counts)
+            train_loss_computer.adj = adjustments
+            logger.write('Adjustments updated\n')
+            for group_idx in range(train_loss_computer.n_groups):
+                logger.write(
+                    f'  {train_loss_computer.get_group_name(group_idx)}:\t'
+                    f'adj = {train_loss_computer.adj[group_idx]:.3f}\n')
+        logger.write('\n')
+        # print(prof)
