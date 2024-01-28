@@ -85,7 +85,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
             # else:
             #     outputs = model(x)
             num_classes = len(np.unique(y.cpu()))
-            clf = LogisticRegression(outputs.shape[0], num_classes).cuda()
+            clf = LogisticRegression(outputs.shape[1], num_classes).cuda()
             loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, x, y, g, is_training)
 
             if is_training:
