@@ -268,7 +268,7 @@ class LossComputer:
         grad_loss = 0
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
-            loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
+            loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
 
