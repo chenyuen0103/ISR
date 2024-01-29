@@ -149,7 +149,12 @@ class LossComputer:
         logits = model(x)
         logits = logits[0] if isinstance(logits, tuple) else logits
         breakpoint()
-        p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
+        if logits.dim() == 1:
+            # logits is a single sample
+            p = F.softmax(logits.unsqueeze(0), dim=1)[0, 1]
+        else:
+            # logits is a batch of samples
+            p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
         # Compute the Hessian for each sample in the batch, then average
         batch_size = x.shape[0]
@@ -251,7 +256,7 @@ class LossComputer:
             # breakpoint()
             # loss.backward(retain_graph=True)
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True, allow_unused=True)
-            breakpoint()
+            # breakpoint()
             grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.hessian(model, x[idx])
