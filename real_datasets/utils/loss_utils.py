@@ -167,7 +167,11 @@ class LossComputer:
             raise ValueError("Unexpected shape of x")
 
         breakpoint()
-        hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+        # hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+        hessian_list_class0 = [
+            (p[i] if p.dim() == 1 else p[i].item()) * (1 - (p[i] if p.dim() == 1 else p[i].item())) * torch.ger(x[i],
+                                                                                                                x[i])
+            for i in range(batch_size)]
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
 
