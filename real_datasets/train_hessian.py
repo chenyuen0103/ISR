@@ -44,7 +44,9 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     """
     scheduler is only used inside this function if model is bert.
     """
+    breakpoint()
 
+    clf = LogisticRegression(outputs.shape[1], num_classes).cuda()
     if is_training:
         print("Start Training")
         model.train()
@@ -85,7 +87,6 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
             # else:
             #     outputs = model(x)
             num_classes = len(np.unique(y.cpu()))
-            clf = LogisticRegression(outputs.shape[1], num_classes).cuda()
             loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g, is_training)
 
             if is_training:
