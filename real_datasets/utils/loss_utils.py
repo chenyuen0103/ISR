@@ -235,7 +235,6 @@ class LossComputer:
 
         # Perform matrix multiplication
         # The result will have the shape [1, 3 * 224 * 224]
-        # breakpoint()
         grad_w_class1 = torch.matmul(weights1.T, x_flattened)
         # grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(1), x) / x.size(0)
         grad_w_class0 = torch.matmul(weights0.T, x_flattened) / x.size(0)
@@ -250,15 +249,15 @@ class LossComputer:
         env_gradients = []
         env_hessians = []
         initial_state = model.state_dict()
-        # breakpoint()
+
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
-            # breakpoint()
+
             yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
-            main_output = yhat[0] if isinstance(yhat, tuple) else yhat
+            yhat = yhat[0] if isinstance(yhat, tuple) else yhat
             # per_sample_loss = self.criterion(main_output, y[idx].long())
             # loss = per_sample_loss.mean()
             # loss = self.criterion2(main_output, y[idx].long())
@@ -297,6 +296,8 @@ class LossComputer:
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
             loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
+            if torch.isnaa(loss):
+                breakpoint()
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
 
