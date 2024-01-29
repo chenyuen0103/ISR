@@ -44,7 +44,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     """
     scheduler is only used inside this function if model is bert.
     """
-    breakpoint()
+    # breakpoint()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
     encoder = model.encode_image
     with torch.no_grad():
