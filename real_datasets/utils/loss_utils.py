@@ -157,7 +157,7 @@ class LossComputer:
 
         # Compute the Hessian for each sample in the batch, then average
         batch_size = x.shape[0]
-        # breakpoint()
+        breakpoint()
 
         hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
 
