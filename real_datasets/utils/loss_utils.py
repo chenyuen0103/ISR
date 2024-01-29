@@ -150,10 +150,10 @@ class LossComputer:
         logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             # logits is a single sample
-            p = F.softmax(logits.unsqueeze(0), dim=1)[0, 1]
+            prob = F.softmax(logits.unsqueeze(0), dim=1)[0, 1]
         else:
             # logits is a batch of samples
-            p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
+            prob = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
 
         if x.dim() == 1:
@@ -167,11 +167,8 @@ class LossComputer:
             raise ValueError("Unexpected shape of x")
 
         breakpoint()
-        # hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
-        hessian_list_class0 = [
-            (p[i] if p.dim() == 1 else p[i].item()) * (1 - (p[i] if p.dim() == 1 else p[i].item())) * torch.ger(x[i],
-                                                                                                                x[i])
-            for i in range(batch_size)]
+        hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
 
