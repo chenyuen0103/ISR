@@ -170,8 +170,12 @@ class LossComputer:
         if prob.dim() == 0:
             prob = prob.unsqueeze(0)
 
-        hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
-
+        # hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+        hessian_list_class0 = []
+        for i in range(batch_size):
+            outer_product = torch.ger(x[i], x[i])
+            hessian = prob[i] * (1 - prob[i]) * outer_product
+            hessian_list_class0.append(hessian)
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
 
