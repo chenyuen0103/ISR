@@ -55,10 +55,8 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
 
     unique_labels = set()
 
-    # Assuming your labels are the second element in the dataset tuples
-    for _, label in loader.dataset:
-        unique_labels.add(label)
-    num_classes = len(unique_labels)
+
+    num_classes = 2
     clf = LogisticRegression(input_dim, num_classes).cuda()
     if is_training:
         print("Start Training")
