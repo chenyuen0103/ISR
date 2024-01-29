@@ -311,7 +311,6 @@ class LossComputer:
 
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
-            breakpoint()
             total_loss = total_loss + (loss + hessian_reg + grad_reg)
             # total_loss = total_loss + loss
             erm_loss += loss
