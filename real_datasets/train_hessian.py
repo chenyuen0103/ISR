@@ -45,8 +45,21 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     scheduler is only used inside this function if model is bert.
     """
     breakpoint()
+    dummy_input = torch.randn(1, 3, 224, 224).cuda()
+    encoder = model.encode_image
+    with torch.no_grad():
+        dummy_output = encoder(dummy_input)
 
-    clf = LogisticRegression(outputs.shape[1], num_classes).cuda()
+        # Output dimension
+        input_dim = dummy_output.size(-1)
+
+    unique_labels = set()
+
+    # Assuming your labels are the second element in the dataset tuples
+    for _, label in loader.dataset:
+        unique_labels.add(label)
+    num_classes = len(unique_labels)
+    clf = LogisticRegression(input_dim, num_classes).cuda()
     if is_training:
         print("Start Training")
         model.train()
