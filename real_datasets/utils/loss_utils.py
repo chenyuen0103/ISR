@@ -155,10 +155,16 @@ class LossComputer:
             # logits is a batch of samples
             p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
-        # Compute the Hessian for each sample in the batch, then average
-        batch_size = x.shape[0]
-        breakpoint()
 
+        if x.dim() == 1:
+            # x is a single sample, reshape to [1, num_features]
+            x = x.unsqueeze(0)
+            batch_size = 1
+        elif x.dim() == 2:
+            # x is a batch of samples
+            batch_size = x.size(0)
+        else:
+            raise ValueError("Unexpected shape of x")
         hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
