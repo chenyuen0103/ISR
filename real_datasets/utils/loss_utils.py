@@ -148,6 +148,7 @@ class LossComputer:
 
         logits = model(x)
         logits = logits[0] if isinstance(logits, tuple) else logits
+        breakpoint()
         p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
         # Compute the Hessian for each sample in the batch, then average
@@ -216,7 +217,7 @@ class LossComputer:
 
         # Perform matrix multiplication
         # The result will have the shape [1, 3 * 224 * 224]
-        breakpoint()
+        # breakpoint()
         grad_w_class1 = torch.matmul(weights1.T, x_flattened)
         # grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(1), x) / x.size(0)
         grad_w_class0 = torch.matmul(weights0.T, x_flattened) / x.size(0)
