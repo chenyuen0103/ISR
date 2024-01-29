@@ -274,14 +274,11 @@ class LossComputer:
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.hessian(model, x[idx])
             env_gradients.append(grads)
-            del grads  # Free up the variable
-            torch.cuda.empty_cache()
             env_hessians.append(hessian)
-            del hessian  # Free up the variable
-            torch.cuda.empty_cache()
+            del grads, hessian
+            # Free up the variable
+            # torch.cuda.empty_cache()
 
-            model.load_state_dict(initial_state)
-            model.zero_grad()
 
         # Compute average gradient and hessian
         # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
@@ -295,6 +292,8 @@ class LossComputer:
         erm_loss = 0
         hess_loss = 0
         grad_loss = 0
+        model.load_state_dict(initial_state)
+        model.zero_grad()
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
             loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
@@ -311,7 +310,7 @@ class LossComputer:
 
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
-            # breakpoint()
+            breakpoint()
             total_loss = total_loss + (loss + hessian_reg + grad_reg)
             # total_loss = total_loss + loss
             erm_loss += loss
