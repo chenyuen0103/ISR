@@ -166,7 +166,9 @@ class LossComputer:
         else:
             raise ValueError("Unexpected shape of x")
 
-        breakpoint()
+        if prob.dim() == 0:
+            prob = prob.unsqueeze(0)
+
         hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
 
 
@@ -185,7 +187,8 @@ class LossComputer:
         for param in model.parameters():
             param.requires_grad = True
 
-        # Compute logits and probabilities
+        # Compute logits and
+        # probabilities
         logits = model(x)
         logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
