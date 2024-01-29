@@ -158,11 +158,11 @@ class LossComputer:
 
         if x.dim() == 1:
             # x is a single sample, reshape to [1, num_features]
-            x_flatten = x.unsqueeze(0)
+            x = x.unsqueeze(0)
             batch_size = 1
         elif x.dim() == 2:
             # x is a batch of samples
-            x_flatten = x
+            # x_flatten = x
             batch_size = x.size(0)
         else:
             raise ValueError("Unexpected shape of x")
