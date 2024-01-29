@@ -158,10 +158,11 @@ class LossComputer:
 
         if x.dim() == 1:
             # x is a single sample, reshape to [1, num_features]
-            x = x.unsqueeze(0)
+            x_flatten = x.unsqueeze(0)
             batch_size = 1
         elif x.dim() == 2:
             # x is a batch of samples
+            x_flatten = x
             batch_size = x.size(0)
         else:
             raise ValueError("Unexpected shape of x")
@@ -169,7 +170,7 @@ class LossComputer:
         if prob.dim() == 0:
             prob = prob.unsqueeze(0)
 
-        hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
+        hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x_flatten[i], x_flatten[i]) for i in range(batch_size)]
 
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size

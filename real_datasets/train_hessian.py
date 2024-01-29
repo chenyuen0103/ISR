@@ -53,7 +53,6 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
         # Output dimension
         input_dim = dummy_output.size(-1)
 
-    unique_labels = set()
 
 
     num_classes = 2
@@ -97,7 +96,6 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                 outputs = encoder(x)
             # else:
             #     outputs = model(x)
-            num_classes = len(np.unique(y.cpu()))
             loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g, is_training)
 
             if is_training:
@@ -109,7 +107,7 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                     model.zero_grad()
                 else:
                     optimizer.zero_grad()
-                    # breakpoint()
+                    breakpoint()
                     loss_main.backward()
                     optimizer.step()
 
