@@ -243,6 +243,7 @@ class LossComputer:
             # breakpoint()
             # loss.backward(retain_graph=True)
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True, allow_unused=True)
+            breakpoint()
             grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.hessian(model, x[idx])
