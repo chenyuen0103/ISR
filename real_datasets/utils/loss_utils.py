@@ -202,7 +202,14 @@ class LossComputer:
         # print("y_onehot.shape:", y_onehot.shape)
 
         # Compute the gradient using the analytical form for each class
-        x_flattened = x.view(1, -1)
+        if x.dim() == 1:
+            # x is a single sample (shape [768])
+            x_flattened = x.view(1, -1)  # Reshape to [1, 768]
+        elif x.dim() == 2:
+            # x is already a batch of samples (shape [20, 768])
+            x_flattened = x  # No reshaping needed
+        else:
+            raise ValueError("Unexpected shape of x")
         # x_flattened = x.flatten(start_dim=1)
         weights1 = (y_onehot[:, 1] - p[:, 1]).unsqueeze(1)
         weights0 = (y_onehot[:, 0] - p[:, 0]).unsqueeze(1)
