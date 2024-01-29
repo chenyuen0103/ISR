@@ -29,8 +29,8 @@ class LogisticRegression(torch.nn.Module):
     # make predictions
     def forward(self, x):
         # Just return the logits (raw scores). Softmax will be applied in the loss function.
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x).float()
+        # if not isinstance(x, torch.Tensor):
+        #     x = torch.tensor(x).float()
         # print(x.shape)
         return self.linear(x)
 
