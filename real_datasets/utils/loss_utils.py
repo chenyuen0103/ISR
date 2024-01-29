@@ -313,9 +313,9 @@ class LossComputer:
             hessian_reg = beta * hessian_diff_norm ** 2
             total_loss = total_loss + (loss + hessian_reg + grad_reg)
             # total_loss = total_loss + loss
-            erm_loss += loss
-            grad_loss += alpha * grad_reg
-            hess_loss += beta * hessian_reg
+            erm_loss = erm_loss + loss
+            grad_loss = grad_loss + alpha * grad_reg
+            hess_loss = hess_loss +  beta * hessian_reg
 
         n_unique_envs = len(envs_indices.unique())
         # print("Number of unique envs:", n_unique_envs)
