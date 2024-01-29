@@ -202,7 +202,7 @@ class LossComputer:
         # print("y_onehot.shape:", y_onehot.shape)
 
         # Compute the gradient using the analytical form for each class
-        x_flattened = x.view(x.size(0), -1)
+        x_flattened = x.view(1, -1)
         # x_flattened = x.flatten(start_dim=1)
         weights1 = (y_onehot[:, 1] - p[:, 1]).unsqueeze(1)
         weights0 = (y_onehot[:, 0] - p[:, 0]).unsqueeze(1)
