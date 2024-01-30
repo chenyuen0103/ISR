@@ -265,7 +265,7 @@ class LossComputer:
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
             loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
-            if torch.isnan(loss):
+            if torch.isnan(loss) or idx.numel() == 0:
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             # breakpoint()
