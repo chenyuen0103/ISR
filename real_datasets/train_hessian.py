@@ -100,8 +100,8 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                 outputs = encoder(x)
             # else:
             #     outputs = model(x)
-            loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g, is_training)
-
+            # loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g, is_training)
+            loss_main = loss_computer.loss(outputs, y, g, is_training)
             if is_training:
                 if args.model == 'bert':
                     loss_main.backward()
