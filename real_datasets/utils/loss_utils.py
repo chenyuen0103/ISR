@@ -212,7 +212,8 @@ class LossComputer:
         env_gradients = []
         env_hessians = []
         initial_state = model.state_dict()
-
+        for name, param in model.named_parameters():
+            print(name, param._version)
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
@@ -254,6 +255,8 @@ class LossComputer:
         erm_loss = 0
         hess_loss = 0
         grad_loss = 0
+        for name, param in model.named_parameters():
+            print(name, param._version)
 
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
@@ -291,8 +294,9 @@ class LossComputer:
         # del env_gradients
         # del env_hessians
         # torch.cuda.empty_cache()
-        # breakpoint()
-        # total_loss.backward()
+        for name, param in model.named_parameters():
+            print(name, param._version)
+        total_loss.backward()
 
         return total_loss, erm_loss, hess_loss, grad_loss
 
