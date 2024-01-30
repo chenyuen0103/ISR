@@ -6,7 +6,7 @@ from tqdm import tqdm
 # Set the default CUDA device to GPU 2
 # torch.cuda.set_device(3)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+torch.autograd.set_detect_anomaly(True)
 
 
 
@@ -301,12 +301,9 @@ class LossComputer:
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             # breakpoint()
-            # grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
-            grad_diff_norm = torch.norm(grads, p=2)
+            grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
-            # hessian_diff = hessian - avg_hessian
-            hessian_diff = hessian
-            # hessian_diff_norm = torch.norm(hessian_diff, p='fro')
+            hessian_diff = hessian - avg_hessian
             hessian_diff_norm = torch.norm(hessian_diff, p='fro')
 
 
