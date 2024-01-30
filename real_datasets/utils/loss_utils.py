@@ -211,7 +211,7 @@ class LossComputer:
         self.criterion2 = torch.nn.CrossEntropyLoss()
         env_gradients = []
         env_hessians = []
-        initial_state = model.state_dict()
+        # initial_state = model.state_dict()
         for name, param in model.named_parameters():
             print(name, param._version)
 
@@ -238,8 +238,8 @@ class LossComputer:
             # del grads, hessian
             # Free up the variable
             # torch.cuda.empty_cache()
-            model.load_state_dict(initial_state)
-            model.zero_grad()
+            # model.load_state_dict(initial_state)
+            # model.zero_grad()
             for name, param in model.named_parameters():
                 print(name, param._version)
 
