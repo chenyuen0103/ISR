@@ -32,6 +32,8 @@ class LogisticRegression(torch.nn.Module):
         # Just return the logits (raw scores). Softmax will be applied in the loss function.
         # if not isinstance(x, torch.Tensor):
         #     x = torch.tensor(x).float()
+        if x.dim() ==1:
+            x = x.unsqueeze(0)
         print(x.shape)
         return self.linear(x)
 
@@ -97,10 +99,10 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     scheduler.step()
                     model.zero_grad()
                 else:
-                    clf_optimizer.zero_grad()
+                    optimizer.zero_grad()
                     breakpoint()
                     loss_main.backward()
-                    clf_optimizer.step()
+                    optimizer.step()
 
             if is_training and (batch_idx + 1) % log_every == 0:
                 csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
