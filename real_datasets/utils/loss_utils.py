@@ -280,11 +280,11 @@ class LossComputer:
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             # breakpoint()
             gradient_norm = torch.norm(grads[0], p=2)
-            gradient_norms.append(gradient_norm)
+            gradient_norms[env_idx] = gradient_norm
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
             hessian_norm = torch.norm(hessian, p='fro')
-            hessian_norms.append(hessian_norm)
+            hessian_norms[env_idx] = hessian_norm
             hessian_diff = hessian - avg_hessian
             hessian_diff_norm = torch.norm(hessian_diff, p='fro')
 
