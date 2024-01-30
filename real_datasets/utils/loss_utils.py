@@ -285,8 +285,9 @@ class LossComputer:
 
             # compute per-sample and per-group losses
             per_sample_losses = self.criterion(yhat, y[idx])
-            group_loss, group_count = self.compute_group_avg(per_sample_losses, env_idx)
             breakpoint()
+            group_loss, group_count = self.compute_group_avg(per_sample_losses, env_idx)
+
             group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
 
             # update historical losses
