@@ -14,7 +14,7 @@ import pdb
 from torch.profiler import profile, record_function, ProfilerActivity
 
 
-torch.autograd.set_detect_anomaly(True)
+# torch.autograd.set_detect_anomaly(True)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

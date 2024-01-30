@@ -330,6 +330,8 @@ class LossComputer:
         # del env_gradients
         # del env_hessians
         # torch.cuda.empty_cache()
+        breakpoint()
+        total_loss.backward()
 
         return total_loss, erm_loss, hess_loss, grad_loss
 
