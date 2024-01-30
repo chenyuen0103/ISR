@@ -249,7 +249,9 @@ class LossComputer:
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
-            if len(idx) == 0:
+
+            if x[idx].dim() == 0:
+                # Handle the 0-dimensional tensor case
                 continue
             elif x[idx].dim() == 1:
                 yhat = model(x[idx].unsqueeze(0))
