@@ -312,8 +312,8 @@ class LossComputer:
 
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
-            total_loss = total_loss + (loss + hessian_reg + grad_reg)
-            # total_loss = total_loss + loss
+            # total_loss = total_loss + (loss + hessian_reg + grad_reg)
+            total_loss = total_loss + loss
             erm_loss = erm_loss + loss
             grad_loss = grad_loss + alpha * grad_reg
             hess_loss = hess_loss +  beta * hessian_reg
