@@ -274,7 +274,7 @@ class LossComputer:
             hessian = self.hessian(model, x[idx])
             env_gradients.append(grads)
             env_hessians.append(hessian)
-            del grads, hessian
+            # del grads, hessian
             # Free up the variable
             # torch.cuda.empty_cache()
 
@@ -301,20 +301,20 @@ class LossComputer:
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             # breakpoint()
-            grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
-
+            # grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
+            grad_diff_norm = torch.norm(grads, p=2)
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
-            hessian_diff = hessian - avg_hessian
+            # hessian_diff = hessian - avg_hessian
+            hessian_diff = hessian
+            # hessian_diff_norm = torch.norm(hessian_diff, p='fro')
             hessian_diff_norm = torch.norm(hessian_diff, p='fro')
 
 
             # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
             # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
 
-            # grad_reg = alpha * grad_diff_norm ** 2
-            # hessian_reg = beta * hessian_diff_norm ** 2
-            grad_reg = grad_diff_norm
-            hessian_reg = hessian_diff_norm
+            grad_reg = alpha * grad_diff_norm ** 2
+            hessian_reg = beta * hessian_diff_norm ** 2
             total_loss = total_loss + (loss + hessian_reg + grad_reg)
             # total_loss = total_loss + loss + grad_reg
             erm_loss = erm_loss + loss
