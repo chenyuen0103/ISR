@@ -328,6 +328,7 @@ class LossComputer:
         # group_map = (group_idx == torch.arange(self.n_groups).unsqueeze(1).long().to(device)).float()
         group_count = group_map.sum(1)
         group_denom = group_count + (group_count == 0).float()  # avoid nans
+        breakpoint()
         group_loss = (group_map @ losses.view(-1)) / group_denom
         return group_loss, group_count
 
