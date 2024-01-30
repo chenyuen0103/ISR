@@ -196,16 +196,8 @@ class LossComputer:
         y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
 
 
-        # Compute the gradient using the analytical form for each class
-        # if x.dim() == 1:
-        #     # x is a single sample (shape [768])
-        #     x = x.view(1, -1)  # Reshape to [1, 768]
-
-        # Compute the gradient using the analytical form for each class
-        # breakpoint()
-        print("(y_onehot[:, 1] - p[:, 1]).unsqueeze(0).shape:", (y_onehot[:, 1] - p[:, 1]).unsqueeze(0).shape)
-        print("x.shape:", x.shape)
-
+        if x.dim() == 1:
+            x = x.view(1, -1)
         grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
         grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
 
