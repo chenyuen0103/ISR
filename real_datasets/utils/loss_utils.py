@@ -261,8 +261,7 @@ class LossComputer:
         #                 range(len(env_gradients[0]))]
 
         weight_gradients = [g[0] for g in env_gradients if g.dim() > 1]
-        for i, grad in enumerate(weight_gradients):
-            print(f"Tensor {i} device: {grad.device}")
+
 
         avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
         filtered = [h for h in env_hessians if h.dim() > 2]
@@ -312,6 +311,8 @@ class LossComputer:
         accum_grad_loss = accum_grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
 
+
+
         # update stats
         self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norms,
                           hessian_norm=hessian_norms)
@@ -359,8 +360,15 @@ class LossComputer:
         curr_weight = group_count / denom
         self.avg_group_loss = prev_weight * self.avg_group_loss + curr_weight * group_loss
 
+
         # avg group acc
         self.avg_group_acc = prev_weight * self.avg_group_acc + curr_weight * group_acc
+        print(prev_weight.device)
+        print(curr_weight.device)
+        print(group_acc.device)
+        print(self.avg_group_acc.device)
+
+        breakpoint()
         self.avg_group_gradient_norm = prev_weight * self.avg_group_acc + curr_weight * gradient_norm
         self.avg_group_hessian_norm = prev_weight * self.avg_group_acc + curr_weight * hessian_norm
 
