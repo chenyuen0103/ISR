@@ -133,8 +133,8 @@ class LossComputer:
             # Flatten and append to the Hessian
             row = torch.cat([g.reshape(-1) for g in row_grads])
             hessian.append(row)
-            del row_grads, row  # Free up these variables
-            torch.cuda.empty_cache()  # Free up CUDA memory
+            # del row_grads, row  # Free up these variables
+            # torch.cuda.empty_cache()  # Free up CUDA memory
 
         # Convert list of rows into a full Hessian tensor
         hessian = torch.stack(hessian)
@@ -143,14 +143,15 @@ class LossComputer:
 
     def hessian(self, model, x):
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
-        for params in model.parameters():
-            params.requires_grad = True
+        # for params in model.parameters():
+        #     params.requires_grad = True
         if x.dim() == 1:
             x = x.unsqueeze(0)
             batch_size = 1
         else:
             batch_size = x.size(0)
         logits = model(x)
+        breakpoint()
         logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             # logits is a single sample
@@ -212,13 +213,7 @@ class LossComputer:
 
         # Now, scatter should work without errors
         y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
-        try:
-            y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
-        except:
-            y_onehot = y_onehot.scatter(1, y.unsqueeze(1), 1)
 
-        # print("y.shape:", y.shape)
-        # print("y_onehot.shape:", y_onehot.shape)
 
         # Compute the gradient using the analytical form for each class
         if x.dim() == 1:
@@ -328,11 +323,11 @@ class LossComputer:
         hess_loss = hess_loss / n_unique_envs
         grad_loss = grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
-        del grads
-        del hessian
-        del env_gradients
-        del env_hessians
-        torch.cuda.empty_cache()
+        # del grads
+        # del hessian
+        # del env_gradients
+        # del env_hessians
+        # torch.cuda.empty_cache()
 
         return total_loss, erm_loss, hess_loss, grad_loss
 
