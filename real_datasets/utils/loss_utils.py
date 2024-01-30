@@ -310,10 +310,12 @@ class LossComputer:
             # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
             # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
 
-            grad_reg = alpha * grad_diff_norm ** 2
-            hessian_reg = beta * hessian_diff_norm ** 2
-            # total_loss = total_loss + (loss + hessian_reg + grad_reg)
-            total_loss = total_loss + loss +grad_reg
+            # grad_reg = alpha * grad_diff_norm ** 2
+            # hessian_reg = beta * hessian_diff_norm ** 2
+            grad_reg = grad_diff_norm
+            hessian_reg = hessian_diff_norm
+            total_loss = total_loss + (loss + hessian_reg + grad_reg)
+            # total_loss = total_loss + loss + grad_reg
             erm_loss = erm_loss + loss
             grad_loss = grad_loss + alpha * grad_reg
             hess_loss = hess_loss +  beta * hessian_reg
