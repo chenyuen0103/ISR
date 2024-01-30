@@ -45,7 +45,8 @@ class LossComputer:
         # self.adv_probs = torch.ones(self.n_groups).to(device) / self.n_groups
         # self.exp_avg_loss = torch.zeros(self.n_groups).to(device)
         # self.exp_avg_initialized = torch.zeros(self.n_groups).byte().to(device)
-
+        self.gradient_norm = 0
+        self.hessian_norm = 0
         self.reset_stats()
 
     def loss(self, yhat, y, group_idx=None, is_training=False):
@@ -214,6 +215,7 @@ class LossComputer:
         # initial_state = model.state_dict()
 
 
+
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
@@ -257,27 +259,48 @@ class LossComputer:
 
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
-            loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
+            yhat = model(x[idx])
+            loss = self.criterion2(yhat.squeeze(), y[idx].long())
             if torch.isnan(loss) or idx.numel() == 0:
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             # breakpoint()
+            gradient_norm = torch.norm(grads[0], p=2)
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
+            hessian_norm = torch.norm(hessian, p='fro')
             hessian_diff = hessian - avg_hessian
             hessian_diff_norm = torch.norm(hessian_diff, p='fro')
 
 
-            # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-            # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
 
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
             total_loss = total_loss + (loss + hessian_reg + grad_reg)
-            # total_loss = total_loss + loss + grad_reg
+
             erm_loss = erm_loss + loss
             grad_loss = grad_loss + alpha * grad_reg
             hess_loss = hess_loss + beta * hessian_reg
+
+            # compute per-sample and per-group losses
+            per_sample_losses = self.criterion(yhat, y[idx])
+            group_loss, group_count = self.compute_group_avg(per_sample_losses, env_idx)
+            group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
+
+            # update historical losses
+            self.update_exp_avg_loss(group_loss, group_count)
+
+            # compute overall loss
+            if self.is_robust and not self.btl:
+                actual_loss, weights = self.compute_robust_loss(group_loss, group_count)
+            elif self.is_robust and self.btl:
+                actual_loss, weights = self.compute_robust_loss_btl(group_loss, group_count)
+            else:
+                actual_loss = per_sample_losses.mean()
+                weights = None
+
+            # update stats
+            self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm= gradient_norm, hessian_norm=hessian_norm)
 
         n_unique_envs = len(envs_indices.unique())
         # print("Number of unique envs:", n_unique_envs)
@@ -292,7 +315,7 @@ class LossComputer:
         # del env_hessians
         # torch.cuda.empty_cache()
 
-        # total_loss.backward()
+
 
         return total_loss, erm_loss, hess_loss, grad_loss
 
@@ -329,7 +352,7 @@ class LossComputer:
         self.avg_acc = 0.
         self.batch_count = 0.
 
-    def update_stats(self, actual_loss, group_loss, group_acc, group_count, weights=None):
+    def update_stats(self, actual_loss, group_loss, group_acc, group_count, weights=None, gradient_norm=0, hessian_norm=0):
         # avg group loss
         denom = self.processed_data_counts + group_count
         denom += (denom == 0).float()
@@ -339,6 +362,9 @@ class LossComputer:
 
         # avg group acc
         self.avg_group_acc = prev_weight * self.avg_group_acc + curr_weight * group_acc
+        self.avg_group_gradient_norm = prev_weight * self.avg_group_acc + curr_weight * gradient_norm
+        self.avg_group_hessian_norm = prev_weight * self.avg_group_acc + curr_weight * hessian_norm
+
 
         # batch-wise average actual loss
         denom = self.batch_count + 1
@@ -359,6 +385,7 @@ class LossComputer:
         self.avg_per_sample_loss = group_frac @ self.avg_group_loss
         self.avg_acc = group_frac @ self.avg_group_acc
 
+
     def get_model_stats(self, model, args, stats_dict):
         model_norm_sq = 0.
         for param in model.parameters():
@@ -373,6 +400,8 @@ class LossComputer:
             stats_dict[f'avg_loss_group:{idx}'] = self.avg_group_loss[idx].item()
             stats_dict[f'exp_avg_loss_group:{idx}'] = self.exp_avg_loss[idx].item()
             stats_dict[f'avg_acc_group:{idx}'] = self.avg_group_acc[idx].item()
+            stats_dict['avg_grad_norm_group:{idx}'] = self.avg_group_gradient_norm[idx].item()
+            stats_dict['avg_hessian_norm_group:{idx}'] = self.avg_group_hessian_norm[idx].item()
             stats_dict[f'processed_data_count_group:{idx}'] = self.processed_data_counts[idx].item()
             stats_dict[f'update_data_count_group:{idx}'] = self.update_data_counts[idx].item()
             stats_dict[f'update_batch_count_group:{idx}'] = self.update_batch_counts[idx].item()
@@ -404,4 +433,6 @@ class LossComputer:
                 f'adjusted loss = {self.exp_avg_loss[group_idx] + self.adj[group_idx] / torch.sqrt(self.group_counts)[group_idx]:.3f}  '
                 f'adv prob = {self.adv_probs[group_idx]:3f}   '
                 f'acc = {self.avg_group_acc[group_idx]:.3f}\n')
+                f'grad norm = {self.avg_group_gradient_norm[group_idx]:.3f}\n'
+                f'hessian norm = {self.avg_group_hessian_norm[group_idx]:.3f}\n'
         logger.flush()
