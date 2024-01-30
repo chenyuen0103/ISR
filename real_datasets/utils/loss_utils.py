@@ -272,8 +272,8 @@ class LossComputer:
         accum_hess_loss = 0
         accum_grad_loss = 0
 
-        gradient_norms = torch.zeros(len(env_gradients))
-        hessian_norms = torch.zeros(len(env_hessians))
+        gradient_norms = torch.zeros(len(env_gradients)).cuda()
+        hessian_norms = torch.zeros(len(env_hessians)).cuda()
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
             yhat = model(x[idx])
@@ -367,6 +367,8 @@ class LossComputer:
         print(curr_weight.device)
         print(group_acc.device)
         print(self.avg_group_acc.device)
+        print(gradient_norm.device)
+        print(hessian_norm.device)
 
         breakpoint()
         self.avg_group_gradient_norm = prev_weight * self.avg_group_acc + curr_weight * gradient_norm
