@@ -233,7 +233,7 @@ class LossComputer:
             weights = None
 
 
-        for env_idx in envs_indices.unique():
+        for env_idx in range(self.n_groups):
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
