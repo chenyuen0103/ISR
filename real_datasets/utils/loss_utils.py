@@ -151,10 +151,10 @@ class LossComputer:
         else:
             batch_size = x.size(0)
         logits = model(x)
-        logits = logits[0] if isinstance(logits, tuple) else logits
+        # logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             # logits is a single sample
-            prob = F.softmax(logits.unsqueeze(0), dim=1)[0, 1]
+            prob = F.softmax(logits, dim=1)[:, 1]
         else:
             # logits is a batch of samples
             prob = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
