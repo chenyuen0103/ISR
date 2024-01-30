@@ -296,8 +296,7 @@ class LossComputer:
 
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
-            with torch.no_grad():
-                loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
+            loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
             if torch.isnan(loss):
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
@@ -317,7 +316,7 @@ class LossComputer:
             # total_loss = total_loss + loss + grad_reg
             erm_loss = erm_loss + loss
             grad_loss = grad_loss + alpha * grad_reg
-            hess_loss = hess_loss +  beta * hessian_reg
+            hess_loss = hess_loss + beta * hessian_reg
 
         n_unique_envs = len(envs_indices.unique())
         # print("Number of unique envs:", n_unique_envs)
@@ -331,8 +330,8 @@ class LossComputer:
         # del env_gradients
         # del env_hessians
         # torch.cuda.empty_cache()
-        breakpoint()
-        total_loss.backward()
+        # breakpoint()
+        # total_loss.backward()
 
         return total_loss, erm_loss, hess_loss, grad_loss
 
