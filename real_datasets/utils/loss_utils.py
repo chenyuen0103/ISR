@@ -247,8 +247,8 @@ class LossComputer:
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
-            # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
-
+            loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
+            loss.backward(retain_graph=True)
             if x[idx].dim() == 0:
                 # Handle the 0-dimensional tensor case
                 continue
@@ -277,6 +277,8 @@ class LossComputer:
             # del grads, hessian
             # Free up the variable
             # torch.cuda.empty_cache()
+            model.load_state_dict(initial_state)
+            model.zero_grad()
 
 
         # Compute average gradient and hessian
@@ -291,8 +293,7 @@ class LossComputer:
         erm_loss = 0
         hess_loss = 0
         grad_loss = 0
-        model.load_state_dict(initial_state)
-        model.zero_grad()
+
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
             with torch.no_grad():
