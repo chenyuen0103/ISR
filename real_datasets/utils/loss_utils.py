@@ -202,6 +202,7 @@ class LossComputer:
         #     x = x.view(1, -1)  # Reshape to [1, 768]
 
         # Compute the gradient using the analytical form for each class
+        breakpoint()
         grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
         grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
 
