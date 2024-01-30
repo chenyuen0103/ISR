@@ -308,7 +308,8 @@ class LossComputer:
         accum_hess_loss = accum_hess_loss / n_unique_envs
         accum_grad_loss = accum_grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
-
+        gradient_norms = gradient_norms.cpu()
+        hessian_norms = hessian_norms.cpu()
         # update stats
         self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norms,
                           hessian_norm=hessian_norms)
@@ -358,7 +359,6 @@ class LossComputer:
 
         # avg group acc
         self.avg_group_acc = prev_weight * self.avg_group_acc + curr_weight * group_acc
-        breakpoint()
         self.avg_group_gradient_norm = prev_weight * self.avg_group_acc + curr_weight * gradient_norm
         self.avg_group_hessian_norm = prev_weight * self.avg_group_acc + curr_weight * hessian_norm
 
