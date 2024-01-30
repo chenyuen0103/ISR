@@ -433,7 +433,7 @@ class LossComputer:
                 f'exp loss = {self.exp_avg_loss[group_idx]:.3f}  '
                 f'adjusted loss = {self.exp_avg_loss[group_idx] + self.adj[group_idx] / torch.sqrt(self.group_counts)[group_idx]:.3f}  '
                 f'adv prob = {self.adv_probs[group_idx]:3f}   '
-                f'acc = {self.avg_group_acc[group_idx]:.3f}\n')
+                f'acc = {self.avg_group_acc[group_idx]:.3f}\n'
                 f'grad norm = {self.avg_group_gradient_norm[group_idx]:.3f}\n'
-                f'hessian norm = {self.avg_group_hessian_norm[group_idx]:.3f}\n'
+                f'hessian norm = {self.avg_group_hessian_norm[group_idx]:.3f}\n')
         logger.flush()
