@@ -240,8 +240,6 @@ class LossComputer:
             # torch.cuda.empty_cache()
             # model.load_state_dict(initial_state)
             # model.zero_grad()
-            for name, param in model.named_parameters():
-                print(name, param._version)
 
 
         # Compute average gradient and hessian
@@ -295,9 +293,8 @@ class LossComputer:
         # del env_gradients
         # del env_hessians
         # torch.cuda.empty_cache()
-        for name, param in model.named_parameters():
-            print(name, param._version)
-        total_loss.backward()
+
+        # total_loss.backward()
 
         return total_loss, erm_loss, hess_loss, grad_loss
 
