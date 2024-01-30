@@ -183,8 +183,8 @@ class LossComputer:
 
 
     def gradient(self,model, x, y):
-        for param in model.parameters():
-            param.requires_grad = True
+        # for param in model.parameters():
+        #     param.requires_grad = True
 
         # Compute logits and
         # probabilities
@@ -217,21 +217,17 @@ class LossComputer:
         # Compute the gradient using the analytical form for each class
         if x.dim() == 1:
             # x is a single sample (shape [768])
-            x_flattened = x.view(1, -1)  # Reshape to [1, 768]
-        elif x.dim() == 2:
-            # x is already a batch of samples (shape [20, 768])
-            x_flattened = x  # No reshaping needed
-        else:
-            raise ValueError("Unexpected shape of x")
+            x = x.view(1, -1)  # Reshape to [1, 768]
+
         # x_flattened = x.flatten(start_dim=1)
         weights1 = (y_onehot[:, 1] - p[:, 1]).unsqueeze(1)
         weights0 = (y_onehot[:, 0] - p[:, 0]).unsqueeze(1)
 
         # Perform matrix multiplication
         # The result will have the shape [1, 3 * 224 * 224]
-        grad_w_class1 = torch.matmul(weights1.T, x_flattened)
+        grad_w_class1 = torch.matmul(weights1.T, x)/ x.size(0)
         # grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(1), x) / x.size(0)
-        grad_w_class0 = torch.matmul(weights0.T, x_flattened) / x.size(0)
+        grad_w_class0 = torch.matmul(weights0.T, x) / x.size(0)
 
         # Stack the gradients for both classes
         grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
