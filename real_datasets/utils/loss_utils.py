@@ -218,7 +218,7 @@ class LossComputer:
         per_sample_losses = self.criterion(yhat, y)
         group_loss, group_count = self.compute_group_avg(per_sample_losses, envs_indices)
 
-        group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
+        group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), envs_indices)
 
         # update historical losses
         self.update_exp_avg_loss(group_loss, group_count)
@@ -320,7 +320,6 @@ class LossComputer:
         # group_map = (group_idx == torch.arange(self.n_groups).unsqueeze(1).long().to(device)).float()
         group_count = group_map.sum(1)
         group_denom = group_count + (group_count == 0).float()  # avoid nans
-        breakpoint()
         group_loss = (group_map @ losses.view(-1)) / group_denom
         return group_loss, group_count
 
