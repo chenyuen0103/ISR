@@ -150,10 +150,10 @@ class LossComputer:
         # logits = logits[0] if isinstance(logits, tuple) else logits
         prob = F.softmax(logits, dim=1).clone()[:, 1]
 
-
+        if x.dim() == 1:
+            x = x.view(1, -1)
         # hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
         batch_size = x.shape[0]
-        breakpoint()
         hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
