@@ -216,7 +216,6 @@ class LossComputer:
         # compute per-sample and per-group losses
         yhat = model(x)
         per_sample_losses = self.criterion(yhat, y)
-        breakpoint()
         group_loss, group_count = self.compute_group_avg(per_sample_losses, envs_indices)
 
         group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
@@ -233,9 +232,6 @@ class LossComputer:
             actual_loss = per_sample_losses.mean()
             weights = None
 
-        # update stats
-        self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norm,
-                          hessian_norm=hessian_norm)
 
         for env_idx in envs_indices.unique():
             model.zero_grad()
@@ -273,7 +269,8 @@ class LossComputer:
         accum_hess_loss = 0
         accum_grad_loss = 0
 
-
+        gradient_norms = torch.zeros(len(env_gradients))
+        hessian_norms = torch.zeros(len(env_hessians))
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
             yhat = model(x[idx])
@@ -283,9 +280,11 @@ class LossComputer:
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             # breakpoint()
             gradient_norm = torch.norm(grads[0], p=2)
+            gradient_norms.append(gradient_norm)
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
             hessian_norm = torch.norm(hessian, p='fro')
+            hessian_norms.append(hessian_norm)
             hessian_diff = hessian - avg_hessian
             hessian_diff_norm = torch.norm(hessian_diff, p='fro')
 
@@ -308,13 +307,10 @@ class LossComputer:
         accum_hess_loss = accum_hess_loss / n_unique_envs
         accum_grad_loss = accum_grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
-        # del grads
-        # del hessian
-        # del env_gradients
-        # del env_hessians
-        # torch.cuda.empty_cache()
 
-
+        # update stats
+        self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norms,
+                          hessian_norm=hessian_norms)
 
         return total_loss, erm_loss, accum_hess_loss, accum_grad_loss
 
