@@ -61,6 +61,12 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
 
     num_classes = 2
     clf = LogisticRegression(input_dim, num_classes).cuda()
+    clf_optimizer = optimizer = torch.optim.SGD(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=args.lr,
+            momentum=0.9,
+            weight_decay=args.weight_decay)
+
     if is_training:
         print("Start Training")
         model.train()
@@ -100,8 +106,8 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                 outputs = encoder(x)
             # else:
             #     outputs = model(x)
-            # loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g, is_training)
-            loss_main = loss_computer.loss(outputs, y, g, is_training)
+            loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g, is_training)
+            # loss_main = loss_computer.loss(outputs, y, g, is_training) # use this line then .backward() works
             if is_training:
                 if args.model == 'bert':
                     loss_main.backward()
@@ -110,10 +116,10 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                     scheduler.step()
                     model.zero_grad()
                 else:
-                    optimizer.zero_grad()
+                    clf_optimizer.zero_grad()
                     breakpoint()
                     loss_main.backward()
-                    optimizer.step()
+                    clf_optimizer.step()
 
             if is_training and (batch_idx + 1) % log_every == 0:
                 csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
