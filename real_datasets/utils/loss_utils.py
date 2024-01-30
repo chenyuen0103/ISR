@@ -276,7 +276,7 @@ class LossComputer:
 
             grad_loss = grad_alpha * grad_diff_norm ** 2
             hessian_loss = hess_beta * hessian_diff_norm ** 2
-            breakpoint()
+            # breakpoint()
             total_loss = total_loss + (loss + hessian_loss + grad_loss)
 
             erm_loss = erm_loss + loss
@@ -286,6 +286,7 @@ class LossComputer:
             # compute per-sample and per-group losses
             per_sample_losses = self.criterion(yhat, y[idx])
             group_loss, group_count = self.compute_group_avg(per_sample_losses, env_idx)
+            breakpoint()
             group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
 
             # update historical losses
