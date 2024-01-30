@@ -153,6 +153,7 @@ class LossComputer:
 
         # hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
         batch_size = x.shape[0]
+        breakpoint()
         hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
@@ -228,17 +229,7 @@ class LossComputer:
                 yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
             yhat = yhat[0] if isinstance(yhat, tuple) else yhat
-            # per_sample_loss = self.criterion(main_output, y[idx].long())
-            # loss = per_sample_loss.mean()
-            # loss = self.criterion2(main_output, y[idx].long())
 
-            # # Gradient and Hessian Computation assumes negative log loss
-            # # grads = self.gradient(model, x[idx], y[idx])
-            # get grads, hessian of loss with respect to parameters, and those to be backwarded later
-            # breakpoint()
-            # loss.backward(retain_graph=True)
-            # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True, allow_unused=True)
-            # breakpoint()
             grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.hessian(model, x[idx])
