@@ -16,6 +16,8 @@ algo_suffix = ""
 
 gpu_count = 4  # Number of GPUs available
 gpu_idx = 0   # Start with GPU 0
+if dataset == 'CelebA':
+    gpu_idx = 2
 # seeds = range(10)
 seeds = [0]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
