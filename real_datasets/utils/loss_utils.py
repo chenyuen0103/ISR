@@ -151,7 +151,6 @@ class LossComputer:
         else:
             batch_size = x.size(0)
         logits = model(x)
-        breakpoint()
         logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             # logits is a single sample
@@ -300,6 +299,7 @@ class LossComputer:
             if torch.isnan(loss):
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
+            breakpoint()
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
 
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
