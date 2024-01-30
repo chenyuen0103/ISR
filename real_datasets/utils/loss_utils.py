@@ -207,7 +207,7 @@ class LossComputer:
         grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
         return grad_w
 
-    def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
+    def exact_hessian_loss(self, model, x, y, envs_indices, grad_alpha=10e-5, hess_beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
         self.criterion2 = torch.nn.CrossEntropyLoss()
         env_gradients = []
@@ -253,8 +253,8 @@ class LossComputer:
         avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
 
         erm_loss = 0
-        hess_loss = 0
-        grad_loss = 0
+        accum_hess_loss = 0
+        accum_grad_loss = 0
 
 
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
@@ -274,14 +274,14 @@ class LossComputer:
 
 
 
-            grad_reg = alpha * grad_diff_norm ** 2
-            hessian_reg = beta * hessian_diff_norm ** 2
+            grad_loss = grad_alpha * grad_diff_norm ** 2
+            hessian_loss = hess_beta * hessian_diff_norm ** 2
             breakpoint()
-            total_loss = total_loss + (loss + hessian_reg + grad_reg)
+            total_loss = total_loss + (loss + hessian_loss + grad_loss)
 
             erm_loss = erm_loss + loss
-            grad_loss = grad_loss + alpha * grad_reg
-            hess_loss = hess_loss + beta * hessian_reg
+            accum_grad_loss = accum_grad_loss + grad_loss
+            accum_hess_loss = accum_hess_loss + hess_loss
 
             # compute per-sample and per-group losses
             per_sample_losses = self.criterion(yhat, y[idx])
@@ -307,8 +307,8 @@ class LossComputer:
         # print("Number of unique envs:", n_unique_envs)
         total_loss = total_loss / n_unique_envs
         erm_loss = erm_loss / n_unique_envs
-        hess_loss = hess_loss / n_unique_envs
-        grad_loss = grad_loss / n_unique_envs
+        accum_hess_loss = accum_hess_loss / n_unique_envs
+        accum_grad_loss = accum_grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
         # del grads
         # del hessian
@@ -318,7 +318,7 @@ class LossComputer:
 
 
 
-        return total_loss, erm_loss, hess_loss, grad_loss
+        return total_loss, erm_loss, accum_hess_loss, accum_grad_loss
 
     def compute_group_avg(self, losses, group_idx):
         # compute observed counts and mean loss for each group
