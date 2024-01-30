@@ -281,7 +281,7 @@ class LossComputer:
 
             erm_loss = erm_loss + loss
             accum_grad_loss = accum_grad_loss + grad_loss
-            accum_hess_loss = accum_hess_loss + hess_loss
+            accum_hess_loss = accum_hess_loss + hessian_loss
 
             # compute per-sample and per-group losses
             per_sample_losses = self.criterion(yhat, y[idx])
