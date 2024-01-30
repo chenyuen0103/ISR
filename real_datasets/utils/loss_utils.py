@@ -299,7 +299,7 @@ class LossComputer:
             if torch.isnan(loss):
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
-            breakpoint()
+            # breakpoint()
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
 
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
@@ -313,7 +313,7 @@ class LossComputer:
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
             # total_loss = total_loss + (loss + hessian_reg + grad_reg)
-            total_loss = total_loss + loss + hessian_reg
+            total_loss = total_loss + loss +grad_reg
             erm_loss = erm_loss + loss
             grad_loss = grad_loss + alpha * grad_reg
             hess_loss = hess_loss +  beta * hessian_reg
