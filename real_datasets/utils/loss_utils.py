@@ -45,8 +45,8 @@ class LossComputer:
         # self.adv_probs = torch.ones(self.n_groups).to(device) / self.n_groups
         # self.exp_avg_loss = torch.zeros(self.n_groups).to(device)
         # self.exp_avg_initialized = torch.zeros(self.n_groups).byte().to(device)
-        self.gradient_norm = 0
-        self.hessian_norm = 0
+        self.avg_group_gradient_norm = 0
+        self.avg_group_hessian_norm= 0
         self.reset_stats()
 
     def loss(self, yhat, y, group_idx=None, is_training=False):
@@ -259,8 +259,12 @@ class LossComputer:
         # Compute average gradient and hessian
         # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
         #                 range(len(env_gradients[0]))]
+
         weight_gradients = [g[0] for g in env_gradients if g.dim() > 1]
         breakpoint()
+        for i, grad in enumerate(weight_gradients):
+            print(f"Tensor {i} device: {grad.device}")
+
         avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
         filtered = [h for h in env_hessians if h.dim() > 2]
         # avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
@@ -308,8 +312,7 @@ class LossComputer:
         accum_hess_loss = accum_hess_loss / n_unique_envs
         accum_grad_loss = accum_grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
-        gradient_norms = gradient_norms.cpu()
-        hessian_norms = hessian_norms.cpu()
+
         # update stats
         self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norms,
                           hessian_norm=hessian_norms)
