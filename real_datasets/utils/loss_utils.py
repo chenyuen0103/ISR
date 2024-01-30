@@ -213,8 +213,29 @@ class LossComputer:
         env_gradients = []
         env_hessians = []
         # initial_state = model.state_dict()
+        # compute per-sample and per-group losses
+        yhat = model(x)
+        per_sample_losses = self.criterion(yhat, y)
+        breakpoint()
+        group_loss, group_count = self.compute_group_avg(per_sample_losses, envs_indices)
 
+        group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
 
+        # update historical losses
+        self.update_exp_avg_loss(group_loss, group_count)
+
+        # compute overall loss
+        if self.is_robust and not self.btl:
+            actual_loss, weights = self.compute_robust_loss(group_loss, group_count)
+        elif self.is_robust and self.btl:
+            actual_loss, weights = self.compute_robust_loss_btl(group_loss, group_count)
+        else:
+            actual_loss = per_sample_losses.mean()
+            weights = None
+
+        # update stats
+        self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norm,
+                          hessian_norm=hessian_norm)
 
         for env_idx in envs_indices.unique():
             model.zero_grad()
@@ -236,11 +257,7 @@ class LossComputer:
             hessian = self.hessian(model, x[idx])
             env_gradients.append(grads)
             env_hessians.append(hessian)
-            # del grads, hessian
-            # Free up the variable
-            # torch.cuda.empty_cache()
-            # model.load_state_dict(initial_state)
-            # model.zero_grad()
+
 
 
         # Compute average gradient and hessian
@@ -283,27 +300,6 @@ class LossComputer:
             accum_grad_loss = accum_grad_loss + grad_loss
             accum_hess_loss = accum_hess_loss + hessian_loss
 
-            # compute per-sample and per-group losses
-            per_sample_losses = self.criterion(yhat, y[idx])
-            breakpoint()
-            group_loss, group_count = self.compute_group_avg(per_sample_losses, env_idx)
-
-            group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), env_idx)
-
-            # update historical losses
-            self.update_exp_avg_loss(group_loss, group_count)
-
-            # compute overall loss
-            if self.is_robust and not self.btl:
-                actual_loss, weights = self.compute_robust_loss(group_loss, group_count)
-            elif self.is_robust and self.btl:
-                actual_loss, weights = self.compute_robust_loss_btl(group_loss, group_count)
-            else:
-                actual_loss = per_sample_losses.mean()
-                weights = None
-
-            # update stats
-            self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm= gradient_norm, hessian_norm=hessian_norm)
 
         n_unique_envs = len(envs_indices.unique())
         # print("Number of unique envs:", n_unique_envs)
