@@ -1,4 +1,5 @@
 import os
+from itertools import chain
 
 import numpy as np
 import torch
@@ -32,7 +33,6 @@ class LogisticRegression(torch.nn.Module):
         # if not isinstance(x, torch.Tensor):
         #     x = torch.tensor(x).float()
         print(x.shape)
-
         return self.linear(x)
 
     def predict(self, x):
@@ -48,25 +48,6 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
     """
     scheduler is only used inside this function if model is bert.
     """
-    # breakpoint()
-    dummy_input = torch.randn(1, 3, 224, 224).cuda()
-    encoder = model.encode_image
-    with torch.no_grad():
-        dummy_output = encoder(dummy_input)
-
-        # Output dimension
-        input_dim = dummy_output.size(-1)
-
-
-
-    num_classes = 2
-    clf = LogisticRegression(input_dim, num_classes).cuda()
-    clf_optimizer = optimizer = torch.optim.SGD(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=args.lr,
-            momentum=0.9,
-            weight_decay=args.weight_decay)
-
     if is_training:
         print("Start Training")
         model.train()
@@ -145,6 +126,17 @@ def train(model, criterion, dataset,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model = model.cuda()
+    # breakpoint()
+    dummy_input = torch.randn(1, 3, 224, 224).cuda()
+    encoder = model.encode_image
+    with torch.no_grad():
+        dummy_output = encoder(dummy_input)
+
+        # Output dimension
+        input_dim = dummy_output.size(-1)
+
+    num_classes = 2
+    clf = LogisticRegression(input_dim, num_classes).cuda()
 
     # process generalization adjustment stuff
     adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
@@ -186,10 +178,14 @@ def train(model, criterion, dataset,
             num_training_steps=t_total)
     else:
         optimizer = torch.optim.SGD(
-            filter(lambda p: p.requires_grad, model.parameters()),
+            chain(
+                filter(lambda p: p.requires_grad, model.parameters()),
+                filter(lambda p: p.requires_grad, clf.parameters())
+            ),
             lr=args.lr,
             momentum=0.9,
-            weight_decay=args.weight_decay)
+            weight_decay=args.weight_decay
+        )
         if args.scheduler:
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,

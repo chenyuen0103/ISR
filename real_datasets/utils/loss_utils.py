@@ -145,7 +145,11 @@ class LossComputer:
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
         for params in model.parameters():
             params.requires_grad = True
-
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+            batch_size = 1
+        else:
+            batch_size = x.size(0)
         logits = model(x)
         logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
@@ -156,16 +160,6 @@ class LossComputer:
             prob = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
 
-        if x.dim() == 1:
-            # x is a single sample, reshape to [1, num_features]
-            x = x.unsqueeze(0)
-            batch_size = 1
-        elif x.dim() == 2:
-            # x is a batch of samples
-            # x_flatten = x
-            batch_size = x.size(0)
-        else:
-            raise ValueError("Unexpected shape of x")
 
         if prob.dim() == 0:
             prob = prob.unsqueeze(0)
@@ -194,6 +188,8 @@ class LossComputer:
 
         # Compute logits and
         # probabilities
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
         logits = model(x)
         logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
@@ -258,8 +254,10 @@ class LossComputer:
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             # loss = self.criterion(model(x[idx]).squeeze(), y[idx].long())
-
-            yhat = model(x[idx])
+            if x[idx].dim() == 1:
+                yhat = model(x[idx].unsqueeze(0))
+            else:
+                yhat = model(x[idx])
             # Assuming the first element of the tuple is the output you need
             yhat = yhat[0] if isinstance(yhat, tuple) else yhat
             # per_sample_loss = self.criterion(main_output, y[idx].long())
