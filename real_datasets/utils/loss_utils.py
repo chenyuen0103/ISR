@@ -142,12 +142,12 @@ class LossComputer:
 
         return hessian
 
-    def hessian(self, model, x):
+    def hessian(self, logits, x):
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
         # for params in model.parameters():
         #     params.requires_grad = True
 
-        logits = model(x)
+        # logits = model(x)
         # logits = logits[0] if isinstance(logits, tuple) else logits
         prob = F.softmax(logits, dim=1).clone()[:, 1]
 
@@ -168,13 +168,13 @@ class LossComputer:
         return hessian_w
 
 
-    def gradient(self,model, x, y):
+    def gradient(self, x, logits, y):
         # for param in model.parameters():
         #     param.requires_grad = True
 
         # Compute logits and
         # probabilities
-        logits = model(x)
+        # logits = model(x)
         # logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             p = F.softmax(logits, dim=0)
@@ -242,15 +242,16 @@ class LossComputer:
                 env_hessians.append(torch.zeros(1))
                 continue
             elif x[idx].dim() == 1:
-                yhat = model(x[idx].unsqueeze(0))
+                yhat_env = yhat[idx].view(1, -1)
             else:
-                yhat = model(x[idx])
+                yhat_env = yhat[idx]
             # Assuming the first element of the tuple is the output you need
-            yhat = yhat[0] if isinstance(yhat, tuple) else yhat
+            yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
 
-            grads = self.gradient(model, x[idx], y[idx])
+            # grads = self.gradient(model, x[idx], y[idx])
+            grads = self.gradient(x, yhat_env, y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            hessian = self.hessian(model, x[idx])
+            hessian = self.hessian(x, yhat_env, x[idx])
             env_gradients.append(grads)
             env_hessians.append(hessian)
 
