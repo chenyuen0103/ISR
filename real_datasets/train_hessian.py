@@ -41,6 +41,7 @@ class LogisticRegression(torch.nn.Module):
         logits = self.forward(x)
         return torch.argmax(logits, dim=1)
 
+
     def score(self, X, y, sample_weight=None):
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 

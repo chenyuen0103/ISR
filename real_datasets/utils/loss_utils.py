@@ -145,31 +145,15 @@ class LossComputer:
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
         # for params in model.parameters():
         #     params.requires_grad = True
-        if x.dim() == 1:
-            x = x.unsqueeze(0)
-            batch_size = 1
-        else:
-            batch_size = x.size(0)
+
         logits = model(x)
         # logits = logits[0] if isinstance(logits, tuple) else logits
-        if logits.dim() == 1:
-            # logits is a single sample
-            prob = F.softmax(logits, dim=1)[:, 1]
-        else:
-            # logits is a batch of samples
-            prob = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
+        prob = F.softmax(logits, dim=1).clone()[:, 1]
 
-
-
-        if prob.dim() == 0:
-            prob = prob.unsqueeze(0)
 
         # hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
-        hessian_list_class0 = []
-        for i in range(batch_size):
-            outer_product = torch.ger(x[i], x[i])
-            hessian = prob[i] * (1 - prob[i]) * outer_product
-            hessian_list_class0.append(hessian)
+        batch_size = x.shape[0]
+        hessian_list_class0 = [prob[i] * (1 - prob[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
 
         hessian_w_class0 = sum(hessian_list_class0) / batch_size
 
@@ -188,10 +172,8 @@ class LossComputer:
 
         # Compute logits and
         # probabilities
-        if x.dim() == 1:
-            x = x.unsqueeze(0)
         logits = model(x)
-        logits = logits[0] if isinstance(logits, tuple) else logits
+        # logits = logits[0] if isinstance(logits, tuple) else logits
         if logits.dim() == 1:
             p = F.softmax(logits, dim=0)
         else:
@@ -215,19 +197,13 @@ class LossComputer:
 
 
         # Compute the gradient using the analytical form for each class
-        if x.dim() == 1:
-            # x is a single sample (shape [768])
-            x = x.view(1, -1)  # Reshape to [1, 768]
+        # if x.dim() == 1:
+        #     # x is a single sample (shape [768])
+        #     x = x.view(1, -1)  # Reshape to [1, 768]
 
-        # x_flattened = x.flatten(start_dim=1)
-        weights1 = (y_onehot[:, 1] - p[:, 1]).unsqueeze(1)
-        weights0 = (y_onehot[:, 0] - p[:, 0]).unsqueeze(1)
-
-        # Perform matrix multiplication
-        # The result will have the shape [1, 3 * 224 * 224]
-        grad_w_class1 = torch.matmul(weights1.T, x)/ x.size(0)
-        # grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(1), x) / x.size(0)
-        grad_w_class0 = torch.matmul(weights0.T, x) / x.size(0)
+        # Compute the gradient using the analytical form for each class
+        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
+        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
 
         # Stack the gradients for both classes
         grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
