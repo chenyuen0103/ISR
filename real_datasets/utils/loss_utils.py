@@ -142,7 +142,7 @@ class LossComputer:
 
         return hessian
 
-    def hessian(self, logits, x):
+    def hessian(self,x, logits):
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
         # for params in model.parameters():
         #     params.requires_grad = True
@@ -249,9 +249,9 @@ class LossComputer:
             yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
 
             # grads = self.gradient(model, x[idx], y[idx])
-            grads = self.gradient(x, yhat_env, y[idx])
+            grads = self.gradient(x[idx], yhat_env, y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            hessian = self.hessian(x, yhat_env, x[idx])
+            hessian = self.hessian(x[idx], yhat_env)
             env_gradients.append(grads)
             env_hessians.append(hessian)
 
