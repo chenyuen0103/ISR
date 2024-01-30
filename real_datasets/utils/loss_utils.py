@@ -278,7 +278,7 @@ class LossComputer:
             if torch.isnan(loss) or idx.numel() == 0:
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
-            # breakpoint()
+
             gradient_norm = torch.norm(grads[0], p=2)
             gradient_norms[env_idx] = gradient_norm
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
@@ -357,6 +357,7 @@ class LossComputer:
 
         # avg group acc
         self.avg_group_acc = prev_weight * self.avg_group_acc + curr_weight * group_acc
+        breakpoint()
         self.avg_group_gradient_norm = prev_weight * self.avg_group_acc + curr_weight * gradient_norm
         self.avg_group_hessian_norm = prev_weight * self.avg_group_acc + curr_weight * hessian_norm
 
