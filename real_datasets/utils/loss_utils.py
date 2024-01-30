@@ -363,14 +363,6 @@ class LossComputer:
 
         # avg group acc
         self.avg_group_acc = prev_weight * self.avg_group_acc + curr_weight * group_acc
-        print(prev_weight.device)
-        print(curr_weight.device)
-        print(group_acc.device)
-        print(self.avg_group_acc.device)
-        print(gradient_norm.device)
-        print(hessian_norm.device)
-
-        breakpoint()
         self.avg_group_gradient_norm = prev_weight * self.avg_group_acc + curr_weight * gradient_norm
         self.avg_group_hessian_norm = prev_weight * self.avg_group_acc + curr_weight * hessian_norm
 
