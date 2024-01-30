@@ -259,11 +259,11 @@ class LossComputer:
         # Compute average gradient and hessian
         # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
         #                 range(len(env_gradients[0]))]
-        weight_gradients = [g[0] for g in env_gradients]
+        weight_gradients = [g[0] for g in env_gradients if g]
         avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
-
+        filtered = [h for h in env_hessians if h]
         # avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
-        avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
+        avg_hessian = torch.mean(torch.stack(filtered), dim=0)
 
         erm_loss = 0
         accum_hess_loss = 0
