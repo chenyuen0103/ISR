@@ -261,7 +261,6 @@ class LossComputer:
         #                 range(len(env_gradients[0]))]
 
         weight_gradients = [g[0] for g in env_gradients if g.dim() > 1]
-        breakpoint()
         for i, grad in enumerate(weight_gradients):
             print(f"Tensor {i} device: {grad.device}")
 
