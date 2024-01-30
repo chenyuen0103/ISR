@@ -43,7 +43,7 @@ class LogisticRegression(torch.nn.Module):
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
 
-def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger, args,
+def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_logger, args,
               is_training, show_progress=False, log_every=50, scheduler=None):
     """
     scheduler is only used inside this function if model is bert.
@@ -205,7 +205,7 @@ def train(model, criterion, dataset,
         logger.write('\nEpoch [%d]:\n' % epoch)
         logger.write(f'Training:\n')
         run_epoch(
-            epoch, model, optimizer,
+            epoch, model,clf, optimizer,
             dataset['train_loader'],
             train_loss_computer,
             logger, train_csv_logger, args,
@@ -222,7 +222,7 @@ def train(model, criterion, dataset,
             step_size=args.robust_step_size,
             alpha=args.alpha)
         run_epoch(
-            epoch, model, optimizer,
+            epoch, model,clf, optimizer,
             dataset['val_loader'],
             val_loss_computer,
             logger, val_csv_logger, args,
@@ -237,7 +237,7 @@ def train(model, criterion, dataset,
                 step_size=args.robust_step_size,
                 alpha=args.alpha)
             run_epoch(
-                epoch, model, optimizer,
+                epoch, model,clf, optimizer,
                 dataset['test_loader'],
                 test_loss_computer,
                 None, test_csv_logger, args,
