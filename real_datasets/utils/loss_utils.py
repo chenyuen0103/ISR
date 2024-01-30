@@ -210,6 +210,7 @@ class LossComputer:
     def exact_hessian_loss(self, model, x, y, envs_indices, grad_alpha=10e-5, hess_beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
         self.criterion2 = torch.nn.CrossEntropyLoss()
+        # empty list of lentgh = self.n_groups
         env_gradients = []
         env_hessians = []
         # initial_state = model.state_dict()
@@ -237,9 +238,8 @@ class LossComputer:
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
-                continue
-            if x[idx].dim() == 0:
-                # Handle the 0-dimensional tensor case
+                env_gradients.append(torch.zeros(1))
+                env_hessians.append(torch.zeros(1))
                 continue
             elif x[idx].dim() == 1:
                 yhat = model(x[idx].unsqueeze(0))
