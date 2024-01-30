@@ -215,6 +215,8 @@ class LossComputer:
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
             loss = self.criterion2(model(x[idx]).squeeze(), y[idx].long())
             loss.backward(retain_graph=True)
             if x[idx].dim() == 0:
