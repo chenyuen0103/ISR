@@ -8,7 +8,7 @@ import pdb
 # algos = ['ERM','reweight','groupDRO']
 algos = ['ERM']
 # dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
-dataset = 'CelebA'
+dataset = 'CUB'
 # can add some suffix to the algo name to flag the version,
 # e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
 algo_suffix = ""
