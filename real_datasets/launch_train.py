@@ -13,7 +13,7 @@ dataset = 'CelebA'
 # e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
 algo_suffix = ""
 # Assuming seeds, algos, dataset, and get_train_command are defined
-gut
+
 gpu_count = 4  # Number of GPUs available
 gpu_idx = 0   # Start with GPU 0
 if dataset == 'CelebA':
