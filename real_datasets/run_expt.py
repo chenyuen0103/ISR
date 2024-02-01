@@ -68,6 +68,7 @@ def main():
     parser.add_argument('--save_best', action='store_true', default=False)
     parser.add_argument('--save_last', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
+    parser.add_argument('hessian_align', action='store_true', default=False)
     args = parser.parse_args()
     check_args(args)
 
@@ -81,10 +82,12 @@ def main():
         algo = 'groupDRO'
     elif args.reweight_groups:
         algo = 'reweight'
+    elif args.hessian_align:
+        algo = 'HessianERM'
     else:
         algo = 'ERM'
 
-    args.log_dir = os.path.join(args.log_dir, args.dataset, algo + args.algo_suffix, f's{args.seed}')
+    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}')
 
     if os.path.exists(args.log_dir) and args.resume:
         resume = True

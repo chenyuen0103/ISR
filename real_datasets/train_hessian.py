@@ -20,6 +20,7 @@ from torch.profiler import profile, record_function, ProfilerActivity
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 torch.cuda.empty_cache()
+max_process_batch = 32
 
 class LogisticRegression(torch.nn.Module):
     # build the constructor
@@ -69,33 +70,48 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
         for batch_idx, batch in enumerate(prog_bar_loader):
             batch = tuple(t.to(device) for t in batch)
             # batch = tuple(t.cuda() for t in batch)
-            x = batch[0]
-            y = batch[1]
-            g = batch[2]
-            if args.model == 'bert':
-                input_ids = x[:, :, 0]
-                input_masks = x[:, :, 1]
-                segment_ids = x[:, :, 2]
-                outputs = model(
-                    input_ids=input_ids,
-                    attention_mask=input_masks,
-                    token_type_ids=segment_ids,
-                    labels=y
-                )[1]  # [1] returns logits
-            elif args.model == 'clip':
-                # Reshape x to [batch_size, channels, height, width]
-                encoder = model.encode_image
-                x = x.view(x.size(0), 3, 224, 224)
-                # breakpoint()
-                outputs = encoder(x)
-            # else:
-            #     outputs = model(x)
-            loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
-            # loss_logging = loss_computer.loss(clf(outputs), y, g, is_training)
-            # loss_main = loss_computer.loss(outputs, y, g, is_training) # use this line then .backward() works
+            x_batch = batch[0]
+            y_batch = batch[1]
+            g_batch = batch[2]
+            breakpoint()
+            num_sub_batches = len(x_batch) // max_process_batch
+            batch_loss = 0
+            for sub_batch_idx in range(num_sub_batches):
+                start_idx = sub_batch_idx * max_process_batch
+                end_idx = start_idx + max_process_batch
+                x, y, g = x_batch[start_idx:end_idx], y_batch[start_idx:end_idx], g_batch[start_idx:end_idx]
+
+                if args.model == 'bert':
+                    input_ids = x[:, :, 0]
+                    input_masks = x[:, :, 1]
+                    segment_ids = x[:, :, 2]
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=input_masks,
+                        token_type_ids=segment_ids,
+                        labels=y
+                    )[1]  # [1] returns logits
+                elif args.model == 'clip':
+                    # Reshape x to [batch_size, channels, height, width]
+                    encoder = model.encode_image
+                    x = x.view(x.size(0), 3, 224, 224)
+                    # breakpoint()
+                    outputs = encoder(x)
+                # else:
+                #     outputs = model(x)
+                breakpoint()
+                if args.hessian_align or 'Hessian' in args.algo:
+                    loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
+                else:
+                    loss_main = loss_computer.loss(outputs, y, g, is_training)
+
+                batch_loss = batch_loss + loss_main
+                if is_training:
+                    loss_main.backward()
+
             if is_training:
                 if args.model == 'bert':
-                    loss_main.backward()
+                    # loss_main.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                     optimizer.step()
                     scheduler.step()
@@ -103,7 +119,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 else:
                     optimizer.zero_grad()
                     # breakpoint()
-                    loss_main.backward()
+                    # loss_main.backward()
                     optimizer.step()
 
             if is_training and (batch_idx + 1) % log_every == 0:
@@ -130,7 +146,6 @@ def train(model, criterion, dataset,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model = model.cuda()
-    # breakpoint()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
     encoder = model.encode_image
     with torch.no_grad():
@@ -266,9 +281,7 @@ def train(model, criterion, dataset,
 
         if args.save_last:
             torch.save(model, os.path.join(args.log_dir, 'last_model.pth'))
-
         if args.save_best:
-
             curr_val_acc = min(val_loss_computer.avg_group_acc)
             curr_avg_val_acc = val_loss_computer.avg_acc
 
