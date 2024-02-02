@@ -196,6 +196,7 @@ def train(model, criterion, dataset,
             num_warmup_steps=args.warmup_steps,
             num_training_steps=t_total)
     else:
+        breakpoint()
         optimizer = torch.optim.SGD(
             chain(
                 filter(lambda p: p.requires_grad, model.parameters()),
