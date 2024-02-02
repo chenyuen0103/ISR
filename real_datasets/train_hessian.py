@@ -110,7 +110,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     loss_main = loss_main /num_sub_batches
                     loss_main.backward()
 
-            breakpoint()
+            # breakpoint()
             if is_training:
                 if args.model == 'bert':
                     # loss_main.backward()
