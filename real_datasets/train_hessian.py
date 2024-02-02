@@ -121,7 +121,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     optimizer.zero_grad()
                     # loss.backward()
                     optimizer.step()
-                    model.zero_grad()
+                    # model.zero_grad()
 
 
             if is_training and (batch_idx + 1) % log_every == 0:
