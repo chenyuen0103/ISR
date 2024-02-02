@@ -48,7 +48,7 @@ TRAIN_COMMANDS_CLIP = dict(
     ,
     CUB={
         "ERM": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model clip --weight_decay 0.1 --lr 0.0001 '
-               '--batch_size 32 --n_epochs 300',  # ERM
+               '--batch_size 128 --n_epochs 300',  # ERM
         # "ERM": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 0.1 --lr 0.0001 '
         #         '--batch_size 32 --n_epochs 300',  # ERM
         "reweight": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model clip --weight_decay 1 --lr 1e-05 '
