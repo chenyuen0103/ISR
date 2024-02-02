@@ -102,11 +102,11 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 outputs = encoder(x)
             # else:
             #     outputs = model(x)
-            if args.hessian_align:
-                # print('Hessian Align:', args.hessian_align)
-                loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
-            else:
-                loss_main = loss_computer.loss(outputs, y, g, is_training)
+            # if args.hessian_align:
+            #     # print('Hessian Align:', args.hessian_align)
+            #     loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
+            # else:
+            loss_main = loss_computer.loss(outputs, y, g, is_training)
             # batch_loss = batch_loss + loss_main.item()
             if is_training:
                 # loss_main = loss_main /num_sub_batches
@@ -123,7 +123,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 else:
                     optimizer.zero_grad()
                     # loss.backward()
-                    breakpoint()
+                    # breakpoint()
                     optimizer.step()
                     # model.zero_grad()
 
