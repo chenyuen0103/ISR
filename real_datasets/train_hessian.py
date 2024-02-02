@@ -75,7 +75,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
             g_batch = batch[2]
             # breakpoint()
             num_sub_batches = len(x_batch) // max_process_batch
-            batch_loss = 0
+            batch_loss = 0.0
             for sub_batch_idx in range(num_sub_batches):
                 start_idx = sub_batch_idx * max_process_batch
                 end_idx = start_idx + max_process_batch
@@ -104,9 +104,10 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
                 else:
                     loss_main = loss_computer.loss(outputs, y, g, is_training)
-
+                breakpoint()
                 batch_loss = batch_loss + loss_main
                 if is_training:
+                    loss_main = loss_main /num_sub_batches
                     loss_main.backward()
 
             if is_training:
@@ -115,12 +116,14 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                     optimizer.step()
                     scheduler.step()
-                    model.zero_grad()
+                    # model.zero_grad()
                 else:
                     optimizer.zero_grad()
                     # breakpoint()
                     # loss_main.backward()
                     optimizer.step()
+                model.zero_grad()
+
 
             if is_training and (batch_idx + 1) % log_every == 0:
                 csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
