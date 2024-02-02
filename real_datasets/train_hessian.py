@@ -104,12 +104,12 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
                 else:
                     loss_main = loss_computer.loss(outputs, y, g, is_training)
-                breakpoint()
                 batch_loss = batch_loss + loss_main
                 if is_training:
                     loss_main = loss_main /num_sub_batches
                     loss_main.backward()
 
+            breakpoint()
             if is_training:
                 if args.model == 'bert':
                     # loss_main.backward()
