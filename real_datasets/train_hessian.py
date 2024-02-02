@@ -98,15 +98,14 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 # Reshape x to [batch_size, channels, height, width]
                 encoder = model.encode_image
                 x = x.view(x.size(0), 3, 224, 224)
-                # breakpoint()
                 outputs = encoder(x)
-            # else:
-            #     outputs = model(x)
+            else:
+                outputs = model(x)
             # if args.hessian_align:
             #     # print('Hessian Align:', args.hessian_align)
-            #     loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
+            loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
             # else:
-            loss_main = loss_computer.loss(outputs, y, g, is_training)
+            # loss_main = loss_computer.loss(outputs, y, g, is_training)
             # batch_loss = batch_loss + loss_main.item()
             if is_training:
                 # loss_main = loss_main /num_sub_batches
@@ -119,13 +118,11 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                     optimizer.step()
                     scheduler.step()
-                    # model.zero_grad()
+                    model.zero_grad()
                 else:
                     optimizer.zero_grad()
                     # loss.backward()
-                    # breakpoint()
                     optimizer.step()
-                    # model.zero_grad()
 
 
             if is_training and (batch_idx + 1) % log_every == 0:
