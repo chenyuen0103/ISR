@@ -18,9 +18,9 @@ TRAIN_COMMANDS = dict(
         "ERM": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 0.1 --lr 0.0001 '
                '--batch_size 128 --n_epochs 300',  # ERM
         "reweight": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 1 --lr 1e-05 '
-                    '--batch_size 32 --n_epochs 300 --reweight_groups',  # reweight
+                    '--batch_size 128 --n_epochs 300 --reweight_groups',  # reweight
         "groupDRO": ' -s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 1 --lr 1e-05 '
-                    '--batch_size 32 --n_epochs 300 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 2',
+                    '--batch_size 128 --n_epochs 300 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 2',
         # groupDRO
     },
     MultiNLI={
@@ -68,7 +68,7 @@ TRAIN_COMMANDS_CLIP = dict(
     }
 )
 def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int = None, train_script: str = 'run_expt.py', hessian_align: bool = False,
-                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True):
+                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False):
     prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''
     # prefix = ''
     suffix = f' --algo_suffix {algo_suffix}' if algo_suffix else ''
@@ -76,6 +76,8 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
         suffix += ' --save_best'
     if save_last:
         suffix += ' --save_last'
+    if resume:
+        suffix += ' --resume'
     seed = 0 if seed is None else seed
     if model == 'clip':
         args_command = TRAIN_COMMANDS_CLIP[dataset][algo]
