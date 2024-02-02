@@ -121,6 +121,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 else:
                     optimizer.zero_grad()
                     # loss.backward()
+                    breakpoint()
                     optimizer.step()
                     # model.zero_grad()
 
