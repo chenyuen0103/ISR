@@ -220,7 +220,7 @@ class LossComputer:
         per_sample_losses = self.criterion(logits, y)
         group_loss, group_count = self.compute_group_avg(per_sample_losses, envs_indices)
 
-        group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), envs_indices)
+        group_acc, group_count = self.compute_group_avg((torch.argmax(logits, 1) == y).float(), envs_indices)
 
         # update historical losses
         self.update_exp_avg_loss(group_loss, group_count)
