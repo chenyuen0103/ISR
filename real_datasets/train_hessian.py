@@ -69,6 +69,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
     with torch.set_grad_enabled(is_training):
         for batch_idx, batch in enumerate(prog_bar_loader):
             batch = tuple(t.to(device) for t in batch)
+            optimizer.zero_grad()
             # batch = tuple(t.cuda() for t in batch)
             x_batch = batch[0]
             y_batch = batch[1]
@@ -104,7 +105,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
                 else:
                     loss_main = loss_computer.loss(outputs, y, g, is_training)
-                batch_loss = batch_loss + loss_main.item()
+                # batch_loss = batch_loss + loss_main.item()
                 if is_training:
                     loss_main = loss_main /num_sub_batches
                     loss_main.backward()
@@ -198,7 +199,7 @@ def train(model, criterion, dataset,
             num_warmup_steps=args.warmup_steps,
             num_training_steps=t_total)
     else:
-        breakpoint()
+        # breakpoint()
         optimizer = torch.optim.SGD(
             chain(
                 filter(lambda p: p.requires_grad, model.parameters()),
