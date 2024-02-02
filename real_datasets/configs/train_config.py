@@ -38,7 +38,7 @@ TRAIN_COMMANDS_CLIP = dict(
     CelebA=
     {
         "ERM": "-s confounder -d CelebA -t Blond_Hair -c Male --model clip --weight_decay 0.01 --lr 0.0001 "
-               "--batch_size 128 --n_epochs 50",  # ERM
+               "--batch_size 128 --n_epochs 50 --resume",  # ERM
         "groupDRO": "-s confounder -d CelebA -t Blond_Hair -c Male --model clip --weight_decay 0.1 --lr 1e-05 "
                     "--batch_size 128 --n_epochs 50 --reweight_groups --robust --alpha 0.01 --gamma 0.1 --generalization_adjustment 3",
         # groupDRO
