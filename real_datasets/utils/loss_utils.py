@@ -207,16 +207,17 @@ class LossComputer:
         grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
         return grad_w
 
-    def exact_hessian_loss(self, model, x, y, envs_indices, grad_alpha=10e-5, hess_beta=10e-5):
+    def exact_hessian_loss(self, logits, x, y, envs_indices, grad_alpha=10e-5, hess_beta=10e-5):
         total_loss = torch.tensor(0.0, requires_grad=True)
         self.criterion2 = torch.nn.CrossEntropyLoss()
         # empty list of lentgh = self.n_groups
         env_gradients = []
         env_hessians = []
-        # initial_state = model.state_dict()
         # compute per-sample and per-group losses
-        yhat = model(x)
-        per_sample_losses = self.criterion(yhat, y)
+        # yhat = model(x)
+
+        # For logging purposes
+        per_sample_losses = self.criterion(logits, y)
         group_loss, group_count = self.compute_group_avg(per_sample_losses, envs_indices)
 
         group_acc, group_count = self.compute_group_avg((torch.argmax(yhat, 1) == y).float(), envs_indices)
@@ -234,17 +235,18 @@ class LossComputer:
             weights = None
 
 
+        # Compute the gradient and hessian for each environment
         for env_idx in range(self.n_groups):
-            model.zero_grad()
+            # model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
                 env_gradients.append(torch.zeros(1))
                 env_hessians.append(torch.zeros(1))
                 continue
             elif x[idx].dim() == 1:
-                yhat_env = yhat[idx].view(1, -1)
+                yhat_env = logits[idx].view(1, -1)
             else:
-                yhat_env = yhat[idx]
+                yhat_env = logits[idx]
             # Assuming the first element of the tuple is the output you need
             yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
 
@@ -277,7 +279,7 @@ class LossComputer:
         hessian_norms = torch.zeros(len(env_hessians)).cuda()
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
-            yhat = model(x[idx])
+            yhat = logits[idx]
             loss = self.criterion2(yhat.squeeze(), y[idx].long())
             if torch.isnan(loss) or idx.numel() == 0:
                 continue

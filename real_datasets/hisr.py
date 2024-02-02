@@ -447,7 +447,7 @@ class HISRClassifier:
             # # Gradient and Hessian Computation assumes negative log loss
             # # grads = self.gradient(model, x[idx], y[idx])
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
-            loss.backward(retain_graph=True)
+            # loss.backward(retain_graph=True)
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
             grads = self.gradient(model, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])

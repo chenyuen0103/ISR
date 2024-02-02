@@ -71,45 +71,46 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
             batch = tuple(t.to(device) for t in batch)
             optimizer.zero_grad()
             # batch = tuple(t.cuda() for t in batch)
-            # x_batch = batch[0]
-            # y_batch = batch[1]
-            # g_batch = batch[2]
-            x = batch[0]
-            y = batch[1]
-            g = batch[2]
+            x_batch = batch[0]
+            y_batch = batch[1]
+            g_batch = batch[2]
+            # x = batch[0]
+            # y = batch[1]
+            # g = batch[2]
             # # breakpoint()
-            # num_sub_batches = len(x_batch) // max_process_batch
-            # for sub_batch_idx in range(num_sub_batches):
-            #     start_idx = sub_batch_idx * max_process_batch
-            #     end_idx = start_idx + max_process_batch
-            #     x, y, g = x_batch[start_idx:end_idx], y_batch[start_idx:end_idx], g_batch[start_idx:end_idx]
+            num_sub_batches = len(x_batch) // max_process_batch
+            for sub_batch_idx in range(num_sub_batches):
+                start_idx = sub_batch_idx * max_process_batch
+                end_idx = start_idx + max_process_batch
+                x, y, g = x_batch[start_idx:end_idx], y_batch[start_idx:end_idx], g_batch[start_idx:end_idx]
 
-            if args.model == 'bert':
-                input_ids = x[:, :, 0]
-                input_masks = x[:, :, 1]
-                segment_ids = x[:, :, 2]
-                outputs = model(
-                    input_ids=input_ids,
-                    attention_mask=input_masks,
-                    token_type_ids=segment_ids,
-                    labels=y
-                )[1]  # [1] returns logits
-            elif args.model == 'clip':
-                # Reshape x to [batch_size, channels, height, width]
-                encoder = model.encode_image
-                x = x.view(x.size(0), 3, 224, 224)
-                outputs = encoder(x)
-            else:
-                outputs = model(x)
-            # if args.hessian_align:
-            #     # print('Hessian Align:', args.hessian_align)
-            loss_main, _, _, _ = loss_computer.exact_hessian_loss(clf, outputs, y, g)
-            # else:
-            # loss_main = loss_computer.loss(outputs, y, g, is_training)
-            # batch_loss = batch_loss + loss_main.item()
-            if is_training:
-                # loss_main = loss_main /num_sub_batches
-                loss_main.backward()
+                if args.model == 'bert':
+                    input_ids = x[:, :, 0]
+                    input_masks = x[:, :, 1]
+                    segment_ids = x[:, :, 2]
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=input_masks,
+                        token_type_ids=segment_ids,
+                        labels=y
+                    )[1]  # [1] returns logits
+                elif args.model == 'clip':
+                    # Reshape x to [batch_size, channels, height, width]
+                    encoder = model.encode_image
+                    x = x.view(x.size(0), 3, 224, 224)
+                    outputs = encoder(x)
+                else:
+                    outputs = model(x)
+                logits = clf(outputs)
+                if args.hessian_align:
+                    # print('Hessian Align:', args.hessian_align)
+                    loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g)
+                else:
+                    loss_main = loss_computer.loss(outputs, y, g, is_training)
+
+                if is_training:
+                    loss_main = loss_main / num_sub_batches
+                    loss_main.backward()
 
             # breakpoint()
             if is_training:
@@ -120,7 +121,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                     scheduler.step()
                     model.zero_grad()
                 else:
-                    optimizer.zero_grad()
+                    # optimizer.zero_grad()
                     # loss.backward()
                     optimizer.step()
 
