@@ -15,11 +15,11 @@ algo_suffix = ""
 # Assuming seeds, algos, dataset, and get_train_command are defined
 
 gpu_count = 4  # Number of GPUs available
-gpu_idx = 0   # Start with GPU 0
-if dataset == 'CelebA':
+gpu_idx = 3   # Start with GPU 0
+if dataset == 'CelanA':
     gpu_idx = 1
 # seeds = range(10)
-seeds = [0]
+seeds = [1]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     # Generate the command
     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,

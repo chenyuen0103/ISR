@@ -47,6 +47,7 @@ class LossComputer:
         # self.exp_avg_initialized = torch.zeros(self.n_groups).byte().to(device)
         self.avg_group_gradient_norm = 0
         self.avg_group_hessian_norm= 0
+        self.avg_hessian_aligned_loss = 0
         self.reset_stats()
 
     def loss(self, yhat, y, group_idx=None, is_training=False):
@@ -318,7 +319,7 @@ class LossComputer:
 
         # update stats
         self.update_stats(actual_loss, group_loss, group_acc, group_count, weights, gradient_norm=gradient_norms,
-                          hessian_norm=hessian_norms)
+                          hessian_norm=hessian_norms, hessian_aligned_loss = total_loss)
 
         return total_loss, erm_loss, accum_hess_loss, accum_grad_loss
 
@@ -343,6 +344,8 @@ class LossComputer:
         self.update_batch_counts = torch.zeros(self.n_groups).cuda()
         self.avg_group_loss = torch.zeros(self.n_groups).cuda()
         self.avg_group_acc = torch.zeros(self.n_groups).cuda()
+        self.avg_group_gradient_norm = torch.zeros(self.n_groups).cuda()
+        self.avg_group_hessian_norm = torch.zeros(self.n_groups).cuda()
 
         # self.processed_data_counts = torch.zeros(self.n_groups).to(device)
         # self.update_data_counts = torch.zeros(self.n_groups).to(device)
@@ -355,7 +358,7 @@ class LossComputer:
         self.avg_acc = 0.
         self.batch_count = 0.
 
-    def update_stats(self, actual_loss, group_loss, group_acc, group_count, weights=None, gradient_norm=0, hessian_norm=0):
+    def update_stats(self, actual_loss, group_loss, group_acc, group_count, weights=None, gradient_norm=0, hessian_norm=0, hessian_aligned_loss=0):
         # avg group loss
         denom = self.processed_data_counts + group_count
         denom += (denom == 0).float()
@@ -373,6 +376,7 @@ class LossComputer:
         # batch-wise average actual loss
         denom = self.batch_count + 1
         self.avg_actual_loss = (self.batch_count / denom) * self.avg_actual_loss + (1 / denom) * actual_loss
+        self.avg_hessian_aligned_loss = (self.batch_count / denom) * self.avg_hessian_aligned_loss + (1 / denom) * hessian_aligned_loss
 
         # counts
         self.processed_data_counts += group_count
@@ -412,6 +416,7 @@ class LossComputer:
 
         stats_dict['avg_actual_loss'] = self.avg_actual_loss.item()
         stats_dict['avg_per_sample_loss'] = self.avg_per_sample_loss.item()
+        stats_dict['hessin_aligned_loss'] = self.avg_hessian_aligned_loss.item()
         stats_dict['avg_acc'] = self.avg_acc.item()
 
         # Model stats
@@ -439,4 +444,5 @@ class LossComputer:
                 f'acc = {self.avg_group_acc[group_idx]:.3f}\n'
                 f'grad norm = {self.avg_group_gradient_norm[group_idx]:.3f}\n'
                 f'hessian norm = {self.avg_group_hessian_norm[group_idx]:.3f}\n')
+
         logger.flush()

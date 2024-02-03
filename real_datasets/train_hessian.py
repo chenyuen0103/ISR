@@ -203,7 +203,7 @@ def train(model, criterion, dataset,
         # breakpoint()
         optimizer = torch.optim.SGD(
             chain(
-                filter(lambda p: p.requires_grad, model.parameters()),
+                # filter(lambda p: p.requires_grad, model.parameters()),
                 filter(lambda p: p.requires_grad, clf.parameters())
             ),
             lr=args.lr,
