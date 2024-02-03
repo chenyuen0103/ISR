@@ -23,7 +23,7 @@ seeds = [1]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     # Generate the command
     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
-                                save_best=True, save_last=True, resume =True)
+                                save_best=True, save_last=True, resume =False)
     print('Command:', command)
     breakpoint()
     # Run the command in the background
