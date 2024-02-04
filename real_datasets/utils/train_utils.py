@@ -65,7 +65,7 @@ class CSVBatchLogger:
         columns.append('avg_acc')
         columns.append('model_norm_sq')
         columns.append('reg_loss')
-        columns.append('hessian_align_loss')
+        columns.append('hessian_aligned_loss')
 
         self.path = csv_path
         self.file = open(csv_path, mode)
