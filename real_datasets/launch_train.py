@@ -8,18 +8,18 @@ import pdb
 # algos = ['ERM','reweight','groupDRO']
 algos = ['ERM']
 # dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
-dataset = 'CelebA'
+dataset = 'CUB'
 # can add some suffix to the algo name to flag the version,
 # e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
 algo_suffix = ""
 # Assuming seeds, algos, dataset, and get_train_command are defined
 
 gpu_count = 4  # Number of GPUs available
-gpu_idx = 1   # Start with GPU 0
+gpu_idx = 2   # Start with GPU 0
 if dataset == 'CelanA':
     gpu_idx = 1
 # seeds = range(10)
-seeds = [0]
+seeds = [1]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     # Generate the command
     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
