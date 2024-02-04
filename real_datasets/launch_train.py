@@ -15,7 +15,7 @@ algo_suffix = ""
 # Assuming seeds, algos, dataset, and get_train_command are defined
 
 gpu_count = 4  # Number of GPUs available
-gpu_idx = 3   # Start with GPU 0
+gpu_idx = 1   # Start with GPU 0
 if dataset == 'CelanA':
     gpu_idx = 1
 # seeds = range(10)
