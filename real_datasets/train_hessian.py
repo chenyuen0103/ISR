@@ -134,6 +134,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 loss_computer.reset_stats()
 
         if (not is_training) or loss_computer.batch_count > 0:
+            breakpoint()
             csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
             csv_logger.flush()
             loss_computer.log_stats(logger, is_training)
