@@ -25,6 +25,9 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.title('Training and Validation Loss')
 plt.legend()
+plt.xlim(0, 300)
+plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/train_val_loss.pdf')  # Save the figure
+plt.close()
 
 # Plot for Worst-case Training and Validation Accuracy
 plt.subplot(1, 2, 2)
@@ -34,6 +37,8 @@ plt.xlabel('Epoch')
 plt.ylabel('Worst-case Accuracy')
 plt.title('Worst-case Training and Validation Accuracy')
 plt.legend()
-
+plt.xlim(0, 300)
+plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/train_val_acc.pdf')  # Save the figure
+plt.close()
 plt.tight_layout()
 plt.show()

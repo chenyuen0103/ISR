@@ -19,11 +19,11 @@ gpu_idx = 2   # Start with GPU 0
 if dataset == 'CelanA':
     gpu_idx = 1
 # seeds = range(10)
-seeds = [1]
+seeds = [0]
 for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
     # Generate the command
     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
-                                save_best=True, save_last=True, resume = False)
+                                save_best=True, save_last=True, resume = True)
     print('Command:', command)
     breakpoint()
     # Run the command in the background
