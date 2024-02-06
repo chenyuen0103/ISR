@@ -127,7 +127,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
 
 
             if is_training and (batch_idx + 1) % log_every == 0:
-                breakpoint()
+                # breakpoint()
                 csv_logger.log(epoch, batch_idx, loss_computer.get_stats(model, args))
                 csv_logger.flush()
                 loss_computer.log_stats(logger, is_training)

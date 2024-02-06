@@ -198,7 +198,7 @@ def main():
         criterion = torch.nn.CrossEntropyLoss(reduction='none')
 
     if resume:
-        df = pd.read_csv(os.path.join(args.log_dir, 'test.csv'))
+        df = pd.read_csv(os.path.join(args.log_dir, 'test.csv'), error_bad_lines=False)
         epoch_offset = df.loc[len(df) - 1, 'epoch'] + 1
         logger.write(f'starting from epoch {epoch_offset}')
     else:
