@@ -199,7 +199,7 @@ def main():
 
     if resume:
         breakpoint()
-        df = pd.read_csv(os.path.join(args.log_dir, 'test.csv'), error_bad_lines=False)
+        df = pd.read_csv(os.path.join(args.log_dir, 'test.csv'))
         epoch_offset = df.loc[len(df) - 1, 'epoch'] + 1
         logger.write(f'starting from epoch {epoch_offset}')
     else:
