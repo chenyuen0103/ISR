@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the training and validation data
-dataset = 'CUB'
+dataset = 'CelebA'
 model ='clip'
 algo = 'HessianERM'
 seed = 0
@@ -24,7 +24,7 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.title('Average Loss (Cross Entropy)')
 plt.legend()
-plt.xlim(0, 300)
+# plt.xlim(0, 300)
 plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_loss.pdf')
 plt.show()
 plt.close()
@@ -38,7 +38,7 @@ plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.title('Worst-case Accuracy')
 plt.legend()
-plt.xlim(0, 300)
+# plt.xlim(0, 300)
 plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_acc.pdf')
 plt.show()
 plt.close()

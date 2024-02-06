@@ -1,0 +1,65 @@
+Dataset: MultiNLI
+Shift type: confounder
+Target name: gold_label_random
+Confounder names: ['sentence2_has_negation']
+Resume: False
+Minority fraction: None
+Imbalance ratio: None
+Fraction: 1.0
+Root dir: None
+Reweight groups: False
+Augment data: False
+Val fraction: 0.1
+Robust: False
+Alpha: 0.2
+Generalization adjustment: 0.0
+Automatic adjustment: False
+Robust step size: 0.01
+Use normalized loss: False
+Btl: False
+Hinge: False
+Model: bert
+Train from scratch: False
+N epochs: 3
+Batch size: 32
+Lr: 2e-05
+Scheduler: False
+Weight decay: 0.0
+Gamma: 0.1
+Minimum variational weight: 0
+Seed: 0
+Show progress: False
+Log dir: ../logs/MultiNLI/ERM/s0
+Log every: 100000000.0
+Save step: 100000000.0
+Save best: True
+Save last: True
+Algo suffix: 
+Max grad norm: 1.0
+Adam epsilon: 1e-08
+Warmup steps: 0
+
+Training Data...
+    gold_label_random = 0, sentence2_has_negation = 0: n = 57498
+    gold_label_random = 0, sentence2_has_negation = 1: n = 11158
+    gold_label_random = 1, sentence2_has_negation = 0: n = 67376
+    gold_label_random = 1, sentence2_has_negation = 1: n = 1521
+    gold_label_random = 2, sentence2_has_negation = 0: n = 66630
+    gold_label_random = 2, sentence2_has_negation = 1: n = 1992
+Validation Data...
+    gold_label_random = 0, sentence2_has_negation = 0: n = 22814
+    gold_label_random = 0, sentence2_has_negation = 1: n = 4634
+    gold_label_random = 1, sentence2_has_negation = 0: n = 26949
+    gold_label_random = 1, sentence2_has_negation = 1: n = 613
+    gold_label_random = 2, sentence2_has_negation = 0: n = 26655
+    gold_label_random = 2, sentence2_has_negation = 1: n = 797
+Test Data...
+    gold_label_random = 0, sentence2_has_negation = 0: n = 34597
+    gold_label_random = 0, sentence2_has_negation = 1: n = 6655
+    gold_label_random = 1, sentence2_has_negation = 0: n = 40496
+    gold_label_random = 1, sentence2_has_negation = 1: n = 886
+    gold_label_random = 2, sentence2_has_negation = 0: n = 39930
+    gold_label_random = 2, sentence2_has_negation = 1: n = 1148
+
+Epoch [0]:
+Training:
