@@ -250,7 +250,6 @@ class LossComputer:
                 yhat_env = logits[idx]
             # Assuming the first element of the tuple is the output you need
             yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
-
             # grads = self.gradient(model, x[idx], y[idx])
             grads = self.gradient(x[idx], yhat_env, y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
