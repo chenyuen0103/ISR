@@ -16,7 +16,7 @@ algo_suffix = ""
 
 gpu_count = 4  # Number of GPUs available
 gpu_idx = 2   # Start with GPU 0
-if dataset == 'CelanA':
+if dataset == 'CelabA':
     gpu_idx = 1
 # seeds = range(10)
 seeds = [0]

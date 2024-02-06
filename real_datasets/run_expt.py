@@ -198,7 +198,7 @@ def main():
         criterion = torch.nn.CrossEntropyLoss(reduction='none')
 
     if resume:
-        breakpoint()
+        # breakpoint()
         df = pd.read_csv(os.path.join(args.log_dir, 'test.csv'))
         epoch_offset = df.loc[len(df) - 1, 'epoch'] + 1
         logger.write(f'starting from epoch {epoch_offset}')
@@ -207,7 +207,7 @@ def main():
     train_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'train.csv'), train_data.n_groups, mode=mode)
     val_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'val.csv'), train_data.n_groups, mode=mode)
     test_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'test.csv'), train_data.n_groups, mode=mode)
-    breakpoint()
+    # breakpoint()
     train(model, criterion, data, logger, train_csv_logger, val_csv_logger, test_csv_logger, args,
           epoch_offset=epoch_offset)
 
