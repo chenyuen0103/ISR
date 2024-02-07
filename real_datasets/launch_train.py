@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--save_best', type=bool, default=True)
     parser.add_argument('--save_last', type=bool, default=True)
     parser.add_argument('--resume', default=False, action='store_true')
-    parser.add_argument('seed_list', type=list, default=[0])
+    parser.add_argument('seed_list', nargs = '+',type=int, default=[0])
     parser.add_argument('model', type=str, default='clip')
     parser.add_argument('hessian_align', default=False, action='store_true')
     parser.add_argument('algo_suffix', type=str, default='', help='The suffix of log folder name')
@@ -103,3 +103,6 @@ def main():
 #                       save_best=True, save_last=True)
 #     print('Command:', command)
 #     os.system(command)
+
+if __name__ == '__main__':
+    main()
