@@ -26,7 +26,7 @@ def main():
     for seed, algo in tqdm(list(product(args.seed_list, algos)), desc='Experiments'):
         # Generate the command
         command = get_train_command(dataset=args.dataset, algo=algo, gpu_idx=args.gpu_idx, model=args.model, seed=seed,
-                                    save_best=args.save_best, save_last=args.save_list, resume=args.resume, hessian_align = args.hessian_align,
+                                    save_best=args.save_best, save_last=args.save_last, resume=args.resume, hessian_align = args.hessian_align,
                                     algo_suffix = args.algo_suffix)
         print('Command:', command)
         breakpoint()
