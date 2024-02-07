@@ -3,31 +3,92 @@ from itertools import product
 from tqdm import tqdm
 from configs import get_train_command
 import pdb
+import argparse
 # gpu_idx = 0,1,2,3  # could be None if you want to use cpu
 
-# algos = ['ERM','reweight','groupDRO']
-algos = ['ERM']
-# dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
-dataset = 'CUB'
-# can add some suffix to the algo name to flag the version,
-# e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
-algo_suffix = ""
-# Assuming seeds, algos, dataset, and get_train_command are defined
 
-gpu_count = 4  # Number of GPUs available
-gpu_idx = 0   # Start with GPU 0
-if dataset == 'CelebA':
-    gpu_idx = 1
-# seeds = range(10)
-seeds = [1]
-for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
-    # Generate the command
-    command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
-                                save_best=True, save_last=True, resume = False)
-    print('Command:', command)
-    breakpoint()
-    # Run the command in the background
-    os.system(command)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu_idx', type=int, default=0)
+    parser.add_argument('--dataset', type=str, default='CUB')
+    # parser.add_argument('--algos', type=list, default=['ERM'])
+    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--save_best', type=bool, default=True)
+    parser.add_argument('--save_last', type=bool, default=True)
+    parser.add_argument('--resume', default=False, action='store_true')
+    parser.add_argument('seed_list', type=list, default=[0])
+    parser.add_argument('model', type=str, default='clip')
+    parser.add_argument('hessian_align', default=False, action='store_true')
+    parser.add_argument('algo_suffix', type=str, default='', help='The suffix of log folder name')
+
+    algos = ['ERM']
+    args = parser.parse_args()
+    for seed, algo in tqdm(list(product(args.seed_list, algos)), desc='Experiments'):
+        # Generate the command
+        command = get_train_command(dataset=args.dataset, algo=algo, gpu_idx=args.gpu_idx, model=args.model, seed=seed,
+                                    save_best=args.save_best, save_last=args.save_list, resume=args.resume, hessian_align = args.hessian_align,
+                                    algo_suffix = args.algo_suffix)
+        print('Command:', command)
+        breakpoint()
+        # Run the command in the background
+        os.system(command)
+
+        # Rotate the GPU index
+        # gpu_idx = (gpu_idx + 1) % gpu_count
+
+        # Optional: Introduce a slight delay if needed
+        # time.sleep(1)
+
+    # algos = ['ERM','reweight','groupDRO']
+    # algos = ['ERM']
+    # dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
+    # dataset = 'CUB'
+    # can add some suffix to the algo name to flag the version,
+    # e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
+    algo_suffix = ""
+    # Assuming seeds, algos, dataset, and get_train_command are defined
+
+
+    # seeds = [0]
+    # for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
+    #     # Generate the command
+    #     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, seed=seed,
+    #                                 save_best=True, save_last=True, resume = False)
+    #     print('Command:', command)
+        # os.system(command)
+
+        # Rotate the GPU index
+        # gpu_idx = (gpu_idx + 1) % gpu_count
+
+        # Optional: Introduce a slight delay if needed
+        # time.sleep(1)
+
+
+
+#
+# # algos = ['ERM','reweight','groupDRO']
+# algos = ['ERM']
+# # dataset = 'MultiNLI'  # could be 'CUB' (i.e., Waterbirds), 'CelebA' or 'MultiNLI'
+# dataset = 'CUB'
+# # can add some suffix to the algo name to flag the version,
+# # e.g., with algo_suffix = "-my_version", the algo name becomes "ERM-my_version"
+# algo_suffix = ""
+# # Assuming seeds, algos, dataset, and get_train_command are defined
+#
+# gpu_count = 4  # Number of GPUs available
+# gpu_idx = 0   # Start with GPU 0
+# if dataset == 'CelebA':
+#     gpu_idx = 1
+# # seeds = range(10)
+# seeds = [0]
+# for seed, algo in tqdm(list(product(seeds, algos)), desc='Experiments'):
+#     # Generate the command
+#     command = get_train_command(dataset=dataset, algo=algo, gpu_idx=gpu_idx, model = , seed=seed,
+#                                 save_best=True, save_last=True, resume = False)
+#     print('Command:', command)
+#     breakpoint()
+#     # Run the command in the background
+#     os.system(command)
 
     # Rotate the GPU index
     # gpu_idx = (gpu_idx + 1) % gpu_count
