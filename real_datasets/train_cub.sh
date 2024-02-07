@@ -1,17 +1,16 @@
-python launch_train.py --dataset CUB --resume --gpu_idx 0
-python launch_train.py --dataset CUB --resume --gpu_idx 1
-python launch_train.py --dataset CUB --resume --gpu_idx 2
-python launch_train.py --dataset CUB --resume --gpu_idx 3
-python launch_train.py --dataset CUB --resume --gpu_idx 0
-python launch_train.py --dataset CUB --resume --gpu_idx 1
-python launch_train.py --dataset CUB --resume --gpu_idx 2
-python launch_train.py --dataset CUB --resume --gpu_idx 3
-python launch_train.py --dataset CUB --resume --gpu_idx 0
-python launch_train.py --dataset CUB --resume --gpu_idx 1
-python launch_train.py --dataset CUB --resume --gpu_idx 2
-python launch_train.py --dataset CUB --resume --gpu_idx 3
-python launch_train.py --dataset CUB --resume --gpu_idx 0
-python launch_train.py --dataset CUB --resume --gpu_idx 1
-python launch_train.py --dataset CUB --resume --gpu_idx 2
-python launch_train.py --dataset CUB --resume --gpu_idx 3
-python launch_train.py --dataset CUB --resume --gpu_idx 0
+python launch_train.py --dataset CUB --resume --gpu_idx 0 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 1 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 2 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 3 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 0 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 1 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 2 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 3 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 0 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 1 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 2 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 3 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 0 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 1 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 2 --scheduler
+python launch_train.py --dataset CUB --resume --gpu_idx 3 --scheduler
