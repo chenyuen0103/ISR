@@ -68,7 +68,7 @@ def main():
     parser.add_argument('--save_best', action='store_true', default=False)
     parser.add_argument('--save_last', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
-    parser.add_argument('hessian_align', action='store_true', default=False)
+    parser.add_argument('--hessian_align', action='store_true', default=False)
     args = parser.parse_args()
     check_args(args)
 
