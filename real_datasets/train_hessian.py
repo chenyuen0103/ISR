@@ -212,6 +212,7 @@ def train(model, criterion, dataset,
             momentum=0.9,
             weight_decay=args.weight_decay
         )
+        breakpoint()
         if args.scheduler:
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,

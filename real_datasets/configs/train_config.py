@@ -68,7 +68,7 @@ TRAIN_COMMANDS_CLIP = dict(
     }
 )
 def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int = None, train_script: str = 'run_expt.py', hessian_align: bool = False,
-                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False):
+                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False, scheduler:bool = False):
     prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''
     # prefix = ''
     suffix = f' --algo_suffix {algo_suffix}' if algo_suffix else ''
@@ -83,5 +83,5 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
         args_command = TRAIN_COMMANDS_CLIP[dataset][algo]
     else:
         args_command = TRAIN_COMMANDS[dataset][algo]
-    command = f"{prefix} python {train_script} {args_command} --seed {seed} {suffix} {'--hessian_align' if hessian_align else ''}"
+    command = f"{prefix} python {train_script} {args_command} --seed {seed} {suffix} {'--hessian_align' if hessian_align else ''} {'--scheduler' if scheduler else ''}"
     return command
