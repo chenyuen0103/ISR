@@ -2,7 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the training and validation data
-dataset = 'CelebA'
+# dataset = 'CelebA'
+dataset = 'CUB'
 model ='clip'
 algo = 'HessianERM'
 seed = 0
