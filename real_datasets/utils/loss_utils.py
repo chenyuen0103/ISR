@@ -415,7 +415,11 @@ class LossComputer:
 
         stats_dict['avg_actual_loss'] = self.avg_actual_loss.item()
         stats_dict['avg_per_sample_loss'] = self.avg_per_sample_loss.item()
-        stats_dict['hessian_aligned_loss'] = self.avg_hessian_aligned_loss.item()
+        # stats_dict['hessian_aligned_loss'] = self.avg_hessian_aligned_loss.item()
+        if hasattr(self.avg_hessian_aligned_loss, 'item'):
+            stats_dict['hessian_aligned_loss'] = self.avg_hessian_aligned_loss.item()
+        else:
+            stats_dict['hessian_aligned_loss'] = self.avg_hessian_aligned_loss
         stats_dict['avg_acc'] = self.avg_acc.item()
 
         # Model stats
