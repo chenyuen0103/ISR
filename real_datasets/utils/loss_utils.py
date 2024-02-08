@@ -435,7 +435,10 @@ class LossComputer:
 
         logger.write(f'Average incurred loss: {self.avg_per_sample_loss.item():.3f}  \n')
         logger.write(f'Average sample loss: {self.avg_actual_loss.item():.3f}  \n')
-        logger.write(f'Hessian aligned loss: {self.avg_hessian_aligned_loss.item():.3f}  \n')
+        # logger.write(f'Hessian aligned loss: {self.avg_hessian_aligned_loss.item():.3f}  \n')
+        hessian_loss_value = self.avg_hessian_aligned_loss.item() if hasattr(self.avg_hessian_aligned_loss,
+                                                                             'item') else self.avg_hessian_aligned_loss
+        logger.write(f'Hessian aligned loss: {hessian_loss_value:.3f}  \n')
         logger.write(f'Average acc: {self.avg_acc.item():.3f}  \n')
         for group_idx in range(self.n_groups):
             logger.write(
