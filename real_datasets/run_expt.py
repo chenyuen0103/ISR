@@ -77,7 +77,7 @@ def main():
         args.max_grad_norm = 1.0
         args.adam_epsilon = 1e-8
         args.warmup_steps = 0
-    breakpoint()
+    # breakpoint()
     if args.robust:
         algo = 'groupDRO'
     elif args.reweight_groups:
