@@ -2,10 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the training and validation data
-dataset = 'CelebA'
-# dataset = 'CUB'
+# dataset = 'CelebA'
+dataset = 'CUB'
 model ='clip'
-algo = 'HessianERM'
+algo = 'ERM'
 seed = 0
 train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/train.csv')
 val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/val.csv')
@@ -19,8 +19,12 @@ worst_case_val_acc = val_df.groupby('epoch')['avg_acc'].min().reset_index()
 
 # Plot Training and Validation Loss
 plt.figure(figsize=(7, 5))
-plt.plot(train_df['epoch'], train_df['hessian_aligned_loss'], label='Training')
-plt.plot(val_df['epoch'], val_df['hessian_aligned_loss'], label='Validation')
+if 'Hessian' in algo:
+    plt.plot(train_df['epoch'], train_df['hessian_aligned_loss'], label='Training')
+    plt.plot(val_df['epoch'], val_df['hessian_aligned_loss'], label='Validation')
+else:
+    plt.plot(train_df['epoch'], train_df['avg_actual_loss'], label='Training')
+    plt.plot(val_df['epoch'], val_df['avg_actual_loss'], label='Validation')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.title(f'{dataset}--Hessian Aligned Loss')
