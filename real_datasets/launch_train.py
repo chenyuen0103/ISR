@@ -30,6 +30,7 @@ def main():
     algos = ['ERM']
     args = parser.parse_args()
     # Iterate over combinations of seeds, algorithms, grad_alpha, and hess_beta
+    print(f"Loop over combinations of seeds {args.seed_list}, algorithms {algos}, grad_alpha {args.grad_alpha_values}, and hess_beta {args.hess_beta_values} ")
     for seed, algo, grad_alpha, hess_beta in tqdm(
             list(product(args.seed_list, algos, args.grad_alpha_values, args.hess_beta_values)), desc='Experiments'):
         # Generate the command with the specific grad_alpha and hess_beta

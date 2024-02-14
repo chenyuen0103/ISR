@@ -101,7 +101,7 @@ def main():
     ## Initialize logs
     if not os.path.exists(args.log_dir):
         print(args.log_dir)
-        breakpoint()
+        # breakpoint()
         os.makedirs(args.log_dir)
 
     logger = Logger(os.path.join(args.log_dir, 'log.txt'), mode)
