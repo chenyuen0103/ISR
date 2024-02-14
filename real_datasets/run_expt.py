@@ -69,8 +69,8 @@ def main():
     parser.add_argument('--save_last', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
     parser.add_argument('--hessian_align', action='store_true', default=False)
-    parser.add_argument('--grad_alpha', type=float, default=10e-5)
-    parser.add_argument('--hess_beta', type=float, default=10e-5)
+    parser.add_argument('--grad_alpha', type=float, default=1e-4)
+    parser.add_argument('--hess_beta', type=float, default=1e-4)
     args = parser.parse_args()
     check_args(args)
 
@@ -89,7 +89,12 @@ def main():
     else:
         algo = 'ERM'
 
-    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}', f'grad_alpha_{args.grad_alpha}_hess_beta_{args.hess_beta}')
+    grad_alpha_formatted = "{:.1e}".format(args.grad_alpha).replace('.0e', 'e')
+    hess_beta_formatted = "{:.1e}".format(args.hess_beta).replace('.0e', 'e')
+
+    # args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}', f'grad_alpha_{args.grad_alpha}_hess_beta_{args.hess_beta}')
+    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}',
+                                f'grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}')
 
     if os.path.exists(args.log_dir) and args.resume:
         resume = True
