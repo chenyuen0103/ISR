@@ -96,7 +96,9 @@ def main():
     args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}',
                                 f'grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}')
 
-    if os.path.exists(args.log_dir) and args.resume:
+    breakpoint()
+    # if os.path.exists(args.log_dir) and args.resume:
+    if os.path.exists(args.log_dir):
         resume = True
         mode = 'a'
     else:
