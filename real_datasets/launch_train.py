@@ -4,6 +4,7 @@ from tqdm import tqdm
 from configs import get_train_command
 import pdb
 import argparse
+import numpy as np
 # gpu_idx = 0,1,2,3  # could be None if you want to use cpu
 
 
@@ -21,19 +22,24 @@ def main():
     parser.add_argument('--hessian_align', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
     parser.add_argument('--scheduler', action='store_true', default=False)
-    parser.add_argument('--grad_alpha', type=float, default=10e-5)
-    parser.add_argument('--hess_beta', type=float, default=10e-5)
+    # parser.add_argument('--grad_alpha', type=float, default=10e-5)
+    # parser.add_argument('--hess_beta', type=float, default=10e-5)
+    parser.add_argument('--grad_alpha_values', type=float, nargs='+', default=np.logspace(-6, -1, num=6))
+    parser.add_argument('--hess_beta_values', type=float, nargs='+', default=np.logspace(-6, -1, num=6))
 
     algos = ['ERM']
     args = parser.parse_args()
-    for seed, algo in tqdm(list(product(args.seed_list, algos)), desc='Experiments'):
-        # Generate the command
+    # Iterate over combinations of seeds, algorithms, grad_alpha, and hess_beta
+    for seed, algo, grad_alpha, hess_beta in tqdm(
+            list(product(args.seed_list, algos, args.grad_alpha_values, args.hess_beta_values)), desc='Experiments'):
+        # Generate the command with the specific grad_alpha and hess_beta
         command = get_train_command(dataset=args.dataset, algo=algo, gpu_idx=args.gpu_idx, model=args.model, seed=seed,
-                                    save_best=args.save_best, save_last=args.save_last, resume=args.resume, hessian_align = args.hessian_align,
-                                    algo_suffix = args.algo_suffix, scheduler = args.scheduler, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
+                                    save_best=args.save_best, save_last=args.save_last, resume=args.resume,
+                                    hessian_align=args.hessian_align,
+                                    algo_suffix=args.algo_suffix, scheduler=args.scheduler, grad_alpha=grad_alpha,
+                                    hess_beta=hess_beta)
+
         print('Command:', command)
-        breakpoint()
-        # Run the command in the background
         os.system(command)
 
         # Rotate the GPU index
