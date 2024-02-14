@@ -10,6 +10,7 @@ from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
 from sklearn.metrics import accuracy_score
 from utils.loss_utils import LossComputer
+from utils.train_utils import set_seed
 import pdb
 from torch.profiler import profile, record_function, ProfilerActivity
 
@@ -21,6 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 torch.cuda.empty_cache()
 max_process_batch = 32
+
 
 class LogisticRegression(torch.nn.Module):
     # build the constructor
@@ -149,7 +151,6 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
 def train(model, criterion, dataset,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
           args, epoch_offset, optimizer, scheduler):
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model = model.cuda()
