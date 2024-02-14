@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--hessian_align', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
     parser.add_argument('--scheduler', action='store_true', default=False)
+    parser.add_argument('--grad_alpha', type=float, default=10e-5)
+    parser.add_argument('--hess_beta', type=float, default=10e-5)
 
     algos = ['ERM']
     args = parser.parse_args()
@@ -28,7 +30,7 @@ def main():
         # Generate the command
         command = get_train_command(dataset=args.dataset, algo=algo, gpu_idx=args.gpu_idx, model=args.model, seed=seed,
                                     save_best=args.save_best, save_last=args.save_last, resume=args.resume, hessian_align = args.hessian_align,
-                                    algo_suffix = args.algo_suffix, scheduler = args.scheduler)
+                                    algo_suffix = args.algo_suffix, scheduler = args.scheduler, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
         print('Command:', command)
         breakpoint()
         # Run the command in the background

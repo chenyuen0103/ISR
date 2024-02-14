@@ -69,6 +69,8 @@ def main():
     parser.add_argument('--save_last', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
     parser.add_argument('--hessian_align', action='store_true', default=False)
+    parser.add_argument('--grad_alpha', type=float, default=10e-5)
+    parser.add_argument('--hess_beta', type=float, default=10e-5)
     args = parser.parse_args()
     check_args(args)
 
@@ -87,7 +89,7 @@ def main():
     else:
         algo = 'ERM'
 
-    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}')
+    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}', f'grad_alpha_{args.grad_alpha}_hess_beta_{args.hess_beat}')
 
     if os.path.exists(args.log_dir) and args.resume:
         resume = True
@@ -99,6 +101,7 @@ def main():
     ## Initialize logs
     if not os.path.exists(args.log_dir):
         print(args.log_dir)
+        breakpoint()
         os.makedirs(args.log_dir)
 
     logger = Logger(os.path.join(args.log_dir, 'log.txt'), mode)

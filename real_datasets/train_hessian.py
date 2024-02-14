@@ -47,7 +47,7 @@ class LogisticRegression(torch.nn.Module):
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
 
-def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_logger, args,
+def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_logger, args,
               is_training, show_progress=False, log_every=50, scheduler=None):
     """
     scheduler is only used inside this function if model is bert.
@@ -104,7 +104,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
                 logits = clf(outputs)
                 if args.hessian_align:
                     # print('Hessian Align:', args.hessian_align)
-                    loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g)
+                    loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
                 else:
                     # breakpoint()
                     loss_main = loss_computer.loss(outputs, y, g, is_training)
@@ -203,6 +203,7 @@ def train(model, criterion, dataset,
             num_warmup_steps=args.warmup_steps,
             num_training_steps=t_total)
     else:
+        breakpoint()
         if optimizer is None:
             optimizer = torch.optim.SGD(
                 chain(
@@ -265,7 +266,7 @@ def train(model, criterion, dataset,
                 step_size=args.robust_step_size,
                 alpha=args.alpha)
             run_epoch(
-                epoch, model,clf, optimizer,
+                epoch, model, clf, optimizer,
                 dataset['test_loader'],
                 test_loss_computer,
                 None, test_csv_logger, args,
