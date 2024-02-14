@@ -89,7 +89,7 @@ def main():
     else:
         algo = 'ERM'
 
-    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}', f'grad_alpha_{args.grad_alpha}_hess_beta_{args.hess_beat}')
+    args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}', f'grad_alpha_{args.grad_alpha}_hess_beta_{args.hess_beta}')
 
     if os.path.exists(args.log_dir) and args.resume:
         resume = True
