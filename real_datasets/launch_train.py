@@ -31,6 +31,12 @@ def main():
     args = parser.parse_args()
     # Iterate over combinations of seeds, algorithms, grad_alpha, and hess_beta
     print(f"Loop over combinations of seeds {args.seed_list}, algorithms {algos}, grad_alpha {args.grad_alpha_values}, and hess_beta {args.hess_beta_values} ")
+
+    if not args.hessian_align:
+        # If hessian_align is False, then grad_alpha and hess_beta are not used, set them to default values
+        args.grad_alpha_values = [1e-4]
+        args.hess_beta_values = [1e-4]
+
     for seed, algo, grad_alpha, hess_beta in tqdm(
             list(product(args.seed_list, algos, args.grad_alpha_values, args.hess_beta_values)), desc='Experiments'):
         # Generate the command with the specific grad_alpha and hess_beta
