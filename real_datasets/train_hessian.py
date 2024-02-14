@@ -291,7 +291,7 @@ def train(model, criterion, dataset,
 
         # if epoch % args.save_step == 0:
         #     torch.save(model, os.path.join(args.log_dir, '%d_model.pth' % epoch))
-
+        breakpoint()
         if args.save_last:
             torch.save(model, os.path.join(args.log_dir, 'last_model.pth'))
             torch.save(optimizer, os.path.join(args.log_dir, 'last_optimizer.pth'))
