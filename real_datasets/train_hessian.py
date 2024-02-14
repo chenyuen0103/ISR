@@ -156,7 +156,6 @@ def train(model, criterion, dataset,
     model = model.cuda()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
     encoder = model.encode_image
-    breakpoint()
     with torch.no_grad():
         dummy_output = encoder(dummy_input)
 
