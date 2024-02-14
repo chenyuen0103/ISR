@@ -8,14 +8,17 @@ model ='clip'
 # algo = 'HessianERM'
 algo = 'ERM'
 seed = 0
-grad_alpha = 10e-5
-hess_beta = 10e-5
-# train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha}_hess_beta_{hess_beta}/train.csv')
-# val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha}_hess_beta_{hess_beta}/val.csv')
-# test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha}_hess_beta_{hess_beta}/test.csv')
-train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/train.csv')
-val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/val.csv')
-test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/test.csv')
+grad_alpha = 1e-4
+hess_beta = 1e-4
+
+grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
+hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')
+train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}/train.csv')
+val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}/val.csv')
+test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}/test.csv')
+# train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/train.csv')
+# val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/val.csv')
+# test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/test.csv')
 
 # Calculate worst-case (minimum) accuracy per epoch for both training and validation data
 worst_case_train_acc = train_df.groupby('epoch')['avg_acc'].min().reset_index()

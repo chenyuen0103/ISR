@@ -36,6 +36,9 @@ def main():
         # If hessian_align is False, then grad_alpha and hess_beta are not used, set them to default values
         args.grad_alpha_values = [1e-4]
         args.hess_beta_values = [1e-4]
+        if args.dataset == 'CUB':
+            args.grad_alpha_values = [1e-5]
+            args.hess_beta_values = [1e-5]
 
     for seed, algo, grad_alpha, hess_beta in tqdm(
             list(product(args.seed_list, algos, args.grad_alpha_values, args.hess_beta_values)), desc='Experiments'):
