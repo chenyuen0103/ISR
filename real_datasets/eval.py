@@ -35,6 +35,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 
     zs, ys, gs, preds = extract_data(train_data)
 
+
     test_zs, test_ys, test_gs, test_preds = extract_data(
         test_data, )
     val_zs, val_ys, val_gs, val_preds = extract_data(

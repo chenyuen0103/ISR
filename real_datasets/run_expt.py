@@ -135,8 +135,12 @@ def main():
 
     ## Initialize model
     pretrained = not args.train_from_scratch
+    optimizer, scheduler = None, None
     if resume:
         model = torch.load(os.path.join(args.log_dir, 'last_model.pth'))
+        if args.scheduler:
+            optimizer = torch.load(os.path.join(args.log_dir, 'last_optimizer.pth'))
+            scheduler = torch.load(os.path.join(args.log_dir, 'last_scheduler.pth'))
         d = train_data.input_size()[0]
     elif model_attributes[args.model]['feature_type'] in ('precomputed', 'raw_flattened'):
         assert pretrained
@@ -198,7 +202,6 @@ def main():
         criterion = torch.nn.CrossEntropyLoss(reduction='none')
 
     if resume:
-        # breakpoint()
         df = pd.read_csv(os.path.join(args.log_dir, 'test.csv'))
         epoch_offset = df.loc[len(df) - 1, 'epoch'] + 1
         logger.write(f'starting from epoch {epoch_offset}')
@@ -207,9 +210,8 @@ def main():
     train_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'train.csv'), train_data.n_groups, mode=mode)
     val_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'val.csv'), train_data.n_groups, mode=mode)
     test_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'test.csv'), train_data.n_groups, mode=mode)
-    # breakpoint()
     train(model, criterion, data, logger, train_csv_logger, val_csv_logger, test_csv_logger, args,
-          epoch_offset=epoch_offset)
+          epoch_offset=epoch_offset, optimizer=optimizer, scheduler=scheduler)
 
     train_csv_logger.close()
     val_csv_logger.close()

@@ -148,7 +148,7 @@ def run_epoch(epoch, model,clf, optimizer, loader, loss_computer, logger, csv_lo
 
 def train(model, criterion, dataset,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
-          args, epoch_offset):
+          args, epoch_offset, optimizer, scheduler):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -203,26 +203,26 @@ def train(model, criterion, dataset,
             num_warmup_steps=args.warmup_steps,
             num_training_steps=t_total)
     else:
-        # breakpoint()
-        optimizer = torch.optim.SGD(
-            chain(
-                filter(lambda p: p.requires_grad, model.parameters()),
-                filter(lambda p: p.requires_grad, clf.parameters())
-            ),
-            lr=args.lr,
-            momentum=0.9,
-            weight_decay=args.weight_decay
-        )
-        # breakpoint()
+        if optimizer is None:
+            optimizer = torch.optim.SGD(
+                chain(
+                    filter(lambda p: p.requires_grad, model.parameters()),
+                    filter(lambda p: p.requires_grad, clf.parameters())
+                ),
+                lr=args.lr,
+                momentum=0.9,
+                weight_decay=args.weight_decay
+            )
         if args.scheduler:
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer,
-                'min',
-                factor=0.1,
-                patience=5,
-                threshold=0.0001,
-                min_lr=0,
-                eps=1e-08)
+            if scheduler is None:
+                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    optimizer,
+                    'min',
+                    factor=0.1,
+                    patience=5,
+                    threshold=0.0001,
+                    min_lr=0,
+                    eps=1e-08)
         else:
             scheduler = None
 
@@ -275,7 +275,8 @@ def train(model, criterion, dataset,
         if (epoch + 1) % 1 == 0:
             for param_group in optimizer.param_groups:
                 curr_lr = param_group['lr']
-                logger.write('Current lr: %f\n' % curr_lr)
+                # logger.write('Current lr: %f\n' % curr_lr)
+                logger.write('Current lr: {}\n'.format(repr(curr_lr)))
 
         if args.scheduler and args.model != 'bert':
             if args.robust:
@@ -290,6 +291,8 @@ def train(model, criterion, dataset,
 
         if args.save_last:
             torch.save(model, os.path.join(args.log_dir, 'last_model.pth'))
+            torch.save(optimizer, os.path.join(args.log_dir, 'last_optimizer.pth'))
+            torch.save(scheduler, os.path.join(args.log_dir, 'last_scheduler.pth'))
         if args.save_best:
             curr_val_acc = min(val_loss_computer.avg_group_acc)
             curr_avg_val_acc = val_loss_computer.avg_acc
@@ -299,10 +302,14 @@ def train(model, criterion, dataset,
             if curr_val_acc > best_val_acc:
                 best_val_acc = curr_val_acc
                 torch.save(model, os.path.join(args.log_dir, 'best_model.pth'))
+                torch.save(optimizer, os.path.join(args.log_dir, 'best_optimizer.pth'))
+                torch.save(scheduler, os.path.join(args.log_dir, 'best_scheduler.pth'))
                 logger.write(f'Best worst-group model saved at epoch {epoch}\n')
             if curr_avg_val_acc > best_avg_val_acc:
                 best_avg_val_acc = curr_avg_val_acc
                 torch.save(model, os.path.join(args.log_dir, 'best_avg_acc_model.pth'))
+                torch.save(optimizer, os.path.join(args.log_dir, 'best_avg_acc_optimizer.pth'))
+                torch.save(scheduler, os.path.join(args.log_dir, 'best_avg_acc_scheduler.pth'))
                 logger.write(f'Best average-accuracy model saved at epoch {epoch}\n')
 
         if args.automatic_adjustment:
