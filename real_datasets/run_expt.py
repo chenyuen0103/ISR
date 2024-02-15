@@ -98,7 +98,7 @@ def main():
 
     # breakpoint()
     # if os.path.exists(args.log_dir) and args.resume:
-    if os.path.exists(args.log_dir):
+    if os.path.exists(args.log_dir) and args.resume:
         resume = True
         mode = 'a'
     else:
@@ -146,13 +146,14 @@ def main():
     ## Initialize model
     pretrained = not args.train_from_scratch
     optimizer, scheduler = None, None
-    breakpoint()
-    if resume and args.dataset == 'CUB' and args.model == 'clip':
-        model = torch.load(os.path.join(args.log_dir, 'best_model.pth'))
+    # breakpoint()
+    if resume:
+        model = torch.load(os.path.join(args.log_dir, 'last_model.pth'))
+        clf = torch.load(os.path.join(args.log_dir, 'best_clf.pth'))
         if args.scheduler:
-            breakpoint()
-            optimizer = torch.load(os.path.join(args.log_dir, 'best_optimizer.pth'))
-            scheduler = torch.load(os.path.join(args.log_dir, 'best_scheduler.pth'))
+            # breakpoint()
+            optimizer = torch.load(os.path.join(args.log_dir, 'last_optimizer.pth'))
+            scheduler = torch.load(os.path.join(args.log_dir, 'last_scheduler.pth'))
         d = train_data.input_size()[0]
     elif model_attributes[args.model]['feature_type'] in ('precomputed', 'raw_flattened'):
         assert pretrained
@@ -222,7 +223,7 @@ def main():
     train_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'train.csv'), train_data.n_groups, mode=mode)
     val_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'val.csv'), train_data.n_groups, mode=mode)
     test_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'test.csv'), train_data.n_groups, mode=mode)
-    train(model, criterion, data, logger, train_csv_logger, val_csv_logger, test_csv_logger, args,
+    train(model, clf, criterion, data, logger, train_csv_logger, val_csv_logger, test_csv_logger, args,
           epoch_offset=epoch_offset, optimizer=optimizer, scheduler=scheduler)
 
     train_csv_logger.close()

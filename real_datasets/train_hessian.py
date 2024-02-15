@@ -148,7 +148,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
         torch.cuda.empty_cache()
 
 
-def train(model, criterion, dataset,
+def train(model,clf, criterion, dataset,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
           args, epoch_offset, optimizer, scheduler):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -163,7 +163,8 @@ def train(model, criterion, dataset,
         input_dim = dummy_output.size(-1)
 
     num_classes = 2
-    clf = LogisticRegression(input_dim, num_classes).cuda()
+    if clf is None:
+        clf = LogisticRegression(input_dim, num_classes).cuda()
 
     # process generalization adjustment stuff
     adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
@@ -237,7 +238,7 @@ def train(model, criterion, dataset,
         logger.write('\nEpoch [%d]:\n' % epoch)
         logger.write(f'Training:\n')
         run_epoch(
-            epoch, model,clf, optimizer,
+            epoch, model, clf, optimizer,
             dataset['train_loader'],
             train_loss_computer,
             logger, train_csv_logger, args,
@@ -292,9 +293,9 @@ def train(model, criterion, dataset,
 
         # if epoch % args.save_step == 0:
         #     torch.save(model, os.path.join(args.log_dir, '%d_model.pth' % epoch))
-        breakpoint()
         if args.save_last:
             torch.save(model, os.path.join(args.log_dir, 'last_model.pth'))
+            torch.save(clf, os.path.join(args.log_dir, 'last_clf.pth'))
             torch.save(optimizer, os.path.join(args.log_dir, 'last_optimizer.pth'))
             torch.save(scheduler, os.path.join(args.log_dir, 'last_scheduler.pth'))
         if args.save_best:
@@ -306,12 +307,14 @@ def train(model, criterion, dataset,
             if curr_val_acc > best_val_acc:
                 best_val_acc = curr_val_acc
                 torch.save(model, os.path.join(args.log_dir, 'best_model.pth'))
+                torch.save(clf, os.path.join(args.log_dir, 'best_clf.pth'))
                 torch.save(optimizer, os.path.join(args.log_dir, 'best_optimizer.pth'))
                 torch.save(scheduler, os.path.join(args.log_dir, 'best_scheduler.pth'))
                 logger.write(f'Best worst-group model saved at epoch {epoch}\n')
             if curr_avg_val_acc > best_avg_val_acc:
                 best_avg_val_acc = curr_avg_val_acc
                 torch.save(model, os.path.join(args.log_dir, 'best_avg_acc_model.pth'))
+                torch.save(clf, os.path.join(args.log_dir, 'best_avg_acc_clf.pth'))
                 torch.save(optimizer, os.path.join(args.log_dir, 'best_avg_acc_optimizer.pth'))
                 torch.save(scheduler, os.path.join(args.log_dir, 'best_avg_acc_scheduler.pth'))
                 logger.write(f'Best average-accuracy model saved at epoch {epoch}\n')
