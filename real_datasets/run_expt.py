@@ -145,7 +145,7 @@ def main():
 
     ## Initialize model
     pretrained = not args.train_from_scratch
-    optimizer, scheduler = None, None
+    optimizer, scheduler,clf = None, None, None
     # breakpoint()
     if resume:
         model = torch.load(os.path.join(args.log_dir, 'last_model.pth'))
