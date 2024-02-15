@@ -146,9 +146,11 @@ def main():
     ## Initialize model
     pretrained = not args.train_from_scratch
     optimizer, scheduler = None, None
+    breakpoint()
     if resume and args.dataset == 'CUB' and args.model == 'clip':
         model = torch.load(os.path.join(args.log_dir, 'best_model.pth'))
         if args.scheduler:
+            breakpoint()
             optimizer = torch.load(os.path.join(args.log_dir, 'best_optimizer.pth'))
             scheduler = torch.load(os.path.join(args.log_dir, 'best_scheduler.pth'))
         d = train_data.input_size()[0]
