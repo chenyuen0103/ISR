@@ -24,8 +24,10 @@ def main():
     parser.add_argument('--scheduler', action='store_true', default=False)
     # parser.add_argument('--grad_alpha', type=float, default=10e-5)
     # parser.add_argument('--hess_beta', type=float, default=10e-5)
-    parser.add_argument('--grad_alpha_values', type=float, nargs='+', default=np.logspace(-6, -1, num=6))
-    parser.add_argument('--hess_beta_values', type=float, nargs='+', default=np.logspace(-6, -1, num=6))
+    # parser.add_argument('--grad_alpha_values', type=float, nargs='+', default=np.logspace(-6, -1, num=6))
+    # parser.add_argument('--hess_beta_values', type=float, nargs='+', default=np.logspace(-6, -1, num=6))
+    parser.add_argument('--grad_alpha_values', type=float, nargs='+', default=[1e-4])
+    parser.add_argument('--hess_beta_values', type=float, nargs='+', default=[1e-4])
 
     algos = ['ERM']
     args = parser.parse_args()
