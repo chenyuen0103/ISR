@@ -12,7 +12,6 @@ from sklearn.metrics import accuracy_score
 from utils.loss_utils import LossComputer
 from utils.train_utils import set_seed
 import pdb
-from torch.profiler import profile, record_function, ProfilerActivity
 
 
 # torch.autograd.set_detect_anomaly(True)
@@ -20,7 +19,6 @@ from torch.profiler import profile, record_function, ProfilerActivity
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
-torch.cuda.empty_cache()
 max_process_batch = 32
 
 
@@ -216,9 +214,9 @@ def train(model,clf, criterion, dataset,
                 momentum=0.9,
                 weight_decay=args.weight_decay
             )
-        breakpoint()
         if args.scheduler:
             if scheduler is None:
+                breakpoint()
                 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer,
                     'min',
