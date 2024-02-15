@@ -216,7 +216,7 @@ def train(model,clf, criterion, dataset,
             )
         if args.scheduler:
             if scheduler is None:
-                breakpoint()
+                # breakpoint()
                 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer,
                     'min',
