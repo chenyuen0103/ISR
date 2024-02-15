@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 # dataset = 'CelebA'
 dataset = 'CUB'
 model ='clip'
-# algo = 'HessianERM'
-algo = 'ERM'
+algo = 'HessianERM'
+# algo = 'ERM'
 seed = 0
-grad_alpha = 1e-4
-hess_beta = 1e-4
+
+grad_alpha = 1e-6
+hess_beta = 1e-6
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
 hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')

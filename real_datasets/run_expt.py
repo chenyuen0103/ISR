@@ -146,11 +146,11 @@ def main():
     ## Initialize model
     pretrained = not args.train_from_scratch
     optimizer, scheduler = None, None
-    if resume:
-        model = torch.load(os.path.join(args.log_dir, 'last_model.pth'))
+    if resume and args.dataset == 'CUB' and args.model == 'clip':
+        model = torch.load(os.path.join(args.log_dir, 'best_model.pth'))
         if args.scheduler:
-            optimizer = torch.load(os.path.join(args.log_dir, 'last_optimizer.pth'))
-            scheduler = torch.load(os.path.join(args.log_dir, 'last_scheduler.pth'))
+            optimizer = torch.load(os.path.join(args.log_dir, 'best_optimizer.pth'))
+            scheduler = torch.load(os.path.join(args.log_dir, 'best_scheduler.pth'))
         d = train_data.input_size()[0]
     elif model_attributes[args.model]['feature_type'] in ('precomputed', 'raw_flattened'):
         assert pretrained
