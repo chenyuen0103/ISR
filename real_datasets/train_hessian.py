@@ -101,6 +101,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     outputs = encoder(x)
                 else:
                     outputs = model(x)
+                breakpoint()
                 logits = clf(outputs)
                 if args.hessian_align:
                     # print('Hessian Align:', args.hessian_align)

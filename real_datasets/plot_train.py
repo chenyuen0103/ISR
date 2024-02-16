@@ -5,18 +5,20 @@ import matplotlib.pyplot as plt
 # dataset = 'CelebA'
 dataset = 'CUB'
 model ='clip'
-# algo = 'HessianERM'
-algo = 'ERM'
+# model = 'resnet50'
+algo = 'HessianERM'
+# algo = 'ERM'
 seed = 0
+scheduler = True
 
-grad_alpha = 1e-4
-hess_beta = 1e-4
+grad_alpha = 1e-6
+hess_beta = 1e-5
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
 hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')
-train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}/train.csv')
-val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}/val.csv')
-test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}/test.csv')
+train_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
+val_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
+test_df =  pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/test.csv")
 # train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/train.csv')
 # val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/val.csv')
 # test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/test.csv')
