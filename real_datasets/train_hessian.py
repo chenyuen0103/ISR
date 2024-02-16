@@ -153,12 +153,15 @@ def train(model,clf, criterion, dataset,
     model = model.to(device)
     model = model.cuda()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
-    encoder = model.encode_image
-    with torch.no_grad():
-        dummy_output = encoder(dummy_input)
+    if args.model == 'clip':
+        encoder = model.encode_image
+        with torch.no_grad():
+            dummy_output = encoder(dummy_input)
+    else:
+        dummy_output = model(dummy_input)
 
-        # Output dimension
-        input_dim = dummy_output.size(-1)
+            # Output dimension
+    input_dim = dummy_output.size(-1)
 
     num_classes = 2
     if clf is None:
