@@ -77,7 +77,6 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
             # x = batch[0]
             # y = batch[1]
             # g = batch[2]
-            # # breakpoint()
             num_sub_batches = len(x_batch) // max_process_batch
             for sub_batch_idx in range(num_sub_batches):
                 start_idx = sub_batch_idx * max_process_batch
@@ -106,19 +105,18 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     outputs = encoder(x)
                     logits = clf(outputs)
 
-                breakpoint()
+
                 if args.hessian_align:
                     # print('Hessian Align:', args.hessian_align)
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
                 else:
-                    # breakpoint()
                     loss_main = loss_computer.loss(outputs, y, g, is_training)
 
                 if is_training:
                     loss_main = loss_main / num_sub_batches
                     loss_main.backward()
 
-            # breakpoint()
+
             if is_training:
                 if args.model == 'bert':
                     # loss_main.backward()
