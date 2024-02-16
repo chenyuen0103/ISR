@@ -74,9 +74,6 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
             x_batch = batch[0]
             y_batch = batch[1]
             g_batch = batch[2]
-            if batch_idx == 0:  # Checking the first batch
-                print(f"First batch targets: {y_batch}")
-                breakpoint()
             # x = batch[0]
             # y = batch[1]
             # g = batch[2]
@@ -238,6 +235,7 @@ def train(model,clf, criterion, dataset,
         # with torch.autograd.profiler.profile(use_cuda=True) as prof:
         logger.write('\nEpoch [%d]:\n' % epoch)
         logger.write(f'Training:\n')
+
         run_epoch(
             epoch, model, clf, optimizer,
             dataset['train_loader'],
@@ -247,7 +245,7 @@ def train(model,clf, criterion, dataset,
             show_progress=args.show_progress,
             log_every=args.log_every,
             scheduler=scheduler)
-
+        breakpoint()
         logger.write(f'\nValidation:\n')
         val_loss_computer = LossComputer(
             criterion,
