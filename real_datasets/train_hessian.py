@@ -170,7 +170,11 @@ def train(model,clf, criterion, dataset,
 
     num_classes = 2
     if clf is None:
-        clf = LogisticRegression(input_dim, num_classes).cuda()
+        if args.model == 'clip':
+            clf = LogisticRegression(dummy_output.size(-1), num_classes).cuda()
+        else:
+            d = model.fc.in_features
+            clf = LogisticRegression(d, num_classes).cuda()
 
     # process generalization adjustment stuff
     adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
