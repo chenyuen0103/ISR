@@ -74,6 +74,8 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
             x_batch = batch[0]
             y_batch = batch[1]
             g_batch = batch[2]
+            if batch_idx == 0:  # Checking the first batch
+                print(f"First batch targets: {y_batch}")
             # x = batch[0]
             # y = batch[1]
             # g = batch[2]
