@@ -152,6 +152,7 @@ def main():
     optimizer, scheduler,clf = None, None, None
     # breakpoint()
     if resume:
+        breakpoint()
         model = torch.load(os.path.join(args.log_dir, 'last_model.pth'))
         clf = torch.load(os.path.join(args.log_dir, 'best_clf.pth'))
         if args.scheduler:
