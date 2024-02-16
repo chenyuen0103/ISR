@@ -246,7 +246,7 @@ def train(model,clf, criterion, dataset,
             show_progress=args.show_progress,
             log_every=args.log_every,
             scheduler=scheduler)
-        breakpoint()
+        # breakpoint()
         logger.write(f'\nValidation:\n')
         val_loss_computer = LossComputer(
             criterion,
