@@ -99,10 +99,10 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     encoder = model.encode_image
                     x = x.view(x.size(0), 3, 224, 224)
                     outputs = encoder(x)
+                    logits = clf(outputs)
                 else:
-                    outputs = model(x)
+                    logits = model(x)
                 breakpoint()
-                logits = clf(outputs)
                 if args.hessian_align:
                     # print('Hessian Align:', args.hessian_align)
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
@@ -209,15 +209,22 @@ def train(model,clf, criterion, dataset,
     else:
         # breakpoint()
         if optimizer is None:
-            optimizer = torch.optim.SGD(
-                chain(
+            if args.model == 'clip':
+                optimizer = torch.optim.Adam(
+                    chain(
+                        filter(lambda p: p.requires_grad, model.parameters()),
+                        filter(lambda p: p.requires_grad, clf.parameters())
+                    ),
+                    lr=args.lr,
+                    weight_decay=args.weight_decay
+                )
+            else:
+                optimizer = torch.optim.SGD(
                     filter(lambda p: p.requires_grad, model.parameters()),
-                    filter(lambda p: p.requires_grad, clf.parameters())
-                ),
-                lr=args.lr,
-                momentum=0.9,
-                weight_decay=args.weight_decay
-            )
+                    lr=args.lr,
+                    momentum=0.9,
+                    weight_decay=args.weight_decay
+                )
         if args.scheduler:
             if scheduler is None:
                 # breakpoint()
