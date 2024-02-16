@@ -101,7 +101,11 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     outputs = encoder(x)
                     logits = clf(outputs)
                 else:
-                    logits = model(x)
+                    encoder = torch.nn.Sequential(
+                        *(list(model.children())[:-1] + [torch.nn.Flatten()]))
+                    outputs = encoder(x)
+                    logits = clf(outputs)
+
                 breakpoint()
                 if args.hessian_align:
                     # print('Hessian Align:', args.hessian_align)
@@ -209,22 +213,14 @@ def train(model,clf, criterion, dataset,
     else:
         # breakpoint()
         if optimizer is None:
-            if args.model == 'clip':
-                optimizer = torch.optim.Adam(
-                    chain(
-                        filter(lambda p: p.requires_grad, model.parameters()),
-                        filter(lambda p: p.requires_grad, clf.parameters())
-                    ),
-                    lr=args.lr,
-                    weight_decay=args.weight_decay
-                )
-            else:
-                optimizer = torch.optim.SGD(
+            optimizer = torch.optim.Adam(
+                chain(
                     filter(lambda p: p.requires_grad, model.parameters()),
-                    lr=args.lr,
-                    momentum=0.9,
-                    weight_decay=args.weight_decay
-                )
+                    filter(lambda p: p.requires_grad, clf.parameters())
+                ),
+                lr=args.lr,
+                weight_decay=args.weight_decay
+            )
         if args.scheduler:
             if scheduler is None:
                 # breakpoint()
