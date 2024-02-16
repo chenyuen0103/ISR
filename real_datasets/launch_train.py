@@ -53,6 +53,24 @@ def main():
 
         print('Command:', command)
         os.system(command)
+        resume_command = get_train_command(dataset=args.dataset, algo=algo, gpu_idx=args.gpu_idx, model=args.model, seed=seed,
+                                    save_best=args.save_best, save_last=args.save_last, resume=True,
+                                    hessian_align=args.hessian_align,
+                                    algo_suffix=args.algo_suffix, scheduler=args.scheduler, grad_alpha=grad_alpha,
+                                    hess_beta=hess_beta)
+        # run the resume command for a few times with different gpu_idx
+        if args.dataset == 'CelebA':
+            resume_run = 6
+        else:
+            resume_run = 3
+            for i in range(resume_run):
+                os.system(resume_command)
+                args.gpu_idx = (args.gpu_idx + 1) % 4
+                resume_command = get_train_command(dataset=args.dataset, algo=algo, gpu_idx=args.gpu_idx, model=args.model, seed=seed,
+                                        save_best=args.save_best, save_last=args.save_last, resume=True,
+                                        hessian_align=args.hessian_align,
+                                        algo_suffix=args.algo_suffix, scheduler=args.scheduler, grad_alpha=grad_alpha,
+                                        hess_beta=hess_beta)
 
         # Rotate the GPU index
         # gpu_idx = (gpu_idx + 1) % gpu_count
