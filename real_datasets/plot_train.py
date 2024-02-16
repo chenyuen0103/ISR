@@ -2,17 +2,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the training and validation data
-# dataset = 'CelebA'
-dataset = 'CUB'
-model ='clip'
-# model = 'resnet50'
+dataset = 'CelebA'
+# dataset = 'CUB'
+# model ='clip'
+model = 'resnet50'
 algo = 'HessianERM'
 # algo = 'ERM'
 seed = 0
-scheduler = True
-
-grad_alpha = 1e-6
-hess_beta = 1e-5
+# scheduler = True
+scheduler = False
+grad_alpha = 1e-4
+hess_beta = 1e-4
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
 hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')
