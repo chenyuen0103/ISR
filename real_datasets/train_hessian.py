@@ -76,6 +76,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
             g_batch = batch[2]
             if batch_idx == 0:  # Checking the first batch
                 print(f"First batch targets: {y_batch}")
+            breakpoint()
             # x = batch[0]
             # y = batch[1]
             # g = batch[2]
