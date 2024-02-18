@@ -163,6 +163,9 @@ def train(model,clf, criterion, dataset,
         with torch.no_grad():
             dummy_output = encoder(dummy_input)
     elif args.model == 'bert':
+        dummy_input = torch.randint(0, 1000, (1, 128)).cuda()
+        with torch.no_grad():
+            dummy_output = model(dummy_input)
 
     else:
         dummy_output = model(dummy_input)
