@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 # Load the training and validation data
 dataset = 'CelebA'
 # dataset = 'CUB'
-# model ='clip'
-model = 'resnet50'
+model ='clip'
+# model = 'resnet50'
 algo = 'HessianERM'
 # algo = 'ERM'
 seed = 0
-# scheduler = True
-scheduler = False
-grad_alpha = 1e-4
+scheduler = True
+# scheduler = False
+grad_alpha = 1e-6
 hess_beta = 1e-4
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
@@ -43,7 +43,7 @@ if 'Hessian' in algo:
 else:
     plt.title(f'{dataset}--ERM Loss')
 plt.legend()
-# plt.xlim(0, 100)
+# plt.xlim(0, 20)
 # plt.ylim(0, 2)
 # plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_loss_scheduler.png')
 plt.show()
@@ -71,19 +71,24 @@ plt.xlabel('Epoch')
 plt.ylabel('Worst-case Group Accuracy')
 plt.title(f'{dataset}--Worst-case Group Accuracy')
 plt.legend()
-# plt.xlim(0, 100)
+# plt.xlim(0, 20)
 # plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_worst_group_acc_scheduler.png')
 plt.show()
 plt.close()
 
+# print average and worst-case and Test Accuracy at the end of training
+print(f'Average Test Accuracy: {test_df["avg_acc"].iloc[-1]}')
+_, test_worst = get_worst_group_acc(test_df)
+print(f'Worst-case Test Accuracy: {test_worst.iloc[-1]}')
+
 # Plot the difference between worst-case group accuracy between training and validation
-plt.figure(figsize=(7, 5))
-plt.plot(train_epochs, train_worst_acc - val_worst_acc, label='Training - Validation', linestyle='-')
-plt.xlabel('Epoch')
-plt.ylabel('Difference in Worst-case Group Accuracy')
-plt.title(f'{dataset}--Difference in Worst-case Group Accuracy')
-plt.legend()
-# plt.xlim(0, 100)
-# plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_diff_worst_group_acc_scheduler.png')
-plt.show()
-plt.close()
+# plt.figure(figsize=(7, 5))
+# plt.plot(train_epochs, train_worst_acc - val_worst_acc, label='Training - Validation', linestyle='-')
+# plt.xlabel('Epoch')
+# plt.ylabel('Difference in Worst-case Group Accuracy')
+# plt.title(f'{dataset}--Difference in Worst-case Group Accuracy')
+# plt.legend()
+# # plt.xlim(0, 100)
+# # plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_diff_worst_group_acc_scheduler.png')
+# plt.show()
+# plt.close()

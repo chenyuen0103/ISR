@@ -93,6 +93,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                         token_type_ids=segment_ids,
                         labels=y
                     )[1]  # [1] returns logits
+                    breakpoint()
                 elif args.model == 'clip':
                     # Reshape x to [batch_size, channels, height, width]
                     encoder = model.encode_image
@@ -110,7 +111,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     # print('Hessian Align:', args.hessian_align)
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
                 else:
-                    loss_main = loss_computer.loss(outputs, y, g, is_training)
+                    loss_main = loss_computer.loss(logits, y, g, is_training)
 
                 if is_training:
                     loss_main = loss_main / num_sub_batches
