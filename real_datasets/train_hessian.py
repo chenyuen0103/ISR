@@ -158,6 +158,7 @@ def train(model,clf, criterion, dataset,
     model = model.cuda()
     breakpoint()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
+    num_classes = 2
     if args.model == 'clip':
         encoder = model.encode_image
         with torch.no_grad():
@@ -166,14 +167,10 @@ def train(model,clf, criterion, dataset,
         dummy_input = torch.randint(0, 1000, (1, 128)).cuda()
         with torch.no_grad():
             dummy_output = model(dummy_input)
-
+        num_classes = 3
     else:
         dummy_output = model(dummy_input)
 
-            # Output dimension
-    input_dim = dummy_output.size(-1)
-
-    num_classes = 2
     if clf is None:
         if args.model == 'clip':
             clf = LogisticRegression(dummy_output.size(-1), num_classes).cuda()
