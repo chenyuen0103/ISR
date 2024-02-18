@@ -156,11 +156,14 @@ def train(model,clf, criterion, dataset,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model = model.cuda()
+    breakpoint()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
     if args.model == 'clip':
         encoder = model.encode_image
         with torch.no_grad():
             dummy_output = encoder(dummy_input)
+    elif args.model == 'bert':
+
     else:
         dummy_output = model(dummy_input)
 

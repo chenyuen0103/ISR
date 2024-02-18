@@ -101,7 +101,7 @@ def main():
                                     f"grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not args.scheduler else ''}")
 
     print(f'Logging to {args.log_dir}')
-    breakpoint()
+    # breakpoint()
     # if os.path.exists(args.log_dir) and args.resume:
     if os.path.exists(args.log_dir) and args.resume:
         resume = True
@@ -112,7 +112,7 @@ def main():
 
     ## Initialize logs
     if not os.path.exists(args.log_dir):
-        print(args.log_dir)
+        # print(args.log_dir)
         # breakpoint()
         os.makedirs(args.log_dir)
 
