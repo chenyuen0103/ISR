@@ -156,7 +156,7 @@ def train(model,clf, criterion, dataset,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model = model.cuda()
-    breakpoint()
+    # breakpoint()
     dummy_input = torch.randn(1, 3, 224, 224).cuda()
     num_classes = 2
     if args.model == 'clip':
