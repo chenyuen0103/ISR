@@ -94,7 +94,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                         labels=y
                     )[1]  # [1] returns logits
                     breakpoint()
-                elif args.model == 'clip512:
+                elif args.model == 'clip512':
                     # Reshape x to [batch_size, channels, height, width]
                     encoder = model.encode_image
                     x = x.view(x.size(0), 3, 512, 512)
