@@ -94,6 +94,12 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                         labels=y
                     )[1]  # [1] returns logits
                     breakpoint()
+                elif args.model == 'clip512:
+                    # Reshape x to [batch_size, channels, height, width]
+                    encoder = model.encode_image
+                    x = x.view(x.size(0), 3, 512, 512)
+                    outputs = encoder(x)
+                    logits = clf(outputs)
                 elif args.model == 'clip':
                     # Reshape x to [batch_size, channels, height, width]
                     encoder = model.encode_image
@@ -157,9 +163,12 @@ def train(model,clf, criterion, dataset,
     model = model.to(device)
     model = model.cuda()
     # breakpoint()
-    dummy_input = torch.randn(1, 3, 224, 224).cuda()
+
     num_classes = 2
+    if args.model == 'clip512':
+        dummy_input = torch.randn(1, 3, 512, 512).cuda()
     if args.model == 'clip':
+        dummy_input = torch.randn(1, 3, 224, 224).cuda()
         encoder = model.encode_image
         with torch.no_grad():
             dummy_output = encoder(dummy_input)
