@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import open_clip
-
+import timm
 import configs
 from configs.model_config import model_attributes
 from data import dataset_attributes, shift_types, prepare_data, log_data
@@ -56,7 +56,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--scheduler', action='store_true', default=False)
-    parser.add_argument('--weight_decay', type=float, default=5e-5)
+    parser.add_argument('--weight_decay', type=float, default=5e-4)
     parser.add_argument('--gamma', type=float, default=0.1)
     parser.add_argument('--minimum_variational_weight', type=float, default=0)
     # Misc
@@ -167,6 +167,12 @@ def main():
         d = train_data.input_size()[0]
         model = nn.Linear(d, n_classes)
         model.has_aux_logits = False
+    elif args.model == 'vits':
+        model = timm.create_model(
+            'vit_small_patch16_224.dino',
+            pretrained=True,
+            num_classes=0,  # remove classifier nn.Linear
+        )
     elif args.model == 'clip512':
         model, preprocess = open_clip.create_model_from_pretrained('hf-hub:timm/ViT-B-16-SigLIP-512')
         tokenizer = open_clip.get_tokenizer('hf-hub:timm/ViT-B-16-SigLIP-512')

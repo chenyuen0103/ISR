@@ -94,6 +94,12 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                         labels=y
                     )[1]  # [1] returns logits
                     breakpoint()
+                elif args.model == 'vits':
+                    # Reshape x to [batch_size, channels, height, width]
+                    # encoder = model.encoder
+                    x = x.view(x.size(0), 3, 224, 224)
+                    outputs = model(x)
+                    logits = clf(outputs)
                 elif args.model == 'clip512':
                     # Reshape x to [batch_size, channels, height, width]
                     encoder = model.encode_image
@@ -171,6 +177,10 @@ def train(model,clf, criterion, dataset,
         encoder = model.encode_image
         with torch.no_grad():
             dummy_output = encoder(dummy_input)
+    elif args.model == 'vits':
+        dummy_input = torch.randn(1, 3, 224, 224).cuda()
+        with torch.no_grad():
+            dummy_output = model(dummy_input)
     elif args.model == 'clip':
         dummy_input = torch.randn(1, 3, 224, 224).cuda()
         encoder = model.encode_image
@@ -190,11 +200,12 @@ def train(model,clf, criterion, dataset,
     #         dummy_output = encoder(dummy_input)
 
     if clf is None:
-        if 'clip' in args.model:
-            clf = LogisticRegression(dummy_output.size(-1), num_classes).cuda()
-        else:
+        if 'resnet' in args.model:
             d = model.fc.in_features
             clf = LogisticRegression(d, num_classes).cuda()
+        else:
+            clf = LogisticRegression(dummy_output.size(-1), num_classes).cuda()
+
 
     # process generalization adjustment stuff
     adjustments = [float(c) for c in args.generalization_adjustment.split(',')]
@@ -237,13 +248,13 @@ def train(model,clf, criterion, dataset,
     else:
         # breakpoint()
         if optimizer is None:
-            optimizer = torch.optim.Adam(
+            optimizer = torch.optim.AdamW(
                 chain(
                     filter(lambda p: p.requires_grad, model.parameters()),
                     filter(lambda p: p.requires_grad, clf.parameters())
                 ),
-                lr=args.lr,
-                weight_decay=args.weight_decay
+                lr=args.lr, # 1e-4
+                weight_decay=args.weight_decay #0.00005
             )
         if args.scheduler:
             if scheduler is None:
