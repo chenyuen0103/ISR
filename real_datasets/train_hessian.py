@@ -167,7 +167,8 @@ def train(model,clf, criterion, dataset,
     num_classes = 2
     if args.model == 'clip512':
         dummy_input = torch.randn(1, 3, 512, 512).cuda()
-    if args.model == 'clip':
+        encoder = model.encode_image
+    elif args.model == 'clip':
         dummy_input = torch.randn(1, 3, 224, 224).cuda()
         encoder = model.encode_image
         with torch.no_grad():
