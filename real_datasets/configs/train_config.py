@@ -102,6 +102,7 @@ TRAIN_COMMANDS_CLIP_512 = dict(
                     f'2e-05 --batch_size 32 --n_epochs 3 --reweight_groups',  # reweight
     }
 )
+
 def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int = None, train_script: str = 'run_expt.py', hessian_align: bool = False,
                       algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False, scheduler:bool = False, grad_alpha:float = 10e-5, hess_beta:float = 10e-5):
     prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''

@@ -167,7 +167,7 @@ def main():
         d = train_data.input_size()[0]
         model = nn.Linear(d, n_classes)
         model.has_aux_logits = False
-    elif args.model == 'clip512:
+    elif args.model == 'clip512':
         model, preprocess = open_clip.create_model_from_pretrained('hf-hub:timm/ViT-B-16-SigLIP-512')
         tokenizer = open_clip.get_tokenizer('hf-hub:timm/ViT-B-16-SigLIP-512')
     elif args.model == 'clip':
