@@ -96,8 +96,6 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     )[1]  # [1] returns logits
                     breakpoint()
                 elif args.model == 'vits':
-                    data_config = timm.data.resolve_model_data_config(model)
-                    transforms = timm.data.create_transform(**data_config, is_training=False)
                     # Reshape x to [batch_size, channels, height, width]
                     # encoder = model.encoder
                     x = x.view(x.size(0), 3, 224, 224)
