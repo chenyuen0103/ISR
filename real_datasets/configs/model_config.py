@@ -31,8 +31,8 @@ model_attributes = {
             'feature_type': 'image',
             'target_resolution': (224, 224),
             'flatten': True,
-    }
-    'clip_512': {
+    },
+    'clip512': {
         'feature_type': 'image',
         'target_resolution': (512, 512),
         'flatten': True,
