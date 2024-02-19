@@ -181,6 +181,7 @@ def train(model,clf, criterion, dataset,
             dummy_output = model(dummy_input)
         num_classes = 3
     else:
+        dummy_input = torch.randn(1, 3, 224, 224).cuda()
         dummy_output = model(dummy_input)
 
     if clf is None:

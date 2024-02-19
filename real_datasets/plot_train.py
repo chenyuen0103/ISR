@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 dataset = 'CelebA'
 # dataset = 'CUB'
 # model ='clip'
+# model ='clip512'
 model = 'resnet50'
-# algo = 'HessianERM'
-algo = 'ERM'
+algo = 'HessianERM'
+# algo = 'ERM'
 seed = 0
-# scheduler = True
-scheduler = False
+scheduler = True
+# scheduler = False
 grad_alpha = 1e-4
 hess_beta = 1e-4
 
