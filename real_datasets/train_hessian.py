@@ -181,7 +181,7 @@ def train(model,clf, criterion, dataset,
         dummy_output = model(dummy_input)
 
     if clf is None:
-        if args.model == 'clip':
+        if 'clip' in args.model:
             clf = LogisticRegression(dummy_output.size(-1), num_classes).cuda()
         else:
             d = model.fc.in_features
