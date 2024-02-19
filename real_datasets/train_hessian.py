@@ -100,6 +100,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     x = x.view(x.size(0), 3, 224, 224)
                     outputs = model(x)
                     logits = clf(outputs)
+                    breakpoint()
                 elif args.model == 'clip512':
                     # Reshape x to [batch_size, channels, height, width]
                     encoder = model.encode_image
