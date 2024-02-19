@@ -171,7 +171,8 @@ def main():
         # model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms(
         #     'hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
         # tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
-        model, preprocess = open_clip.create_model_from_pretrained('hf-hub:timm/ViT-B-16-SigLIP')
+        # model, preprocess = open_clip.create_model_from_pretrained('hf-hub:timm/ViT-B-16-SigLIP')
+        model, preprocess = open_clip.create_model_from_pretrained('hf-hub:timm/ViT-B-16-SigLIP', pretrained = "webli")
         tokenizer = open_clip.get_tokenizer('hf-hub:timm/ViT-B-16-SigLIP')
     elif args.model == 'resnet50':
         model = torchvision.models.resnet50(pretrained=pretrained)

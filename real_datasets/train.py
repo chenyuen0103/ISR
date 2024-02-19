@@ -50,7 +50,6 @@ def run_epoch(epoch, model, optimizer, loader, loss_computer, logger, csv_logger
                     labels=y
                 )[1]  # [1] returns logits
             else:
-                breakpoint()
                 outputs = model(x)
 
             loss_main = loss_computer.loss(outputs, y, g, is_training)
