@@ -254,9 +254,11 @@ def train(model,clf, criterion, dataset,
                     filter(lambda p: p.requires_grad, model.parameters()),
                     filter(lambda p: p.requires_grad, clf.parameters())
                 ),
-                lr=args.lr, # 1e-4
-                weight_decay=args.weight_decay #0.00005
+                lr=args.lr,
+                weight_decay=args.weight_decay
             )
+            if args.model == 'vits':
+                breakpoint()
         if args.scheduler:
             if scheduler is None:
                 # breakpoint()
