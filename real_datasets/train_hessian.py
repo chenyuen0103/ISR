@@ -106,6 +106,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                     x = x.view(x.size(0), 3, 224, 224)
                     outputs = encoder(x)
                     logits = clf(outputs)
+
                 else:
                     encoder = torch.nn.Sequential(
                         *(list(model.children())[:-1] + [torch.nn.Flatten()]))
@@ -114,7 +115,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
 
 
                 if args.hessian_align:
-                    # print('Hessian Align:', args.hessian_align)
+                    # 'x' is the input the classifier, which is output of the encoder
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
                 else:
                     loss_main = loss_computer.loss(logits, y, g, is_training)
@@ -180,9 +181,13 @@ def train(model,clf, criterion, dataset,
         with torch.no_grad():
             dummy_output = model(dummy_input)
         num_classes = 3
-    else:
-        dummy_input = torch.randn(1, 3, 224, 224).cuda()
-        dummy_output = model(dummy_input)
+    # else:
+    #     # resnet50
+    #     dummy_input = torch.randn(1, 3, 224, 224).cuda()
+    #     encoder = torch.nn.Sequential(
+    #                     *(list(model.children())[:-1] + [torch.nn.Flatten()]))
+    #     with torch.no_grad():
+    #         dummy_output = encoder(dummy_input)
 
     if clf is None:
         if 'clip' in args.model:
@@ -281,7 +286,7 @@ def train(model,clf, criterion, dataset,
             step_size=args.robust_step_size,
             alpha=args.alpha)
         run_epoch(
-            epoch, model,clf, optimizer,
+            epoch, model, clf, optimizer,
             dataset['val_loader'],
             val_loss_computer,
             logger, val_csv_logger, args,

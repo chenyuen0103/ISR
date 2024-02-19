@@ -2,8 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the training and validation data
-dataset = 'CelebA'
-# dataset = 'CUB'
+# dataset = 'CelebA'
+dataset = 'CUB'
 # model ='clip'
 # model ='clip512'
 model = 'resnet50'
