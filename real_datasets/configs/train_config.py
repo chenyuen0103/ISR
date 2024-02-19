@@ -116,7 +116,7 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
     seed = 0 if seed is None else seed
     if model == 'clip512':
         args_command = TRAIN_COMMANDS_CLIP_512[dataset][algo]
-    if model == 'clip':
+    elif model == 'clip':
         args_command = TRAIN_COMMANDS_CLIP[dataset][algo]
     else:
         args_command = TRAIN_COMMANDS[dataset][algo]
