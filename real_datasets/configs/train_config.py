@@ -161,5 +161,5 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
     if learning_rate:
         breakpoint()
         command = command.replace(f'--lr 1e-05', f'--lr {learning_rate}')
-        command = command.replace(f'seed {seed}', f'seed {seed+10}')
+        command = command.replace(f'seed {seed}', f'seed {seed+100}')
     return command
