@@ -138,7 +138,7 @@ TRAIN_COMMANDS_ViT_S = dict(
     }
 )
 def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int = None, train_script: str = 'run_expt.py', hessian_align: bool = False,
-                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False, scheduler:bool = False, grad_alpha:float = 10e-5, hess_beta:float = 10e-5):
+                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False, scheduler:bool = False, grad_alpha:float = 10e-5, hess_beta:float = 10e-5, learning_rate:float = None):
     prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''
     # prefix = ''
     suffix = f' --algo_suffix {algo_suffix}' if algo_suffix else ''
@@ -158,4 +158,8 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
     else:
         args_command = TRAIN_COMMANDS[dataset][algo]
     command = f"{prefix} python {train_script} {args_command} --seed {seed} {suffix} {'--hessian_align' if hessian_align else ''} {'--scheduler' if scheduler else ''} --grad_alpha {grad_alpha} --hess_beta {hess_beta}"
+    if learning_rate:
+        breakpoint()
+        command.replace(f'--lr 1e-05', f'--lr {learning_rate}')
+        command.replace(f'seed {seed}', f'seed {seed+10}')
     return command

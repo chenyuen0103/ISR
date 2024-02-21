@@ -4,16 +4,17 @@ import matplotlib.pyplot as plt
 # Load the training and validation data
 # dataset = 'CelebA'
 dataset = 'CUB'
-model ='clip'
+# model ='clip'
 # model ='clip512'
-model = 'resnet50'
+model = 'vits'
+# model = 'resnet50'
 algo = 'HessianERM'
 # algo = 'ERM'
 seed = 0
 scheduler = True
 # scheduler = False
 grad_alpha = 1e-4
-hess_beta = 1e-4
+hess_beta = 0
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
 hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')
@@ -52,6 +53,21 @@ plt.close()
 
 
 
+
+# plot average accuracy of training and validation
+plt.figure(figsize=(7, 5))
+plt.plot(train_df['epoch'], train_df['avg_acc'], label='Training', linestyle='-')
+plt.plot(val_df['epoch'], val_df['avg_acc'], label='Validation', linestyle='-')
+plt.xlabel('Epoch')
+plt.ylabel('Average Group Accuracy')
+plt.title(f'{dataset}--Average Group Accuracy')
+plt.legend()
+# plt.xlim(0, 20)
+# plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_avg_group_acc_scheduler.png')
+plt.show()
+plt.close()
+
+
 # Function to find the worst group accuracy for each epoch
 def get_worst_group_acc(df):
     # Extract only columns that contain group accuracy
@@ -59,6 +75,9 @@ def get_worst_group_acc(df):
     # Find the minimum accuracy across these columns for each epoch
     worst_acc = df[acc_columns].min(axis=1)
     return df['epoch'], worst_acc
+
+
+
 
 # Get worst-case accuracy for training and validation
 train_epochs, train_worst_acc = get_worst_group_acc(train_df)
@@ -77,19 +96,22 @@ plt.legend()
 plt.show()
 plt.close()
 
+
+
+
+
+# print the result arguments
+print(f'grad_alpha: {grad_alpha}')
+print(f'hess_beta: {hess_beta}')
+print(f'scheduler: {scheduler}')
+print(f'seed: {seed}')
+print(f'algo: {algo}')
+print(f'model: {model}')
+print(f'dataset: {dataset}')
 # print average and worst-case and Test Accuracy at the end of training
 print(f'Average Test Accuracy: {test_df["avg_acc"].iloc[-1]}')
 _, test_worst = get_worst_group_acc(test_df)
 print(f'Worst-case Test Accuracy: {test_worst.iloc[-1]}')
 
-# Plot the difference between worst-case group accuracy between training and validation
-# plt.figure(figsize=(7, 5))
-# plt.plot(train_epochs, train_worst_acc - val_worst_acc, label='Training - Validation', linestyle='-')
-# plt.xlabel('Epoch')
-# plt.ylabel('Difference in Worst-case Group Accuracy')
-# plt.title(f'{dataset}--Difference in Worst-case Group Accuracy')
-# plt.legend()
-# # plt.xlim(0, 100)
-# # plt.savefig(f'../logs/{dataset}/{model}/{algo}/s{seed}/{dataset}_diff_worst_group_acc_scheduler.png')
-# plt.show()
-# plt.close()
+
+
