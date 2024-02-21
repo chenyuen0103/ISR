@@ -94,7 +94,7 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                         token_type_ids=segment_ids,
                         labels=y
                     )[1]  # [1] returns logits
-                    breakpoint()
+                    # breakpoint()
                 elif args.model == 'vits':
                     # Reshape x to [batch_size, channels, height, width]
                     # encoder = model.encoder
