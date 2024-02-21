@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--resume', default=False, action='store_true')
     parser.add_argument('--seed_list', nargs = '+',type=int, default=[0])
     parser.add_argument('--model', type=str, default='clip')
+    parser.add_argument('--learning_rate', type=float, default=None)
     parser.add_argument('--hessian_align', action='store_true', default=False)
     parser.add_argument('--algo_suffix', type=str, default='', help='The suffix of log folder name')
     parser.add_argument('--scheduler', action='store_true', default=False)
@@ -70,7 +71,7 @@ def main():
                                         save_best=args.save_best, save_last=args.save_last, resume=True,
                                         hessian_align=args.hessian_align,
                                         algo_suffix=args.algo_suffix, scheduler=args.scheduler, grad_alpha=grad_alpha,
-                                        hess_beta=hess_beta)
+                                        hess_beta=hess_beta, learning_rate=args.learning_rate)
 
         # Rotate the GPU index
         # gpu_idx = (gpu_idx + 1) % gpu_count
