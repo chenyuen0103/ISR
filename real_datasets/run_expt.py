@@ -100,7 +100,7 @@ def main():
                                     f"grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}")
     elif args.seed > 100:
         args.seed = args.seed - 100
-        args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, args.lr ,algo + args.algo_suffix, f's{args.seed}',
+        args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, lr_formatted ,algo + args.algo_suffix, f's{args.seed}',
                                     f"grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}")
     else:
         args.log_dir = os.path.join(args.log_dir, args.dataset, args.model, algo + args.algo_suffix, f's{args.seed}',
