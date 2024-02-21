@@ -50,7 +50,7 @@ def main():
                                     save_best=args.save_best, save_last=args.save_last, resume=args.resume,
                                     hessian_align=args.hessian_align,
                                     algo_suffix=args.algo_suffix, scheduler=args.scheduler, grad_alpha=grad_alpha,
-                                    hess_beta=hess_beta)
+                                    hess_beta=hess_beta, learning_rate=args.learning_rate)
 
         print('Command:', command)
         os.system(command)
@@ -58,7 +58,7 @@ def main():
                                     save_best=args.save_best, save_last=args.save_last, resume=True,
                                     hessian_align=args.hessian_align,
                                     algo_suffix=args.algo_suffix, scheduler=args.scheduler, grad_alpha=grad_alpha,
-                                    hess_beta=hess_beta)
+                                    hess_beta=hess_beta, learning_rate=args.learning_rate)
         # run the resume command for a few times with different gpu_idx
         if args.dataset == 'CelebA':
             resume_run = 6
