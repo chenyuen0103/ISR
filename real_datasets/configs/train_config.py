@@ -138,7 +138,8 @@ TRAIN_COMMANDS_ViT_S = dict(
     }
 )
 def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int = None, train_script: str = 'run_expt.py', hessian_align: bool = False,
-                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False, scheduler:bool = False, grad_alpha:float = 10e-5, hess_beta:float = 10e-5, learning_rate:float = None):
+                      algo_suffix: str = '',seed:int=None,save_best:bool=True,save_last:bool=True, resume:bool = False, scheduler:bool = False,
+                      grad_alpha:float = 10e-5, hess_beta:float = 10e-5, learning_rate:float = None, batch_size:int = None):
     prefix = f'CUDA_VISIBLE_DEVICES={gpu_idx}' if gpu_idx is not None else ''
     # prefix = ''
     suffix = f' --algo_suffix {algo_suffix}' if algo_suffix else ''
@@ -159,7 +160,17 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
         args_command = TRAIN_COMMANDS[dataset][algo]
     command = f"{prefix} python {train_script} {args_command} --seed {seed} {suffix} {'--hessian_align' if hessian_align else ''} {'--scheduler' if scheduler else ''} --grad_alpha {grad_alpha} --hess_beta {hess_beta}"
     if learning_rate:
-        # breakpoint()
-        command = command.replace(f'--lr 1e-05', f'--lr {learning_rate}')
+        # replace current learning rate with the new learning rate
+        # first extract current lr string
+        lr_str = command.split('--lr')[1].split(' ')[1]
+        command = command.replace(f'--lr {lr_str}', f'--lr {learning_rate}')
         command = command.replace(f'seed {seed}', f'seed {seed+100}')
+    if batch_size:
+        # replace current batch size with the new batch size
+        # first extract current batch size string
+        batch_size_str = command.split('--batch_size')[1].split(' ')[1]
+        command = command.replace(f'--batch_size {batch_size_str}', f'--batch_size {batch_size}')
+        command = command.replace(f'seed {seed}', f'seed {seed+100}')
+
+    breakpoint()
     return command
