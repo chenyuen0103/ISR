@@ -173,5 +173,5 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
         command = command.replace(f'--batch_size {batch_size_str}', f'--batch_size {batch_size}')
         command = command.replace(f'seed {seed}', f'seed {seed+100}')
 
-    breakpoint()
+    # breakpoint()
     return command
