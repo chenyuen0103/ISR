@@ -171,7 +171,6 @@ def process_batch(model,  x, y=None, g=None):
         input_ids = x[:, :, 0]
         input_masks = x[:, :, 1]
         segment_ids = x[:, :, 2]
-        breakpoint()
         outputs = model.encode_text(
             input_ids=input_ids,
             attention_mask=input_masks,

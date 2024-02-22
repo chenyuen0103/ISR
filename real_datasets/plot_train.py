@@ -2,25 +2,38 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the training and validation data
-dataset = 'CelebA'
-# dataset = 'CUB'
+# dataset = 'CelebA'
+dataset = 'CUB'
 # model ='clip'
 # model ='clip512'
 model = 'vits'
 # model = 'resnet50'
-# algo = 'HessianERM'
-algo = 'ERM'
+algo = 'HessianERM'
+# algo = 'ERM'
 seed = 0
 scheduler = True
+# lr = 3e-3
+lr = None
 # scheduler = False
 grad_alpha = 1e-4
-hess_beta = 1e-4
+# grad_alpha = 0
+hess_beta = 1e-6
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
 hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')
-train_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
-val_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
-test_df =  pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/test.csv")
+
+if lr is not None:
+    lr_formatted = "{:.1e}".format(lr).replace('.0e', 'e')
+    train_df = pd.read_csv(
+        f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
+    val_df = pd.read_csv(
+        f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
+    test_df = pd.read_csv(
+        f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/test.csv")
+else:
+    train_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
+    val_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
+    test_df =  pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/test.csv")
 # train_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/train.csv')
 # val_df = pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/val.csv')
 # test_df =  pd.read_csv(f'../logs/{dataset}/{model}/{algo}/s{seed}/test.csv')
