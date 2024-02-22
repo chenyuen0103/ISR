@@ -165,6 +165,7 @@ def get_train_command(dataset: str, algo: str , model: str = 'clip',gpu_idx: int
         lr_str = command.split('--lr')[1].split(' ')[1]
         command = command.replace(f'--lr {lr_str}', f'--lr {learning_rate}')
         command = command.replace(f'seed {seed}', f'seed {seed+100}')
+        seed += 100
     if batch_size:
         # replace current batch size with the new batch size
         # first extract current batch size string
