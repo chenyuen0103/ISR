@@ -8,21 +8,24 @@ dataset = 'CUB'
 # model ='clip512'
 model = 'vits'
 # model = 'resnet50'
-# algo = 'HessianERM'
-algo = 'ERM'
+algo = 'HessianERM'
+# algo = 'ERM'
 seed = 0
 scheduler = True
-lr = 3e-2
-# lr = None
+# lr = 3e-2
+lr = None
+# batch_size = 512
+batch_size = None
 # scheduler = False
-grad_alpha = 1e-4
-# grad_alpha = 0
-hess_beta = 1e-4
+# grad_alpha = 1e-4
+grad_alpha = 0
+hess_beta = 0
+# hess_beta = 1e-4
 
 grad_alpha_formatted = "{:.1e}".format(grad_alpha).replace('.0e', 'e')
 hess_beta_formatted = "{:.1e}".format(hess_beta).replace('.0e', 'e')
 
-if lr is not None:
+if lr is not None and batch_size is None:
     lr_formatted = "{:.1e}".format(lr).replace('.0e', 'e')
     train_df = pd.read_csv(
         f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
@@ -30,6 +33,14 @@ if lr is not None:
         f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
     test_df = pd.read_csv(
         f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/test.csv")
+elif lr is not None:
+    lr_formatted = "{:.1e}".format(lr).replace('.0e', 'e')
+    train_df = pd.read_csv(
+        f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}_batchsize_{batch_size}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
+    val_df = pd.read_csv(
+        f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}_batchsize_{batch_size}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
+    test_df = pd.read_csv(
+        f"../logs/{dataset}/{model}/{algo}/lr{lr_formatted}_batchsize_{batch_size}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/test.csv")
 else:
     train_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/train.csv")
     val_df = pd.read_csv(f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{'_no_scheduler' if not scheduler else ''}/val.csv")
@@ -125,6 +136,3 @@ print(f'dataset: {dataset}')
 print(f'Average Test Accuracy: {test_df["avg_acc"].iloc[-1]}')
 _, test_worst = get_worst_group_acc(test_df)
 print(f'Worst-case Test Accuracy: {test_worst.iloc[-1]}')
-
-
-
