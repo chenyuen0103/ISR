@@ -279,12 +279,14 @@ class LossComputer:
         hessian_norms = torch.zeros(len(env_hessians)).cuda()
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
             num_samples = len(idx)
             yhat = logits[idx]
             loss = self.criterion2(yhat.squeeze(), y[idx].long())
-            if torch.isnan(loss) or idx.numel() == 0:
-                loss = 0
-                continue
+            # if torch.isnan(loss):
+            #     loss = 0
+            #     continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
 
             gradient_norm = torch.norm(grads[0], p=2)
