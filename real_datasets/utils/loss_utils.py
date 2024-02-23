@@ -279,9 +279,11 @@ class LossComputer:
         hessian_norms = torch.zeros(len(env_hessians)).cuda()
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
+            num_samples = len(idx)
             yhat = logits[idx]
             loss = self.criterion2(yhat.squeeze(), y[idx].long())
             if torch.isnan(loss) or idx.numel() == 0:
+                loss = 0
                 continue
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
 
@@ -299,19 +301,22 @@ class LossComputer:
             grad_loss = grad_alpha * grad_diff_norm ** 2
             hessian_loss = hess_beta * hessian_diff_norm ** 2
             # breakpoint()
-            total_loss = total_loss + (loss + hessian_loss + grad_loss)
+            total_loss = total_loss + (loss + hessian_loss + grad_loss) * self.group_frac[env_idx]
 
-            erm_loss = erm_loss + loss
-            accum_grad_loss = accum_grad_loss + grad_loss
-            accum_hess_loss = accum_hess_loss + hessian_loss
+            erm_loss = erm_loss + loss * self.group_frac[env_idx]
+            accum_grad_loss = accum_grad_loss + grad_loss * self.group_frac[env_idx]
+            accum_hess_loss = accum_hess_loss + hessian_loss * self.group_frac[env_idx]
+
+        # not weighted
+        # total_loss = total_loss / self.n_groups
+        # erm_loss = erm_loss / self.n_groups
+        # accum_hess_loss = accum_hess_loss / self.n_groups
+        # accum_grad_loss = accum_grad_loss / self.n_groups
 
 
-        n_unique_envs = len(envs_indices.unique())
-        # print("Number of unique envs:", n_unique_envs)
-        total_loss = total_loss / n_unique_envs
-        erm_loss = erm_loss / n_unique_envs
-        accum_hess_loss = accum_hess_loss / n_unique_envs
-        accum_grad_loss = accum_grad_loss / n_unique_envs
+
+
+
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
 
 

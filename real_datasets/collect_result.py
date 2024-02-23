@@ -4,7 +4,9 @@ from itertools import product
 
 # Define the parameters to iterate over
 datasets = ['CUB']  # Add more if needed
-models = ['clip_512', 'clip', 'vits', 'resnet50']  # Example models
+# datasets = ['CelebA']  # Example datasets
+# models = ['clip_512', 'clip', 'vits', 'resnet50']  # Example models
+models = ['vits']  # Example models
 algos = ['HessianERM', 'ERM']  # Example algorithms
 seeds = range(22)  # Example seed values
 grad_alphas = [10**-i for i in range(10)] + [0]  # 1, 1e-1, ..., 1e-9, 0
@@ -38,7 +40,7 @@ for dataset, model, algo, seed, grad_alpha, hess_beta, scheduler in combinations
         test_csv_path = os.path.join(dir_path, 'test.csv')
 
         # Load the test.csv if it exists and has rows
-        if os.path.isfile(test_csv_path):
+        if os.path.isfile(test_csv_path) and os.path.getsize(test_csv_path) > 0:
             test_df = pd.read_csv(test_csv_path)
             # Check if the DataFrame is empty
             if not test_df.empty:
