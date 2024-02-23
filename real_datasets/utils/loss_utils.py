@@ -281,6 +281,7 @@ class LossComputer:
             idx = (envs_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
                 continue
+            breakpoint()
             num_samples = len(idx)
             yhat = logits[idx]
             loss = self.criterion2(yhat.squeeze(), y[idx].long())
