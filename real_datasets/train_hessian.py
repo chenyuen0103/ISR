@@ -125,7 +125,6 @@ def run_epoch(epoch, model, clf, optimizer, loader, loss_computer, logger, csv_l
                 if args.hessian_align:
                     # 'x' is the input the classifier, which is output of the encoder
                     loss_main, _, _, _ = loss_computer.exact_hessian_loss(logits, outputs, y, g, grad_alpha = args.grad_alpha, hess_beta = args.hess_beta)
-                    breakpoint()
                 else:
                     loss_main = loss_computer.loss(logits, y, g, is_training)
 
