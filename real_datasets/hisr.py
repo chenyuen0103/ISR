@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from tqdm.auto import tqdm
+from tqdm import tqdm
 import gc
 # from memory_profiler import profile
 import cProfile
@@ -472,6 +472,7 @@ class HISRClassifier:
         grad_loss = 0
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
+            env_fraction = len(idx) / len(envs_indices)
             loss = self.loss_fn(model(x[idx]).squeeze(), y[idx].long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
@@ -487,18 +488,18 @@ class HISRClassifier:
             grad_reg = alpha * grad_diff_norm ** 2
             hessian_reg = beta * hessian_diff_norm ** 2
 
-            total_loss = total_loss + (loss + hessian_reg + grad_reg)
+            total_loss = total_loss + (loss + hessian_reg + grad_reg) * env_fraction
             # total_loss = total_loss + loss
-            erm_loss += loss
-            grad_loss += alpha * grad_reg
-            hess_loss += beta * hessian_reg
+            erm_loss += loss * env_fraction
+            grad_loss += alpha * grad_reg * env_fraction
+            hess_loss += beta * hessian_reg * env_fraction
 
-        n_unique_envs = len(envs_indices.unique())
+        # n_unique_envs = len(4)
         # print("Number of unique envs:", n_unique_envs)
-        total_loss = total_loss / n_unique_envs
-        erm_loss = erm_loss / n_unique_envs
-        hess_loss = hess_loss / n_unique_envs
-        grad_loss = grad_loss / n_unique_envs
+        # total_loss = total_loss / n_unique_envs
+        # erm_loss = erm_loss / n_unique_envs
+        # hess_loss = hess_loss / n_unique_envs
+        # grad_loss = grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
         del grads
         del hessian
@@ -507,7 +508,6 @@ class HISRClassifier:
         torch.cuda.empty_cache()
 
         return total_loss, erm_loss, hess_loss, grad_loss
-        # return total_loss, 0, 0, 0
     # @profile
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
         # Create the model based on the model type
@@ -542,7 +542,7 @@ class HISRClassifier:
 
         if approx_type in ['exact','control']:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
-            pbar = tqdm(list(range(num_iterations)), desc='Hessian iter', leave=False)
+            pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
             # profiler = cProfile.Profile()
             # profiler.enable()
             for epoch in pbar:
