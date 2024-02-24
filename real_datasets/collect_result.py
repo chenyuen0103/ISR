@@ -3,10 +3,10 @@ import os
 from itertools import product
 
 # Define the parameters to iterate over
-datasets = ['CUB']  # Add more if needed
-# datasets = ['CelebA']  # Example datasets
-# models = ['clip_512', 'clip', 'vits', 'resnet50']  # Example models
-models = ['vits']  # Example models
+# datasets = ['CUB']  # Add more if needed
+datasets = ['CelebA']  # Example datasets
+models = ['clip_512', 'clip', 'vits', 'resnet50']  # Example models
+# models = ['vits']  # Example models
 algos = ['HessianERM', 'ERM']  # Example algorithms
 seeds = range(22)  # Example seed values
 grad_alphas = [10**-i for i in range(10)] + [0]  # 1, 1e-1, ..., 1e-9, 0

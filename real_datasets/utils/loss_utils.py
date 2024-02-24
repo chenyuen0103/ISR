@@ -307,9 +307,9 @@ class LossComputer:
             hessian_loss = hess_beta * hessian_diff_norm ** 2
 
             total_loss = total_loss + (loss + hessian_loss + grad_loss) * num_samples/len(y)
-            erm_loss = erm_loss + loss  * num_samples/len(x)
-            accum_grad_loss = accum_grad_loss + grad_loss  * num_samples/len(x)
-            accum_hess_loss = accum_hess_loss + hessian_loss  * num_samples/len(x)
+            erm_loss = erm_loss + loss * num_samples/len(x)
+            accum_grad_loss = accum_grad_loss + grad_loss * num_samples/len(x)
+            accum_hess_loss = accum_hess_loss + hessian_loss * num_samples/len(x)
 
         # not weighted
         # total_loss = total_loss / self.n_groups

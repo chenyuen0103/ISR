@@ -509,7 +509,7 @@ class HISRClassifier:
 
         return total_loss, erm_loss, hess_loss, grad_loss
     # @profile
-    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "HGP", alpha = 10e-5, beta = 10e-5):
+    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "exact", alpha = 1e-4, beta = 1e-4):
         # Create the model based on the model type
         num_iterations = self.clf_kwargs['max_iter']
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -543,8 +543,6 @@ class HISRClassifier:
         if approx_type in ['exact','control']:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
             pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
-            # profiler = cProfile.Profile()
-            # profiler.enable()
             for epoch in pbar:
                 for x_batch, y_batch, envs_indices_batch in dataloader:
                     x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
@@ -573,7 +571,6 @@ class HISRClassifier:
                     #     "Hessian Reg": hess_penalty.item(),
                     #     "Gradient Reg": grad_penalty.item()
                     # }
-                    # pbar.set_postfix(info)
                     print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss, "; Hessian Reg:", hess_penalty, "; Gradient Reg:", grad_penalty)
                 torch.cuda.empty_cache()
                 del total_loss
@@ -583,8 +580,6 @@ class HISRClassifier:
                 gc.collect()
 
             self.clf = model.to('cpu')
-            # profiler.disable()
-            # profiler.print_stats(sort='time')
             return self.clf
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
@@ -610,10 +605,13 @@ class HISRClassifier:
 
 
 
-    def fit_clf(self, features=None, labels=None, envs = None, given_clf=None, sample_weight=None, use_hessian = False, alpha = 10e-5, beta = 10e-5, spu_scale = None):
-        if not use_hessian:
+    def fit_clf(self, features=None, labels=None, envs = None, given_clf=None, sample_weight=None, hessian_approx = None, alpha = 10e-5, beta = 10e-5, spu_scale = None):
+        if not hessian_approx:
             if given_clf is None:
                 assert features is not None and labels is not None
+                # remove 'gradient_hyperparam' and 'hessian_hyperparam' from clf_kwargs
+                self.clf_kwargs.pop('gradient_hyperparam', None)
+                self.clf_kwargs.pop('hessian_hyperparam', None)
                 self.clf = getattr(linear_model, self.clf_type)(**self.clf_kwargs)
                 features = self.transform(features, )
                 self.clf.fit(features, labels, sample_weight=sample_weight)

@@ -63,7 +63,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     es, val_es, test_es = group2env(gs, n_spu_attr), group2env(val_gs, n_spu_attr), group2env(test_gs, n_spu_attr)
 
     # eval_groups = np.array([0] + list(range(n_groups)))
-    if args.align_hessian:
+    if args.hessian_approx_method is not None:
         method = f'HISR-{args.hessian_approx_method}-{args.ISR_version.capitalize()}'
     else:
         method = f'ISR-{args.ISR_version.capitalize()}'
@@ -102,12 +102,9 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 
     clf_kwargs = dict(C=args.C, max_iter=args.max_iter, random_state=args.seed, gradient_hyperparam = args.alpha, hessian_hyperparam = args.beta)
     if args.ISR_version == 'mean': args.d_spu = n_spu_attr - 1
-    if args.align_hessian:
-        isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
-                            clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
-    else:
-        isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
-                                clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
+    isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
+                        clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
+
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
     if type(args.alpha) != list:
@@ -130,7 +127,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         else:
             raise ValueError('Unknown ISR version')
 
-        isr_clf.fit_clf(zs, ys, es, given_clf=given_clf, sample_weight=sample_weight, use_hessian=args.align_hessian, alpha=args.alpha, beta=args.beta)
+        isr_clf.fit_clf(zs, ys, es, given_clf=given_clf, sample_weight=sample_weight, hessian_approx= args.hessian_approx_method, alpha=args.alpha, beta=args.beta)
         for (split, eval_zs, eval_ys, eval_gs) in [('val', val_zs, val_ys, val_gs),
                                                    ('test', test_zs, test_ys, test_gs)]:
             group_accs, worst_acc, worst_group = measure_group_accs(
@@ -148,9 +145,10 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     if not args.no_save:
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
-        save_df(df, os.path.join(args.save_dir,
-                                 f"{args.dataset}_results{args.file_suffix}_{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.align_hessian else ''}.csv"), subset=None, verbose=args.verbose)
-        print(f"Saved to {args.save_dir} as {args.dataset}_results{args.file_suffix}_{args.seed}{'_hessian' if args.align_hessian else ''}.csv")
+        save_path = os.path.join(args.save_dir,
+                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+        save_df(df, save_path, subset=None, verbose=args.verbose)
+        print(f"Saved to {args.save_dir} as {save_path}")
     return df
 
 def parse_args(args: list = None, specs: dict = None):
@@ -160,7 +158,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
 
@@ -173,7 +171,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0, 0.5])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='../logs/')
+    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
 
@@ -188,9 +186,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-
-    argparser.add_argument('--align_hessian', default=True, action='store_true')
-    argparser.add_argument('--hessian_approx_method', default='exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=1e-5, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
