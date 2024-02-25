@@ -100,7 +100,7 @@ def check_clf(clf, n_classes):
 class HISRClassifier:
     default_clf_kwargs = dict(C=1, max_iter=10000, random_state=0)
 
-    def __init__(self, version: str = 'mean', hessian_approx_method = "HGP", pca_dim: int = -1, d_spu: int = -1, spu_scale: float = 0,
+    def __init__(self, version: str = 'mean', hessian_approx_method = "exact", pca_dim: int = -1, d_spu: int = -1, spu_scale: float = 0,
                  chosen_class=None, clf_type: str = 'LogisticRegression', clf_kwargs: dict = None,
                  ):
         self.version = version
