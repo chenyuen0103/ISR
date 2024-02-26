@@ -162,7 +162,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--model_select', type=str,
                            default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
 
-    argparser.add_argument('--seed', type=int, default=1)
+    argparser.add_argument('--seed', type=int, default=0)
     argparser.add_argument('--n_components', type=int, default=100)
     argparser.add_argument('--C', type=float, default=1)
     argparser.add_argument('--ISR_version', type=str, default='mean', choices=['mean', 'cov'])
@@ -203,13 +203,15 @@ if __name__ == '__main__':
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    alpha_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    seed_list = [0,2]
-    for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-        print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-        args.alpha = alpha
-        args.beta = beta
-        args.seed = seed
-        eval_ISR(args)
+    # alpha_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
+    # beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
+    # seed_list = [0,2]
+    # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+    #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+    #     args.alpha = alpha
+    #     args.beta = beta
+    #     args.seed = seed
+    #     eval_ISR(args)
+
+    eval_ISR(args)
 
