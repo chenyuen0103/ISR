@@ -235,12 +235,12 @@ class HISRClassifier:
         flatten_grad = torch.cat([g.flatten() for g in grads])
         return flatten_grad
 
-    def hessian(self, model, x):
+    def hessian(self, logits, x):
         '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
-        for params in model.parameters():
-            params.requires_grad = True
+        # for params in model.parameters():
+        #     params.requires_grad = True
 
-        logits = model(x)
+        # logits = model(x)
         p = F.softmax(logits, dim=1)[:, 1]  # probability for class 1
 
         # Compute the Hessian for each sample in the batch, then average
@@ -258,12 +258,12 @@ class HISRClassifier:
         return hessian_w
 
 
-    def gradient(self,model, x, y):
-        for param in model.parameters():
-            param.requires_grad = True
+    def gradient(self,logits, x, y):
+        # for param in model.parameters():
+        #     param.requires_grad = True
 
         # Compute logits and probabilities
-        logits = model(x)
+        # logits = model(x)
         if logits.dim() == 1:
             p = F.softmax(logits, dim=0)
         else:
@@ -436,10 +436,13 @@ class HISRClassifier:
 
 
     def exact_hessian_loss(self, model, x, y, envs_indices, alpha=10e-5, beta=10e-5):
+        for params in model.parameters():
+            params.requires_grad = True
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
         env_hessians = []
         initial_state = model.state_dict()
+        logits = model(x)
         for env_idx in envs_indices.unique():
             model.zero_grad()
             idx = (envs_indices == env_idx).nonzero().squeeze()
@@ -449,9 +452,10 @@ class HISRClassifier:
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
             # loss.backward(retain_graph=True)
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
-            grads = self.gradient(model, x[idx], y[idx])
+            logits_env = logits[idx]
+            grads = self.gradient(logits_env, x[idx], y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            hessian = self.hessian(model, x[idx])
+            hessian = self.hessian(logits_env, x[idx])
             env_gradients.append(grads)
             env_hessians.append(hessian)
 
@@ -472,8 +476,9 @@ class HISRClassifier:
         grad_loss = 0
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             idx = (envs_indices == env_idx).nonzero().squeeze()
+            logits_env = logits[idx]
             env_fraction = len(idx) / len(envs_indices)
-            loss = self.loss_fn(model(x[idx]).squeeze(), y[idx].long())
+            loss = self.loss_fn(logits_env.squeeze(), y[idx].long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
 
