@@ -4,7 +4,7 @@ from itertools import product
 
 # Define the parameters to iterate over
 # datasets = ['CUB']  # Add more if needed
-datasets = ['CelebA']  # Example datasets
+datasets = ['CelebA', 'CUB']  # Example datasets
 models = ['clip_512', 'clip', 'vits', 'resnet50']  # Example models
 # models = ['vits']  # Example models
 algos = ['HessianERM', 'ERM']  # Example algorithms
@@ -33,7 +33,7 @@ for dataset, model, algo, seed, grad_alpha, hess_beta, scheduler in combinations
     scheduler_suffix = '' if scheduler else '_no_scheduler'
 
     # Construct the directory path
-    dir_path = f"../logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{scheduler_suffix}"
+    dir_path = f"./logs/{dataset}/{model}/{algo}/s{seed}/grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}{scheduler_suffix}"
 
     # Check if the directory exists
     if os.path.exists(dir_path):
@@ -66,6 +66,6 @@ for dataset, model, algo, seed, grad_alpha, hess_beta, scheduler in combinations
 results_df = pd.DataFrame(results)
 
 # Save to CSV
-results_df.to_csv('model_performance_summary.csv', index=False)
+results_df.to_csv('model_performance_summary_new_hess.csv', index=False)
 
 print("CSV file created successfully.")
