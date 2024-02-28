@@ -181,7 +181,7 @@ def parse_args(args: list = None, specs: dict = None):
                            type=float, help='ratio of env label')
     argparser.add_argument('--feature_file_prefix', default='',
                            type=str, help='Prefix of the feature files to load')
-    argparser.add_argument('--max_iter', default=1000, type=int,
+    argparser.add_argument('--max_iter', default=1, type=int,
                            help='Max iterations for the logistic solver')
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
@@ -219,7 +219,8 @@ if __name__ == '__main__':
     #
     #     eval_ISR(args)
     # Use ProcessPoolExecutor to execute experiments in parallel
-    max_workers = os.cpu_count()//2
+    # max_workers = os.cpu_count()//2
+    max_workers = 2
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
