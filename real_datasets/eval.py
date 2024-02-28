@@ -23,7 +23,6 @@ warnings.filterwarnings('ignore')  # filter out Pandas append warnings
 def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None):
     if (train_data is None) or (val_data is None) or (test_data is None) or (log_dir is None):
         train_data, val_data, test_data, log_dir = load_data(args)
-    print("Loaded data")
     train_gs = train_data['group']
     n_train = len(train_gs)
     groups, counts = np.unique(train_data['group'], return_counts=True, axis=0)
@@ -220,7 +219,7 @@ if __name__ == '__main__':
     #
     #     eval_ISR(args)
     # Use ProcessPoolExecutor to execute experiments in parallel
-    max_workers = 4
+    max_workers = os.cpu_count()//2
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
