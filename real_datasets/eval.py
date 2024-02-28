@@ -4,7 +4,7 @@ import pickle
 import warnings
 from itertools import product
 from pathlib import Path
-
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
@@ -162,7 +162,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--model_select', type=str,
                            default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
 
-    argparser.add_argument('--seed', type=int, default=0)
+    argparser.add_argument('--seed', type=int, default=1)
     argparser.add_argument('--n_components', type=int, default=100)
     argparser.add_argument('--C', type=float, default=1)
     argparser.add_argument('--ISR_version', type=str, default='mean', choices=['mean', 'cov'])
@@ -187,8 +187,8 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
-    argparser.add_argument('--alpha', default=1e-5, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=1e-1, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     config = argparser.parse_args(args=args)
 
@@ -199,19 +199,35 @@ def parse_args(args: list = None, specs: dict = None):
     return config
 
 
+def run_experiment(args,alpha, beta, seed, dataset):
+    print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {dataset}")
+    eval_ISR(args)
+
 if __name__ == '__main__':
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    # alpha_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    # beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    # seed_list = [0,2]
+    alpha_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0][::-1]
+    beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0][::-1]
+    seed_list = [1]
+
     # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
     #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
     #     args.alpha = alpha
     #     args.beta = beta
     #     args.seed = seed
+    #
     #     eval_ISR(args)
+    # Use ProcessPoolExecutor to execute experiments in parallel
+    max_workers = 4
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+            # Submit each experiment as a separate task to the executor
+            future = executor.submit(run_experiment, args,alpha, beta, seed, args.dataset)
+            futures.append(future)
 
-    eval_ISR(args)
+        # Optionally, wait for all futures to complete and process results
+        for future in futures:
+            future.result()
 
