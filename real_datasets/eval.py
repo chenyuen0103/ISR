@@ -181,7 +181,7 @@ def parse_args(args: list = None, specs: dict = None):
                            type=float, help='ratio of env label')
     argparser.add_argument('--feature_file_prefix', default='',
                            type=str, help='Prefix of the feature files to load')
-    argparser.add_argument('--max_iter', default=1, type=int,
+    argparser.add_argument('--max_iter', default=1000, type=int,
                            help='Max iterations for the logistic solver')
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    alpha_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0][::-1]
+    alpha_list = [1e-7, 1e-6, 1e-5, 1e-3, 1e-2, 1e-1, 0, 1e-4][::-1]
     beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0][::-1]
     seed_list = [1]
 
