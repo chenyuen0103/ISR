@@ -211,24 +211,12 @@ if __name__ == '__main__':
     beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0][::-1]
     seed_list = [1]
 
-    # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-    #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-    #     args.alpha = alpha
-    #     args.beta = beta
-    #     args.seed = seed
-    #
-    #     eval_ISR(args)
-    # Use ProcessPoolExecutor to execute experiments in parallel
-    # max_workers = os.cpu_count()//2
-    max_workers = 2
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-            # Submit each experiment as a separate task to the executor
-            future = executor.submit(run_experiment, args,alpha, beta, seed, args.dataset)
-            futures.append(future)
+    for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+        print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+        args.alpha = alpha
+        args.beta = beta
+        args.seed = seed
 
-        # Optionally, wait for all futures to complete and process results
-        for future in futures:
-            future.result()
+        eval_ISR(args)
+
 
