@@ -217,6 +217,11 @@ if __name__ == '__main__':
     alpha_list = [1e-7, 1e-6, 1e-5, 1e-3, 1e-2, 1e-1, 0, 1e-4][::-1]
     beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0][::-1]
     seed_list = [1]
+    for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+        print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+        args.alpha = alpha
+        args.beta = beta
+        args.seed = seed
     eval_ISR(args)
     # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
     #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
