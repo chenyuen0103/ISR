@@ -4,7 +4,7 @@ from itertools import product
 
 # Define the parameters to iterate over
 # datasets = ['CUB']  # Add more if needed
-datasets = ['CelebA', 'CUB']  # Example datasets
+datasets = ['CUB']  # Example datasets
 models = ['clip_512', 'clip', 'vits', 'resnet50']  # Example models
 # models = ['vits']  # Example models
 algos = ['HessianERM', 'ERM']  # Example algorithms

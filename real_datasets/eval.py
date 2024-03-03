@@ -138,6 +138,13 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
             if not args.use_orig_clf:
                 row.update({'C': args.C, 'pca_dim': args.n_components, })
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+            if not args.no_save:
+                Path(args.save_dir).mkdir(parents=True,
+                                          exist_ok=True)
+                save_path = os.path.join(args.save_dir,
+                                         f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+                save_df(df, save_path, subset=None, verbose=args.verbose)
+                print(f"Saved to {args.save_dir} as {save_path}")
 
     if args.verbose:
         print('Evaluation result')
@@ -145,8 +152,8 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     if not args.no_save:
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
-        save_path = os.path.join(args.save_dir,
-                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+        # save_path = os.path.join(args.save_dir,
+        #                          f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
         save_df(df, save_path, subset=None, verbose=args.verbose)
         print(f"Saved to {args.save_dir} as {save_path}")
     return df
@@ -181,7 +188,7 @@ def parse_args(args: list = None, specs: dict = None):
                            type=float, help='ratio of env label')
     argparser.add_argument('--feature_file_prefix', default='',
                            type=str, help='Prefix of the feature files to load')
-    argparser.add_argument('--max_iter', default=1000, type=int,
+    argparser.add_argument('--max_iter', default=300, type=int,
                            help='Max iterations for the logistic solver')
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
