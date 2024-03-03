@@ -138,13 +138,13 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
             if not args.use_orig_clf:
                 row.update({'C': args.C, 'pca_dim': args.n_components, })
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
-            if not args.no_save:
-                Path(args.save_dir).mkdir(parents=True,
-                                          exist_ok=True)
-                save_path = os.path.join(args.save_dir,
-                                         f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
-                save_df(df, save_path, subset=None, verbose=args.verbose)
-                print(f"Saved to {args.save_dir} as {save_path}")
+            # if not args.no_save:
+            #     Path(args.save_dir).mkdir(parents=True,
+            #                               exist_ok=True)
+            #     save_path = os.path.join(args.save_dir,
+            #                              f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+            #     save_df(df, save_path, subset=None, verbose=args.verbose)
+            #     print(f"Saved to {args.save_dir} as {save_path}")
 
     if args.verbose:
         print('Evaluation result')
@@ -152,8 +152,8 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     if not args.no_save:
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
-        # save_path = os.path.join(args.save_dir,
-        #                          f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+        save_path = os.path.join(args.save_dir,
+                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
         save_df(df, save_path, subset=None, verbose=args.verbose)
         print(f"Saved to {args.save_dir} as {save_path}")
     return df
@@ -195,7 +195,7 @@ def parse_args(args: list = None, specs: dict = None):
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=1e-1, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     config = argparser.parse_args(args=args)
 
