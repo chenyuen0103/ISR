@@ -557,7 +557,7 @@ class HISRClassifier:
         print("Starting training on", device)
 
         if approx_type in ['exact','control']:
-            dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
+            dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
             pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
             for epoch in pbar:
                 for x_batch, y_batch, envs_indices_batch in dataloader:
