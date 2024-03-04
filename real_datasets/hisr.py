@@ -569,7 +569,6 @@ class HISRClassifier:
                         grad_penalty = 0
                     else:
                         logits = model(x_batch)
-                        breakpoint()
                         total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta)
                         erm_loss = erm_loss.item()
                         hess_penalty = hess_penalty.item()

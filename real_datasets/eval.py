@@ -105,7 +105,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
                         clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
 
-
+    breakpoint()
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
     if type(args.alpha) != list:
         alphas = [args.alpha]
