@@ -541,7 +541,7 @@ class HISRClassifier:
             model = self.SGDClassifier(x.shape[1], num_classes)
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
-        # model = model.to(device)
+        model = model.to(device)
         self.optimizer = optim.SGD(model.parameters(), lr=0.001)
         self.optimizer.zero_grad()
 
