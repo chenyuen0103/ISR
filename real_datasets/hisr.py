@@ -444,6 +444,7 @@ class HISRClassifier:
         # initial_state = model.state_dict()
         # logits = model(x)
         for env_idx in envs_indices.unique():
+            breakpoint()
             idx = (envs_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
                 env_gradients.append(torch.zeros(1))
@@ -517,11 +518,7 @@ class HISRClassifier:
         # hess_loss = hess_loss / n_unique_envs
         # grad_loss = grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
-        del grads
-        del hessian
-        del env_gradients
-        del env_hessians
-        torch.cuda.empty_cache()
+
 
         return total_loss, erm_loss, hess_loss, grad_loss
     # @profile
@@ -578,8 +575,6 @@ class HISRClassifier:
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
-                    torch.cuda.empty_cache()
-                    gc.collect()
 
                 if epoch % 500 == 0:
                     # info = {
@@ -589,12 +584,7 @@ class HISRClassifier:
                     #     "Gradient Reg": grad_penalty.item()
                     # }
                     print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss, "; Hessian Reg:", hess_penalty, "; Gradient Reg:", grad_penalty)
-                torch.cuda.empty_cache()
-                del total_loss
-                del erm_loss
-                del hess_penalty
-                del grad_penalty
-                gc.collect()
+
 
             self.clf = model.to('cpu')
             return self.clf
