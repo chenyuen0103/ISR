@@ -590,8 +590,9 @@ class HISRClassifier:
                     print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss, "; Hessian Reg:", hess_penalty, "; Gradient Reg:", grad_penalty)
 
 
-            self.clf = model.to('cpu')
-            return self.clf
+            # self.clf = model.to('cpu')
+            # self.clf = model
+            # return self.clf
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
@@ -609,8 +610,9 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
                     torch.cuda.empty_cache()
-            self.clf = model.to('cpu')
-            return self.clf
+            # self.clf = model.to('cpu')
+        self.clf = model
+        return self.clf
 
 
 
