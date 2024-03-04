@@ -462,7 +462,7 @@ class HISRClassifier:
 
             grads = self.gradient(x[idx], yhat_env, y[idx])
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            hessian = self.hessian(x[idx], x[idx])
+            hessian = self.hessian(x[idx], yhat_env)
             env_gradients.append(grads)
             env_hessians.append(hessian)
 
