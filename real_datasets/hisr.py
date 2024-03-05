@@ -557,7 +557,7 @@ class HISRClassifier:
         print("Starting training on", device)
 
         if approx_type in ['exact','control']:
-            dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
+            dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
             pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
             for epoch in pbar:
                 for x_batch, y_batch, envs_indices_batch in dataloader:
@@ -588,7 +588,6 @@ class HISRClassifier:
                     # }
                     print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss, "; Hessian Reg:", hess_penalty, "; Gradient Reg:", grad_penalty)
 
-
             # self.clf = model.to('cpu')
             # self.clf = model
             # return self.clf
@@ -609,8 +608,8 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
                     torch.cuda.empty_cache()
-            # self.clf = model.to('cpu')
-        self.clf = model
+            self.clf = model.to('cpu')
+        # self.clf = model
         return self.clf
 
 
