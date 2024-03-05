@@ -608,7 +608,7 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
                     torch.cuda.empty_cache()
-            self.clf = model.to('cpu')
+        self.clf = model.to('cpu')
         # self.clf = model
         return self.clf
 
