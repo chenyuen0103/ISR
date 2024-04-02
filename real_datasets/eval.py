@@ -164,11 +164,11 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
 
-    argparser.add_argument('--seed', type=int, default=1)
+    argparser.add_argument('--seed', type=int, default=0)
     argparser.add_argument('--n_components', type=int, default=100)
     argparser.add_argument('--C', type=float, default=1)
     argparser.add_argument('--ISR_version', type=str, default='mean', choices=['mean', 'cov'])
@@ -192,7 +192,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = None, type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -215,8 +215,25 @@ if __name__ == '__main__':
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
     alpha_list = [1e-7, 1e-6, 1e-5, 1e-3, 1e-2, 1e-1, 0, 1e-4][::-1]
     beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 0, 1e-2, 1e-1][::-1]
-    seed_list = [1]
-    for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+
+    # Define specific pairs of alpha and beta values
+    parameter_pairs = [
+        (0, 0.001),
+        (0, 0.01),
+        (0, 0.0001),
+        (0.1, 0),
+        (0.1, 0.0001),
+        (0, 0),
+        (0, 0.0001),
+        (1e-7, 0),
+        (1e-5, 0),
+        (0.01, 1e-6),
+        (1e-5, 1e-6),
+        (1e-6, 1e-6)
+    ]
+
+    seed_list = [0, 2, 3, 4]
+    for (alpha, beta), seed in product(parameter_pairs, seed_list):
         print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
         args.alpha = alpha
         args.beta = beta
@@ -227,7 +244,6 @@ if __name__ == '__main__':
     #     args.alpha = alpha
     #     args.beta = beta
     #     args.seed = seed
-    #
-    #     eval_ISR(args)
+    # eval_ISR(args)
 
 
