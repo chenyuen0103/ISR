@@ -231,6 +231,15 @@ if __name__ == '__main__':
         (1e-5, 1e-6),
         (1e-6, 1e-6)
     ]
+    if args.dataset == 'CelebA':
+        parameter_pairs =    parameter_pairs = [
+        (0, 0),
+        (0.0001, 0.0001),
+        (0.0001, 0.1),
+        (0, 0.1),
+        (0.0001, 0),
+        (0, 0.01),
+    ]
 
     seed_list = [0, 2, 3, 4]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
