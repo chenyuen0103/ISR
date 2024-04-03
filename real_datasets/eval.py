@@ -245,7 +245,11 @@ if __name__ == '__main__':
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
         if seed == 0 and (alpha == 0.0001 and beta == 0):
             continue
-        if seed ==0 and (alpha == 0 and beta == 0):
+        if seed == 0 and (alpha == 0 and beta == 0):
+            continue
+        if seed == 2 and (alpha == 0 and beta == 0):
+            continue
+        if seed == 3 and (alpha == 0 and beta == 0):
             continue
         print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
         args.alpha = alpha
