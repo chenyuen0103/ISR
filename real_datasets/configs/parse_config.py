@@ -2,11 +2,11 @@ PARSE_COMMANDS = dict(
     MultiNLI=['-s', 'confounder', '-d', 'MultiNLI', '-t', 'gold_label_random',
               '-c', 'sentence2_has_negation', '--batch_size', '32', '--model', 'bert',
               '--n_epochs', '3', ],
-    CelebA=['-d', 'CelebA', '-t', 'Blond_Hair', '-c', 'Male', '--model', 'resnet50',
+    CelebA=['-d', 'CelebA', '-t', 'Blond_Hair', '-c', 'Male', '--model', 'vits',
             '--weight_decay', '0.01', '--lr', '0.0001',
             "--batch_size", '128', '--n_epochs', '50'],
     CUB=['-d', 'CUB', '-t', 'waterbird_complete95', '-c', 'forest2water2',
-                '--model', 'resnet50', '--weight_decay', '0.1', '--lr', '0.0001',
+                '--model', 'vits', '--weight_decay', '0.1', '--lr', '0.0001',
                 '--batch_size', '128', '--n_epochs', '300']
 )
 
