@@ -106,6 +106,7 @@ tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B
 # data_config = timm.data.resolve_model_data_config(model)
 # transforms = timm.data.create_transform(**data_config, is_training=False)
 #
+
 # model = model.eval()
 
 
@@ -225,6 +226,7 @@ for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)),
                                          map_location='cpu').state_dict())
 
     model.eval()
+    model = model.to(device)
     for split, loader in zip(['train', 'val', 'test'], [train_loader, val_loader, test_loader]):
         results = []
         fname = f'{split}_data.p'
