@@ -19,7 +19,6 @@ def get_parse_command(dataset, algos, train_log_seeds, model_selects,
     parse_algos = ' '.join(algos)
     parse_seeds = ' '.join(map(str, train_log_seeds))
     parse_model_selects = ' '.join(model_selects)
-    breakpoint()
     parse_args = f" --parse_dir {log_dir} --parse_algos {parse_algos} --parse_seeds {parse_seeds} --parse_model_selects {parse_model_selects}"
     command = f'{prefix} python {parse_script} {main_args} {parse_args}'
     return command
