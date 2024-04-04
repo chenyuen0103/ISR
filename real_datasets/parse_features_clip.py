@@ -2,6 +2,7 @@ import argparse
 import os
 import pickle
 from itertools import product
+import timm
 
 import numpy as np
 import torch
