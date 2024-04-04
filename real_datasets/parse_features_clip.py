@@ -96,13 +96,13 @@ parser.add_argument(
 args = parser.parse_args()
 check_args(args)
 
-model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
-tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
-# model = timm.create_model(
-#     'vit_base_patch16_clip_384.laion2b_ft_in1k',
-#     pretrained=True,
-#     num_classes=0,  # remove classifier nn.Linear
-# )
+# model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
+# tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
+model = timm.create_model(
+    'vit_base_patch16_clip_384.laion2b_ft_in1k',
+    pretrained=True,
+    num_classes=0,  # remove classifier nn.Linear
+)
 # data_config = timm.data.resolve_model_data_config(model)
 # transforms = timm.data.create_transform(**data_config, is_training=False)
 #
