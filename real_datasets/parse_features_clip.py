@@ -174,7 +174,7 @@ if args.dataset == "MultiNLI":
     encoder = model.encode_text
 else:
     breakpoint()
-    encoder = model.encode_image
+    encoder = model
 output_layer = None
 
 
