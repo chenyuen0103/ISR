@@ -173,7 +173,7 @@ load_ckpt = False
 if args.dataset == "MultiNLI":
     encoder = model.encode_text
 else:
-    breakpoint()
+    # breakpoint()
     encoder = model
 output_layer = None
 
@@ -193,7 +193,7 @@ def process_batch(model,  x, y=None, g=None, bert=False):
         result = {'feature': pooled_output.detach().cpu().numpy(),
                   'pred': np.argmax(logits.detach().cpu().numpy(), axis=1),}
     else:
-        breakpoint()
+        # breakpoint()
         features = encoder(x)
         result = {'feature': features.detach().cpu().numpy(), }
 
