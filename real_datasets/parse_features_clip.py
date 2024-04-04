@@ -192,8 +192,8 @@ def process_batch(model,  x, y=None, g=None, bert=False):
         result = {'feature': pooled_output.detach().cpu().numpy(),
                   'pred': np.argmax(logits.detach().cpu().numpy(), axis=1),}
     else:
-        features = encoder(x)
         breakpoint()
+        features = encoder(x)
         result = {'feature': features.detach().cpu().numpy(), }
 
 
