@@ -63,7 +63,7 @@ parser.add_argument('--hinge', default=False, action='store_true')
 parser.add_argument(
     '--model',
     choices=model_attributes.keys(),
-    default='resnet50')
+    default='vits')
 parser.add_argument('--train_from_scratch', action='store_true', default=False)
 
 # Optimization
