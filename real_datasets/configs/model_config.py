@@ -40,6 +40,6 @@ model_attributes = {
     'vits': {
         'feature_type': 'image',
         'target_resolution': (384, 384),
-        'flatten': True
+        'flatten': False
     }
 }
