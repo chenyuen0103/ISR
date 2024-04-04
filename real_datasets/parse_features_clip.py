@@ -96,8 +96,15 @@ parser.add_argument(
 args = parser.parse_args()
 check_args(args)
 
-model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
-tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
+# model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
+# tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
+model = timm.create_model(
+    'vit_base_patch16_clip_384.laion2b_ft_in1k',
+    pretrained=True,
+    num_classes=0,  # remove classifier nn.Linear
+)
+model = model.eval()
+
 
 if args.model == 'bert':
     args.max_grad_norm = 1.0
@@ -205,7 +212,7 @@ model_selects = ['init']
 seeds = np.arange(5)
 for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)), desc='Iter'):
     print('Current iter:', algo, model_select, seed)
-    save_dir = f'./inv-feature/logs/{args.dataset}/{algo}/s{seed}/'
+    save_dir = f'./inv-feature-ViT-B/logs/{args.dataset}/{algo}/s{seed}/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if load_ckpt:

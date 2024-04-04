@@ -20,9 +20,8 @@ def result_split(file_name = 'CUB_results_s1_combined.csv'):
     df_test.to_csv(os.path.join(data_dir, test_name), index=False)
 
 
-def result_merge():
+def result_merge(file_name_start = 'CUB_results_s1'):
     data_dir = './logs/ISR_hessian_results'
-    file_name_start = 'CUB_results_s1'
     ISR_name = file_name_start + '_ISR.csv'
     hessian_name = file_name_start + '_hessian_exact.csv'
     df_ISR = pd.read_csv(os.path.join(data_dir, ISR_name))
@@ -69,8 +68,8 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     test = cleaned_grouped[cleaned_grouped['split'] == 'test']
     num_runs = len(all_files)
     dataset = file_name_pattern.split('_')[0]
-    # val.to_csv(f'{data_dir}/{dataset}_{num_runs}_val.csv', index=False)
-    # test.to_csv(f'{data_dir}/{dataset}_{num_runs}_test.csv', index=False)
+    val.to_csv(f'{data_dir}/{dataset}_{num_runs}runs_val.csv', index=False)
+    test.to_csv(f'{data_dir}/{dataset}_{num_runs}runs_test.csv', index=False)
     print(f"Saved {dataset}_{num_runs}runs_val.csv and {dataset}_{num_runs}runs_test.csv in {data_dir}")
     return val, test
 
@@ -163,14 +162,16 @@ def find_best_hps(val_df, test_df, worst_case = False):
 
 
 def main():
-    # result_split()
-    # result_merge()
-    # cubs_val, cubs_test = merge_seeds()
+    cub_pattern = 'CUB_results_s*_hessian_exact.csv'
+    celeba_pattern = 'CelebA_results_s*_hessian_exact.csv'
+
+    cubs_val, cubs_test = merge_seeds()
+    celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
     # print(cubs_val)
-    find_best_isr(worst_case=True)
-    find_best_gm(worst_case=True)
-    find_best_hm(worst_case=True)
-    find_best_gm_hm(worst_case=True)
+    find_best_isr(worst_case=True, file_name='CelebA_5runs_val.csv')
+    find_best_gm(worst_case=True, file_name='CelebA_5runs_val.csv')
+    find_best_hm(worst_case=True, file_name='CelebA_5runs_val.csv')
+    find_best_gm_hm(worst_case=True, file_name='CelebA_5runs_val.csv')
 
 if __name__ == '__main__':
     main()

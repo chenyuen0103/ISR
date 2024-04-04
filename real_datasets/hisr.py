@@ -270,6 +270,7 @@ class HISRClassifier:
         x_reshaped = x.unsqueeze(2)
 
         # Compute batched outer product: [batch_size, num_features, num_features]
+        # einsum
         outer_product = torch.matmul(x_reshaped, x_reshaped.transpose(1, 2))
 
         # Scale by p * (1 - p) and average across the batch
