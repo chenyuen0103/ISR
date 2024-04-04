@@ -177,7 +177,7 @@ else:
 output_layer = None
 
 
-def process_batch(model,  x, y=None, g=None):
+def process_batch(model,  x, y=None, g=None, bert=False):
     if args.dataset in ['MultiNLI']:
         input_ids = x[:, :, 0]
         input_masks = x[:, :, 1]
