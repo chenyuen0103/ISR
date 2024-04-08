@@ -107,6 +107,7 @@ if args.dataset == "MultiNLI":
     tokenizer = open_clip.get_tokenizer('ViT-B-32')
     model = model.eval()
     model = model.to('cuda')
+    tokenizer = tokenizer.to('cuda')
     # model = model.encode_text
 
 
@@ -190,6 +191,7 @@ output_layer = None
 
 def process_batch(model,  x, y=None, g=None, bert=False):
     if args.dataset in ['MultiNLI']:
+        breakpoint()
         input_ids = x[:, :, 0]
         input_masks = x[:, :, 1]
         segment_ids = x[:, :, 2]
