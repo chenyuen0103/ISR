@@ -235,29 +235,9 @@ class HISRClassifier:
         flatten_grad = torch.cat([g.flatten() for g in grads])
         return flatten_grad
 
-    def hessian_original(self,  x, logits):
-        '''This function computes the hessian of the Cross Entropy with respect to the model parameters using the analytical form of hessian.'''
-        # for params in model.parameters():
-        #     params.requires_grad = True
-
-        # logits = model(x)
-        p = F.softmax(logits, dim=1).clone()[:, 1]  # probability for class 1
-
-        # Compute the Hessian for each sample in the batch, then average
-        batch_size = x.shape[0]
-        hessian_list_class0 = [p[i] * (1 - p[i]) * torch.ger(x[i], x[i]) for i in range(batch_size)]
-
-        hessian_w_class0 = sum(hessian_list_class0) / batch_size
-
-        # Hessian for class 1 is just the negative of the Hessian for class 0
-        hessian_w_class1 = -hessian_w_class0
 
 
-        # Stacking the Hessians for both classes
-        hessian_w = torch.stack([hessian_w_class0, hessian_w_class1])
-        return hessian_w
-
-    def hessian(self, x, logits):
+    def hessian_original(self, x, logits):
         p = F.softmax(logits, dim=1).clone()[:, 1]  # probability for class 1
 
         # Compute scaling factors for Hessian (p * (1 - p)) for each sample in the batch
@@ -280,11 +260,74 @@ class HISRClassifier:
         hessian_w_class1 = -hessian_w_class0
 
         # Stack the Hessians for both classes: [2, num_features, num_features]
-        hessian_w = torch.stack([hessian_w_class0, hessian_w_class1])
+        hessian_w2 = torch.stack([hessian_w_class0, hessian_w_class1])
 
-        return hessian_w
+        # assert torch.allclose(hessian_w2, hessian_w), "Hessian computation is incorrect"
+        return hessian_w2
+
+    def hessian(self, x, logits):
+        """
+        Compute the Hessian of the cross-entropy loss for n-class classification.
+
+        Args:
+            x (torch.Tensor): Input features with shape [batch_size, num_features].
+            logits (torch.Tensor): Output logits with shape [batch_size, num_classes].
+
+        Returns:
+            torch.Tensor: Hessian with shape [num_classes, num_features, num_features].
+        """
+        batch_size, d = x.shape  # Shape: [batch_size, d]
+        num_classes = logits.shape[1]  # Number of classes
+        dC = num_classes * d  # Total number of parameters in the flattened gradient
+
+        # Compute probabilities
+        p = F.softmax(logits, dim=1)  # Shape: [batch_size, num_classes]
+
+        # Compute p_k(1-p_k) for diagonal blocks and -p_k*p_l for off-diagonal blocks
+        # Diagonal part
+        p_diag = p * (1 - p)  # Shape: [batch_size, num_classes]
+        # Off-diagonal part
+        p_off_diag = -p.unsqueeze(2) * p.unsqueeze(1)  # Shape: [batch_size, num_classes, num_classes]
+        # Fill the diagonal part in off-diagonal tensor
+        indices = torch.arange(num_classes)
+        p_off_diag[:, indices, indices] = p_diag
+
+        # Outer product of x
+        X_outer = torch.einsum('bi,bj->bij', x, x)  # Shape: [batch_size, d, d]
+
+        # Combine the probabilities with the outer product of x
+        H = torch.einsum('bkl,bij->bklij', p_off_diag, X_outer)  # Shape: [batch_size, num_classes, num_classes, d, d]
+
+        # Sum over the batch and reshape to get final Hessian
+        H = H.sum(0).reshape(dC, dC)  # Shape: [dC, dC]
+
+        # Normalize Hessian by the batch size
+        H /= batch_size
+
+        return H
+
+        # # Compute the probabilities for each class
+        # p = F.softmax(logits, dim=1)  # Shape: [batch_size, num_classes]
+        #
+        # # Compute the scaling factors for the Hessian (p_i * (1 - p_i))
+        # scale_factors = p * (1 - p)  # Shape: [batch_size, num_classes]
+        #
+        # # Expand the scale_factors to shape [batch_size, num_classes, 1, 1]
+        # scale_factors = scale_factors.transpose(0, 1).unsqueeze(-1).unsqueeze(-1)
+        #
+        # # Reshape x for outer product: [batch_size, num_features, 1]
+        # x_reshaped = x.unsqueeze(2)
+        #
+        # # Compute the batched outer product: [batch_size, num_classes, num_features, num_features]
+        # outer_products = torch.matmul(x_reshaped, x_reshaped.transpose(1, 2))
+        #
+        # # Scale the outer products by the scaling factors and average across the batch
+        # hessians = torch.mean(scale_factors * outer_products, dim=1)
+        #
+        # return hessians
 
     def gradient(self, x, logits, y):
+
         # Ensure logits are in proper shape
         p = F.softmax(logits, dim=-1)
 
@@ -295,52 +338,15 @@ class HISRClassifier:
         # Compute the gradient for each class
         # Gradient computation is simplified by directly using the broadcasted subtraction and matrix multiplication
         # Note: No need to unsqueeze and manually divide by the batch size, torch.matmul handles this efficiently
-        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).T, x) / x.size(0)
-        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).T, x) / x.size(0)
+        # grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).T, x) / x.size(0)
+        # grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).T, x) / x.size(0)
+
+        # multiclasses
+        grad_w = torch.matmul((y_onehot - p).T, x) / x.size(0)
 
         # Stack the gradients for both classes
-        grad_w = torch.stack([grad_w_class1, grad_w_class0], dim=0)
-        return grad_w
-    def gradient_original(self, x, logits, y):
-        # for param in model.parameters():
-        #     param.requires_grad = True
-
-        # Compute logits and probabilities
-        # logits = model(x)
-        if logits.dim() == 1:
-            p = F.softmax(logits, dim=0)
-        else:
-            p = F.softmax(logits, dim=1)
-
-
-        y_onehot = torch.zeros_like(p)
-        if len(y.shape) == 0:
-            y = y.unsqueeze(0)
-        # Check if p is 1D and if so, reshape it to 2D
-        if len(p.shape) == 1:
-            p = p.unsqueeze(0)
-
-        # Ensure y_onehot is 2D: (batch_size, num_classes)
-        num_classes = 2  # or whatever the number of classes is in your problem
-        if len(y_onehot.shape) == 1:
-            y_onehot = y_onehot.unsqueeze(0)
-
-        # Now, scatter should work without errors
-        y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
-        try:
-            y_onehot = y_onehot.scatter(1, y.unsqueeze(1).long(), 1)
-        except:
-            y_onehot = y_onehot.scatter(1, y.unsqueeze(1), 1)
-
-        # print("y.shape:", y.shape)
-        # print("y_onehot.shape:", y_onehot.shape)
-
-        # Compute the gradient using the analytical form for each class
-        grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).unsqueeze(0), x) / x.size(0)
-        grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).unsqueeze(0), x) / x.size(0)
-
-        # Stack the gradients for both classes
-        grad_w = torch.cat([grad_w_class1, grad_w_class0], dim=0)
+        # grad_w2 = torch.stack([grad_w_class1, grad_w_class0], dim=0)
+        # assert torch.allclose(grad_w, grad_w2), "Gradient computation is incorrect"
         return grad_w
 
     def calc_hessian_diag(self, model, loss_grad, repeat=1000):
@@ -481,9 +487,11 @@ class HISRClassifier:
     def exact_hessian_loss(self, logits, x, y, envs_indices, alpha=10e-5, beta=10e-5):
         # for params in model.parameters():
         #     params.requires_grad = True
+        num_classes = logits.size(1)
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
         env_hessians = []
+        # env_hessians_original = []
         # initial_state = model.state_dict()
         # logits = model(x)
         envs_indices_unique = envs_indices.unique()
@@ -511,6 +519,7 @@ class HISRClassifier:
             # grads_original = self.gradient_original(x_env, yhat_env, y_env)
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
             hessian = self.hessian(x_env, yhat_env)
+
             # hessian_original = self.hessian_original(x_env, yhat_env)
             # assert torch.allclose(grads, grads_original), "Gradient computation is incorrect"
             # assert torch.allclose(hessian, hessian_original, atol=1e-6), "Hessian computation is incorrect"
@@ -531,6 +540,7 @@ class HISRClassifier:
         hess_loss = 0
         grad_loss = 0
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
+            # hessian_original = env_hessians_original[env_idx]
             idx = (envs_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
                 continue
@@ -547,7 +557,10 @@ class HISRClassifier:
 
             # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
             hessian_diff = hessian - avg_hessian
+            # hessian_diff_original = hessian_original - avg_hessian_original
             hessian_diff_norm = torch.norm(hessian_diff, p='fro')
+            # hessian_diff_norm_original = torch.norm(hessian_diff_original, p='fro')
+            # assert torch.allclose(hessian_diff_norm, hessian_diff_norm_original), "Hessian computation is incorrect"
 
 
             # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))

@@ -160,7 +160,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 def parse_args(args: list = None, specs: dict = None):
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--root_dir', type=str,
-                           default='inv-feature/logs')
+                           default='inv-feature-ViT-B/logs')
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
@@ -177,7 +177,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0, 0.5])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results')
+    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_ViT-B')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
 
@@ -232,7 +232,7 @@ if __name__ == '__main__':
         (1e-6, 1e-6)
     ]
     if args.dataset == 'CelebA':
-        parameter_pairs =    parameter_pairs = [
+        parameter_pairs = parameter_pairs = [
         (0, 0),
         (0.0001, 0.0001),
         (0.0001, 0.1),
@@ -241,7 +241,7 @@ if __name__ == '__main__':
         (0, 0.01),
     ]
 
-    seed_list = [0, 2, 3, 4]
+    seed_list = [0, 1, 2, 3, 4]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
         if seed == 0 and (alpha == 0.0001 and beta == 0):
             continue

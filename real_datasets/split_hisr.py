@@ -80,6 +80,7 @@ def find_best_isr(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_va
     test = test[test['gradient_alpha'] == 0]
     val = val[val['hessian_beta'] == 0]
     test = test[test['hessian_beta'] == 0]
+
     best_hyperparameters, best_test_performance = find_best_hps(val, test, worst_case)
 
     return best_hyperparameters, best_test_performance
@@ -118,6 +119,8 @@ def find_best_gm_hm(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_
     return best_hyperparameters, best_test_performance
 
 def find_best_hps(val_df, test_df, worst_case = False):
+    val_df = val_df[val_df['ISR_scale'] == 0]
+    test_df = test_df[test_df['ISR_scale'] == 0]
     col_mean = 'worst_acc_mean' if worst_case else 'avg_acc_mean'
     col_sem = 'worst_acc_sem' if worst_case else 'avg_acc_sem'
     # Step 1: Identify the highest average accuracy
@@ -140,7 +143,7 @@ def find_best_hps(val_df, test_df, worst_case = False):
         'ISR_scale': best_val_hyperparameters['ISR_scale'],
         'num_iter': best_val_hyperparameters['num_iter'],
         'gradient_alpha': best_val_hyperparameters['gradient_alpha'],
-        'hessian_beta': best_val_hyperparameters['hessian_beta']
+        'hessian_beta': best_val_hyperparameters['hessian_beta'],
     }
 
     # Filter the test set for these hyperparameters
@@ -168,10 +171,11 @@ def main():
     cubs_val, cubs_test = merge_seeds()
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
     # print(cubs_val)
-    find_best_isr(worst_case=True, file_name='CelebA_5runs_val.csv')
-    find_best_gm(worst_case=True, file_name='CelebA_5runs_val.csv')
-    find_best_hm(worst_case=True, file_name='CelebA_5runs_val.csv')
-    find_best_gm_hm(worst_case=True, file_name='CelebA_5runs_val.csv')
+    worst_case = False
+    find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
 
 if __name__ == '__main__':
     main()
