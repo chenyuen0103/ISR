@@ -107,7 +107,7 @@ if args.dataset == "MultiNLI":
     tokenizer = open_clip.get_tokenizer('ViT-B-32')
     model = model.eval()
     model = model.to('cuda')
-    tokenizer = tokenizer.to('cuda')
+    tokenizer = tokenizer
     # model = model.encode_text
 
 
@@ -181,7 +181,6 @@ load_ckpt = not use_clip
 load_ckpt = False
 
 if args.dataset == "MultiNLI":
-    breakpoint()
     encoder = model.encode_text
 else:
     # breakpoint()
