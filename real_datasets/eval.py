@@ -175,7 +175,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_class', type=int, default=None,
                            help='None means enumerating over all classes.')
     argparser.add_argument('--ISR_scales', type=float,
-                           nargs='+', default=[0, 0.5])
+                           nargs='+', default=[0])
     argparser.add_argument('--d_spu', type=int, default=-1)
     argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_ViT-B')
     argparser.add_argument('--no_save', default=False, action='store_true')
