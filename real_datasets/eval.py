@@ -166,7 +166,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument(
         '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
-                           default='CLIP_init', choices=['best', 'best_avg_acc', 'last','CLIP_init'])
+                           default='init', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
     argparser.add_argument('--seed', type=int, default=0)
     argparser.add_argument('--n_components', type=int, default=100)
