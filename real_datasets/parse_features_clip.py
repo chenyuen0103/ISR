@@ -98,7 +98,21 @@ check_args(args)
 
 # model, preprocess_train, preprocess_val = open_clip.create_model_and_transforms('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
 # tokenizer = open_clip.get_tokenizer('hf-hub:laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K')
-model = timm.create_model(
+
+
+# model = model.eval()
+if args.dataset == "MultiNLI":
+    model,  _, preprocess  = open_clip.create_model_and_transforms('ViT-B-32',
+                                                                   pretrained='laion2b_s34b_b79k',
+                                                                   num_classes=0)
+    tokenizer = open_clip.get_tokenizer('ViT-B-32')
+    model = model.eval()
+    model = model.to('cuda')
+    # model = model.encode_text
+
+
+else:
+    model = timm.create_model(
     'vit_base_patch16_clip_384.laion2b_ft_in1k',
     pretrained=True,
     num_classes=0,  # remove classifier nn.Linear
@@ -106,10 +120,6 @@ model = timm.create_model(
 # data_config = timm.data.resolve_model_data_config(model)
 # transforms = timm.data.create_transform(**data_config, is_training=False)
 #
-
-# model = model.eval()
-
-
 if args.model == 'bert':
     args.max_grad_norm = 1.0
     args.adam_epsilon = 1e-8
@@ -171,6 +181,7 @@ load_ckpt = not use_clip
 load_ckpt = False
 
 if args.dataset == "MultiNLI":
+    breakpoint()
     encoder = model.encode_text
 else:
     # breakpoint()
