@@ -14,7 +14,7 @@ from torch.utils.data import Subset
 
 class PACSDataset(ConfounderDataset):
     def __init__(self, root_dir, target_name, confounder_names,
-                 model_type=None, augment_data=None):
+                 model_type, augment_data, train_transform=None, eval_transform=None, ):
         self.root_dir = root_dir
         self.target_name = target_name
         self.confounder_names = confounder_names
