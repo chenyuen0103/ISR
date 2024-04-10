@@ -97,7 +97,13 @@ class PACSDataset(ConfounderDataset):
         else:
             img = self.transform(img)
 
-        return img, y, g
+        # Flatten if needed
+        if model_attributes[self.model_type]['flatten']:
+            assert img.dim() == 3
+            img = img.view(-1)
+        x = img
+
+        return x, y, g
 
 
     def get_splits(self, splits, train_frac=1.0, val_frac=0.2):
