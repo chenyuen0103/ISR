@@ -61,9 +61,9 @@ class PACSDataset(ConfounderDataset):
         env_map = {env: idx for idx, env in enumerate(environments)}
 
         self.test_env = environments[-1]
-        train_envs = [env for env in environments if env != self.test_env]
+        self.train_envs = [env for env in environments if env != self.test_env]
 
-        for env in train_envs:
+        for env in self.train_envs:
             domain_path = os.path.join(self.root_dir, env)
             for label in os.listdir(domain_path):
                 label_path = os.path.join(domain_path, label)
@@ -105,8 +105,8 @@ class PACSDataset(ConfounderDataset):
 
         # Assuming `self.domains` contains domains like ['art_painting', 'cartoon', 'photo', 'sketch']
         # and one of these is designated as the test environment within the dataset setup.
-        train_val_domains = [env for env in self.domains if env != self.test_env]
-        train_val_indices = [i for i, domain in enumerate(self.domains) if domain in train_val_domains]
+        train_val_domains = [env for env in self.train_envs]
+        train_val_indices = [i for i, domain in enumerate(self.train_envs) if domain in train_val_domains]
 
         # Shuffle train_val_indices to randomize the train/val split
         np.random.shuffle(train_val_indices)
