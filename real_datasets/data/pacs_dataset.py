@@ -85,9 +85,10 @@ class PACSDataset(ConfounderDataset):
 
     def __getitem__(self, idx):
         img_path = self.data[idx]
-        label = self.y_array[idx]
+        y = self.y_array[idx]
         # breakpoint()
         domain = self.confounder_array[idx]
+        g = self.group_array[idx]
         img = Image.open(img_path).convert('RGB')
 
         # Apply the appropriate transform
@@ -96,7 +97,7 @@ class PACSDataset(ConfounderDataset):
         else:
             img = self.transform(img)
 
-        return img, label, domain
+        return img, y, g
 
 
     def get_splits(self, splits, train_frac=1.0, val_frac=0.2):
