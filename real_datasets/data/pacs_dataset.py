@@ -87,7 +87,7 @@ class PACSDataset(ConfounderDataset):
         img_path = self.data[idx]
         label = self.y_array[idx]
         # breakpoint()
-        domain = self.environments[idx]
+        domain = self.confounder_array[idx]
         img = Image.open(img_path).convert('RGB')
 
         # Apply the appropriate transform
