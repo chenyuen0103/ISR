@@ -257,6 +257,7 @@ for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)),
                     result = process_batch(model, x, y, g, bert=False)
                 results.append(result)
         parsed_data = {}
+        breakpoint()
         for key in results[0].keys():
             parsed_data[key] = np.concatenate([result[key] for result in results])
 

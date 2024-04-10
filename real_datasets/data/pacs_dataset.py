@@ -35,7 +35,7 @@ class PACSDataset(ConfounderDataset):
         target_resolution = model_attributes[model_type]['target_resolution']
 
         self.transform = transforms.Compose([
-            transforms.Resize((int(target_resolution[0]) ,int(target_resolution[0]))),
+            transforms.Resize((int(target_resolution[0]) ,int(target_resolution[0])g)),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
