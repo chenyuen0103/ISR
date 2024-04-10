@@ -27,7 +27,7 @@ class PACSDataset(ConfounderDataset):
         self.group_array = []
         self.split_array = []
         self.n_classes = 7
-        self.n_groups = pow(4, 7)
+        self.n_groups = pow(7, 4)
 
         # Initialize transforms
         self.train_transform = None
