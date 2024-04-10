@@ -164,7 +164,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='init', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -187,12 +187,12 @@ def parse_args(args: list = None, specs: dict = None):
                            type=float, help='ratio of env label')
     argparser.add_argument('--feature_file_prefix', default='',
                            type=str, help='Prefix of the feature files to load')
-    argparser.add_argument('--max_iter', default=300, type=int,
+    argparser.add_argument('--max_iter', default=1000, type=int,
                            help='Max iterations for the logistic solver')
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = None, type=str, )
     argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -255,12 +255,14 @@ if __name__ == '__main__':
         args.alpha = alpha
         args.beta = beta
         args.seed = seed
-        eval_ISR(args)
+        # eval_ISR(args)
     # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
     #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
     #     args.alpha = alpha
     #     args.beta = beta
     #     args.seed = seed
-    # eval_ISR(args)
+    for seed in seed_list:
+        args.seed = seed
+        eval_ISR(args)
 
 

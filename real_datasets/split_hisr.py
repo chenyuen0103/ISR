@@ -32,7 +32,7 @@ def result_merge(file_name_start = 'CUB_results_s1'):
     df_combined.to_csv(os.path.join(data_dir, file_name_start + '_combined.csv'), index=False)
 
 
-def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='./logs/ISR_hessian_results'):
+def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='./logs/ISR_hessian_results_ViT-B'):
     # Create the full pattern for glob
     full_pattern = os.path.join(data_dir, file_name_pattern)
 
@@ -73,7 +73,7 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     print(f"Saved {dataset}_{num_runs}runs_val.csv and {dataset}_{num_runs}runs_test.csv in {data_dir}")
     return val, test
 
-def find_best_isr(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_val.csv', worst_case = False):
+def find_best_isr(data_dir='./logs/ISR_hessian_results_ViT-B', file_name='CUB_5runs_val.csv', worst_case = False):
     val = pd.read_csv(os.path.join(data_dir, file_name))
     test = pd.read_csv(os.path.join(data_dir, file_name.replace('val', 'test')))
     val = val[val['gradient_alpha'] == 0]
@@ -85,7 +85,7 @@ def find_best_isr(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_va
 
     return best_hyperparameters, best_test_performance
 
-def find_best_gm(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_val.csv', worst_case = False):
+def find_best_gm(data_dir='./logs/ISR_hessian_results_ViT-B', file_name='CUB_5runs_val.csv', worst_case = False):
     val = pd.read_csv(os.path.join(data_dir, file_name))
     test = pd.read_csv(os.path.join(data_dir, file_name.replace('val', 'test')))
     val = val[val['hessian_beta'] == 0]
@@ -96,7 +96,7 @@ def find_best_gm(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_val
 
     return best_hyperparameters, best_test_performance
 
-def find_best_hm(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_val.csv', worst_case = False):
+def find_best_hm(data_dir='./logs/ISR_hessian_results_ViT-B', file_name='CUB_5runs_val.csv', worst_case = False):
     val = pd.read_csv(os.path.join(data_dir, file_name))
     test = pd.read_csv(os.path.join(data_dir, file_name.replace('val', 'test')))
     val = val[val['gradient_alpha'] == 0]
@@ -107,7 +107,7 @@ def find_best_hm(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_val
 
     return best_hyperparameters, best_test_performance
 
-def find_best_gm_hm(data_dir='./logs/ISR_hessian_results', file_name='CUB_5runs_val.csv', worst_case = False):
+def find_best_gm_hm(data_dir='./logs/ISR_hessian_results_ViT-B', file_name='CUB_5runs_val.csv', worst_case = False):
     val = pd.read_csv(os.path.join(data_dir, file_name))
     test = pd.read_csv(os.path.join(data_dir, file_name.replace('val', 'test')))
     val = val[val['gradient_alpha'] != 0]
@@ -171,11 +171,15 @@ def main():
     cubs_val, cubs_test = merge_seeds()
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
     # print(cubs_val)
-    worst_case = False
-    find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    worst_case = True
+    # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_isr(worst_case = worst_case)
+    find_best_gm(worst_case = worst_case)
+    find_best_hm(worst_case = worst_case)
+    find_best_gm_hm(worst_case = worst_case)
 
 if __name__ == '__main__':
     main()

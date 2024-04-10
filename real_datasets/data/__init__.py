@@ -16,7 +16,10 @@ dataset_attributes = {
     },
     'MultiNLI': {
         'root_dir': 'multinli'
-    }
+    },
+    'PACS': {
+        'root_dir': 'PACS'
+    },
 }
 
 for dataset in dataset_attributes:
