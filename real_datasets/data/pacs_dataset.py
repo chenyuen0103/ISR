@@ -30,8 +30,8 @@ class PACSDataset(ConfounderDataset):
         self.n_groups = pow(7, 4)
 
         # Initialize transforms
-        self.train_transform = None
-        self.eval_transform = None
+        # self.train_transform = None
+        # self.eval_transform = None
         self.transform = transforms.Compose([
             transforms.Resize((224,224)),
             transforms.ToTensor(),
@@ -94,7 +94,7 @@ class PACSDataset(ConfounderDataset):
         if self.augment_data and domain != self.env_map[self.test_env]:
             img = self.augment_transform(img)
         else:
-            img = self.eval_transform(img)
+            img = self.transform(img)
 
         return img, label, domain
 
