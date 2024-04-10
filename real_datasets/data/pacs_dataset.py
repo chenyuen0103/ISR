@@ -21,12 +21,12 @@ class PACSDataset(ConfounderDataset):
         self.model_type = model_type
         self.augment_data = augment_data
         self.data = []
-        self.labels = []
-        self.domains = []
+        self.confounder_array = []
         self.filename_array = []
         self.y_array = []
         self.group_array = []
         self.split_array = []
+        self.n_classes = 7
         self.n_groups = pow(4, 7)
 
         # Initialize transforms
@@ -53,6 +53,8 @@ class PACSDataset(ConfounderDataset):
 
         self._prepare_dataset()
 
+        self.group_array = (self.y_array * (self.n_groups / self.n_classes) + self.confounder_array).astype('int')
+
     def _prepare_dataset(self):
         label_map = {'dog': 0, 'elephant': 1, 'giraffe': 2, 'guitar': 3, 'horse': 4, 'house': 5, 'person': 6}
         environments = ['art_painting', 'cartoon', 'photo', 'sketch']
@@ -66,8 +68,9 @@ class PACSDataset(ConfounderDataset):
                 for img_filename in os.listdir(label_path):
                     img_path = os.path.join(label_path, img_filename)
                     self.data.append(img_path)
-                    self.labels.append(label_map[label])
-                    self.domains.append(env)
+                    self.filename_array.append(img_filename)
+                    self.y_array.append(label_map[label])
+                    self.confounder_array.append(env)
 
         # split the training data into train and val, and exclude the test environment
 
