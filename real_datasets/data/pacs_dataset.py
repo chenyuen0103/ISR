@@ -55,7 +55,7 @@ class PACSDataset(ConfounderDataset):
     def _prepare_dataset(self):
         label_map = {'dog': 0, 'elephant': 1, 'giraffe': 2, 'guitar': 3, 'horse': 4, 'house': 5, 'person': 6}
         environments = ['art_painting', 'cartoon', 'photo', 'sketch']
-        test_env = environments[self.split]
+        test_env = environments[-1]
         train_envs = [env for env in environments if env != test_env]
 
         for env in train_envs:
@@ -67,6 +67,10 @@ class PACSDataset(ConfounderDataset):
                     self.data.append(img_path)
                     self.labels.append(label_map[label])
                     self.domains.append(env)
+
+        # split the training data into train and val, and exclude the test environment
+
+
 
     def __len__(self):
         return len(self.data)
