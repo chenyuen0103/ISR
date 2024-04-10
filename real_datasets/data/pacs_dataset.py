@@ -55,8 +55,8 @@ class PACSDataset(ConfounderDataset):
     def _prepare_dataset(self):
         label_map = {'dog': 0, 'elephant': 1, 'giraffe': 2, 'guitar': 3, 'horse': 4, 'house': 5, 'person': 6}
         environments = ['art_painting', 'cartoon', 'photo', 'sketch']
-        test_env = environments[-1]
-        train_envs = [env for env in environments if env != test_env]
+        self.test_env = environments[-1]
+        train_envs = [env for env in environments if env != self.test_env]
 
         for env in train_envs:
             domain_path = os.path.join(self.root_dir, env)
