@@ -246,7 +246,6 @@ for algo, model_select, seed in tqdm(list(product(algos, model_selects, seeds)),
             continue
         with torch.set_grad_enabled(False):
             for batch_idx, batch in enumerate(tqdm(loader)):
-                breakpoint()
                 batch = tuple(t.to(device) for t in batch)
                 x = batch[0]
                 y = batch[1]
