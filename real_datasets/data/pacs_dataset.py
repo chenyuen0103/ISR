@@ -59,6 +59,7 @@ class PACSDataset(ConfounderDataset):
         train_envs = [env for env in environments if env != test_env]
 
         for env in train_envs:
+            breakpoint()
             domain_path = os.path.join(self.root_dir, env)
             for label in os.listdir(domain_path):
                 label_path = os.path.join(domain_path, label)
