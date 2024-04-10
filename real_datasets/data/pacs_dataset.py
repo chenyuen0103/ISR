@@ -85,7 +85,8 @@ class PACSDataset(ConfounderDataset):
 
     def __getitem__(self, idx):
         img_path = self.data[idx]
-        label = self.labels[idx]
+        label = self.label_map[idx]
+        breakpoint()
         domain = self.environments[idx]
         img = Image.open(img_path).convert('RGB')
 
