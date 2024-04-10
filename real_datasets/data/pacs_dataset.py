@@ -52,7 +52,7 @@ class PACSDataset(ConfounderDataset):
 
 
         self._prepare_dataset()
-
+        breakpoint()
         self.group_array = (self.y_array * (self.n_groups / self.n_classes) + self.confounder_array).astype('int')
 
     def _prepare_dataset(self):
