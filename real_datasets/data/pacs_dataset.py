@@ -59,7 +59,6 @@ class PACSDataset(ConfounderDataset):
         train_envs = [env for env in environments if env != test_env]
 
         for env in train_envs:
-            breakpoint()
             domain_path = os.path.join(self.root_dir, env)
             for label in os.listdir(domain_path):
                 label_path = os.path.join(domain_path, label)
@@ -91,52 +90,52 @@ class PACSDataset(ConfounderDataset):
         return img, label, domain
 
 
-def get_splits(self, splits, train_frac=1.0, val_frac=0.2):
-    # Assuming the test environment is already excluded from self.data
-    # and self.domains when initializing the dataset
-    subsets = {}
+    def get_splits(self, splits, train_frac=1.0, val_frac=0.2):
+        # Assuming the test environment is already excluded from self.data
+        # and self.domains when initializing the dataset
+        subsets = {}
 
-    # Assuming `self.domains` contains domains like ['art_painting', 'cartoon', 'photo', 'sketch']
-    # and one of these is designated as the test environment within the dataset setup.
-    train_val_domains = [env for env in self.domains if env != self.test_env]
-    train_val_indices = [i for i, domain in enumerate(self.domains) if domain in train_val_domains]
+        # Assuming `self.domains` contains domains like ['art_painting', 'cartoon', 'photo', 'sketch']
+        # and one of these is designated as the test environment within the dataset setup.
+        train_val_domains = [env for env in self.domains if env != self.test_env]
+        train_val_indices = [i for i, domain in enumerate(self.domains) if domain in train_val_domains]
 
-    # Shuffle train_val_indices to randomize the train/val split
-    np.random.shuffle(train_val_indices)
+        # Shuffle train_val_indices to randomize the train/val split
+        np.random.shuffle(train_val_indices)
 
-    num_train_val = len(train_val_indices)
-    num_val = int(np.round(num_train_val * val_frac))
-    num_train = num_train_val - num_val
+        num_train_val = len(train_val_indices)
+        num_val = int(np.round(num_train_val * val_frac))
+        num_train = num_train_val - num_val
 
-    # Ensure we respect the train_frac by adjusting the number of training samples
-    num_train = int(np.round(num_train * train_frac))
+        # Ensure we respect the train_frac by adjusting the number of training samples
+        num_train = int(np.round(num_train * train_frac))
 
-    train_indices = train_val_indices[:num_train]
-    val_indices = train_val_indices[num_train:num_train + num_val]
+        train_indices = train_val_indices[:num_train]
+        val_indices = train_val_indices[num_train:num_train + num_val]
 
-    # Test indices are simply all indices from the test environment
-    test_indices = [i for i, domain in enumerate(self.domains) if domain == self.test_env]
+        # Test indices are simply all indices from the test environment
+        test_indices = [i for i, domain in enumerate(self.domains) if domain == self.test_env]
 
-    if 'train' in splits:
-        subsets['train'] = Subset(self, train_indices)
-    if 'val' in splits:
-        subsets['val'] = Subset(self, val_indices)
-    if 'test' in splits:
-        subsets['test'] = Subset(self, test_indices)
+        if 'train' in splits:
+            subsets['train'] = Subset(self, train_indices)
+        if 'val' in splits:
+            subsets['val'] = Subset(self, val_indices)
+        if 'test' in splits:
+            subsets['test'] = Subset(self, test_indices)
 
-    return subsets
+        return subsets
 
-def group_str(self, group_idx):
-    """
-    Generates a string representing the group based on the provided index.
-    This version assumes group_idx is directly mapping to domain and label indices.
-    """
-    # Assuming there's a way to calculate domain_idx and label_idx from group_idx
-    domain_idx = self._calculate_domain_idx(group_idx)  # Needs implementation
-    label_idx = self._calculate_label_idx(group_idx)  # Needs implementation
+    def group_str(self, group_idx):
+        """
+        Generates a string representing the group based on the provided index.
+        This version assumes group_idx is directly mapping to domain and label indices.
+        """
+        # Assuming there's a way to calculate domain_idx and label_idx from group_idx
+        domain_idx = self._calculate_domain_idx(group_idx)  # Needs implementation
+        label_idx = self._calculate_label_idx(group_idx)  # Needs implementation
 
-    domain_name = self.domains[domain_idx]  # List of domains
-    label_name = self.labels[label_idx]  # List of labels
+        domain_name = self.domains[domain_idx]  # List of domains
+        label_name = self.labels[label_idx]  # List of labels
 
-    group_name = f"Domain = {domain_name}, Label = {label_name}"
-    return group_name
+        group_name = f"Domain = {domain_name}, Label = {label_name}"
+        return group_name
