@@ -58,6 +58,8 @@ class PACSDataset(ConfounderDataset):
     def _prepare_dataset(self):
         label_map = {'dog': 0, 'elephant': 1, 'giraffe': 2, 'guitar': 3, 'horse': 4, 'house': 5, 'person': 6}
         environments = ['art_painting', 'cartoon', 'photo', 'sketch']
+        env_map = {env: idx for idx, env in enumerate(environments)}
+
         self.test_env = environments[-1]
         train_envs = [env for env in environments if env != self.test_env]
 
@@ -70,7 +72,7 @@ class PACSDataset(ConfounderDataset):
                     self.data.append(img_path)
                     self.filename_array.append(img_filename)
                     self.y_array.append(label_map[label])
-                    self.confounder_array.append(env)
+                    self.confounder_array.append(env_map[env])
 
         # split the training data into train and val, and exclude the test environment
 
