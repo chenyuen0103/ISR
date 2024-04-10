@@ -56,12 +56,12 @@ class PACSDataset(ConfounderDataset):
         self.group_array = (self.y_array * (self.n_groups / self.n_classes) + self.confounder_array).astype('int')
 
     def _prepare_dataset(self):
-        label_map = {'dog': 0, 'elephant': 1, 'giraffe': 2, 'guitar': 3, 'horse': 4, 'house': 5, 'person': 6}
-        environments = ['art_painting', 'cartoon', 'photo', 'sketch']
-        env_map = {env: idx for idx, env in enumerate(environments)}
+        self.label_map = {'dog': 0, 'elephant': 1, 'giraffe': 2, 'guitar': 3, 'horse': 4, 'house': 5, 'person': 6}
+        self.environments = ['art_painting', 'cartoon', 'photo', 'sketch']
+        self.env_map = {env: idx for idx, env in enumerate(self.environments)}
 
-        self.test_env = environments[-1]
-        self.train_envs = [env for env in environments if env != self.test_env]
+        self.test_env = self.environments[-1]
+        self.train_envs = [env for env in self.environments if env != self.test_env]
 
         for env in self.train_envs:
             domain_path = os.path.join(self.root_dir, env)
@@ -71,8 +71,8 @@ class PACSDataset(ConfounderDataset):
                     img_path = os.path.join(label_path, img_filename)
                     self.data.append(img_path)
                     self.filename_array.append(img_filename)
-                    self.y_array.append(label_map[label])
-                    self.confounder_array.append(env_map[env])
+                    self.y_array.append(self.label_map[label])
+                    self.confounder_array.append(self.env_map[env])
 
         # split the training data into train and val, and exclude the test environment
         self.y_array = np.array(self.y_array)
@@ -86,11 +86,11 @@ class PACSDataset(ConfounderDataset):
     def __getitem__(self, idx):
         img_path = self.data[idx]
         label = self.labels[idx]
-        domain = self.domains[idx]
+        domain = self.environments[idx]
         img = Image.open(img_path).convert('RGB')
 
         # Apply the appropriate transform
-        if self.augment_data and domain != self.domain_to_idx[self.test_env]:
+        if self.augment_data and domain != self.env_map[self.test_env]:
             img = self.augment_transform(img)
         else:
             img = self.eval_transform(img)
@@ -99,12 +99,7 @@ class PACSDataset(ConfounderDataset):
 
 
     def get_splits(self, splits, train_frac=1.0, val_frac=0.2):
-        # Assuming the test environment is already excluded from self.data
-        # and self.domains when initializing the dataset
         subsets = {}
-
-        # Assuming `self.domains` contains domains like ['art_painting', 'cartoon', 'photo', 'sketch']
-        # and one of these is designated as the test environment within the dataset setup.
         train_val_domains = [env for env in self.train_envs]
         train_val_indices = [i for i, domain in enumerate(self.train_envs) if domain in train_val_domains]
 
@@ -122,7 +117,7 @@ class PACSDataset(ConfounderDataset):
         val_indices = train_val_indices[num_train:num_train + num_val]
 
         # Test indices are simply all indices from the test environment
-        test_indices = [i for i, domain in enumerate(self.domains) if domain == self.test_env]
+        test_indices = [i for i, domain in enumerate(self.test_env)]
 
         if 'train' in splits:
             subsets['train'] = Subset(self, train_indices)
@@ -142,7 +137,7 @@ class PACSDataset(ConfounderDataset):
         domain_idx = self._calculate_domain_idx(group_idx)  # Needs implementation
         label_idx = self._calculate_label_idx(group_idx)  # Needs implementation
 
-        domain_name = self.domains[domain_idx]  # List of domains
+        domain_name = self.environments[domain_idx]  # List of domains
         label_name = self.labels[label_idx]  # List of labels
 
         group_name = f"Domain = {domain_name}, Label = {label_name}"
