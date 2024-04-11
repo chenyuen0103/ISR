@@ -147,6 +147,7 @@ elif args.model == 'wideresnet50':
     d = model.fc.in_features
     model.fc = nn.Linear(d, n_classes)
 elif args.model == 'bert':
+    breakpoint()
     assert args.dataset == 'MultiNLI'
 
     from transformers import BertConfig, BertForSequenceClassification
