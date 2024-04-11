@@ -11,7 +11,7 @@ import numpy as np
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu_idx', type=int, default=0)
-    parser.add_argument('--dataset', type=str, default='CUB')
+    parser.add_argument('--dataset', type=str, default='MultiNLI')
     # parser.add_argument('--algos', type=list, default=['ERM'])
     # parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--save_best', type=bool, default=True)
