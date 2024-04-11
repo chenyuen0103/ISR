@@ -2,8 +2,8 @@ import os
 import numpy as np
 from configs import LOG_FOLDER, get_parse_command
 
-# datasets = ['MultiNLI']
-datasets = ['PACS']
+datasets = ['MultiNLI']
+# datasets = ['PACS']
 gpu_idx = 0  # could be None if you want to use cpu
 
 # Suppose we already trained the models for seeds 0, 1, 2, 3, 4,
@@ -11,8 +11,8 @@ gpu_idx = 0  # could be None if you want to use cpu
 train_log_seeds = np.arange(10)
 
 # The training algorithms we want to parse
-# algos = ['ERM', 'reweight', 'groupDRO']
-algos = ['reweight', 'groupDRO']
+algos = ['ERM', 'reweight', 'groupDRO']
+# algos = ['reweight', 'groupDRO']
 
 # load checkpoint with a model selection rule
 # best: take the model at the epoch of largest worst-group validation accuracy
@@ -25,6 +25,6 @@ log_dir = LOG_FOLDER
 for dataset in datasets:
     command = get_parse_command(dataset=dataset, algos=algos, model_selects=model_selects,
                                 train_log_seeds=train_log_seeds, log_dir=log_dir, gpu_idx=gpu_idx,
-                                parse_script='parse_features_clip.py')
+                                parse_script='parse_features.py')
     print('Command:', command)
     os.system(command)

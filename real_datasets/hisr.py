@@ -484,7 +484,7 @@ class HISRClassifier:
 
 
 
-    def exact_hessian_loss(self, logits, x, y, envs_indices, alpha=10e-5, beta=10e-5):
+    def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5):
         # for params in model.parameters():
         #     params.requires_grad = True
         num_classes = logits.size(1)
@@ -494,10 +494,9 @@ class HISRClassifier:
         # env_hessians_original = []
         # initial_state = model.state_dict()
         # logits = model(x)
-        envs_indices_unique = envs_indices.unique()
-        for env_idx in envs_indices_unique:
-            # breakpoint()
-            idx = (envs_indices == env_idx).nonzero().squeeze()
+        env_indices_unique = env_indices.unique()
+        for env_idx in env_indices_unique:
+            idx = (env_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
                 env_gradients.append(torch.zeros(1))
                 env_hessians.append(torch.zeros(1))
@@ -512,6 +511,7 @@ class HISRClassifier:
             # loss.backward(retain_graph=True)
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
             x_env = x[idx]
+
             y_env = y[idx]
             yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
 
@@ -541,7 +541,7 @@ class HISRClassifier:
         grad_loss = 0
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             # hessian_original = env_hessians_original[env_idx]
-            idx = (envs_indices == env_idx).nonzero().squeeze()
+            idx = (env_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
                 continue
             elif idx.dim() == 0:
@@ -550,7 +550,7 @@ class HISRClassifier:
                 num_samples = len(idx)
             y_env = y[idx]
             logits_env = logits[idx]
-            env_fraction = len(idx) / len(envs_indices)
+            env_fraction = len(idx) / len(env_indices)
             loss = self.loss_fn(logits_env.squeeze(), y_env.long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)

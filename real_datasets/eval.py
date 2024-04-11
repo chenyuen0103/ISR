@@ -164,7 +164,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB', 'PACS'])
     argparser.add_argument('--model_select', type=str,
                            default='init', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -192,7 +192,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = None, type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -241,7 +241,8 @@ if __name__ == '__main__':
         (0, 0.01),
     ]
 
-    seed_list = [0, 1, 2, 3, 4]
+    # seed_list = [0, 1, 2, 3, 4]
+    seed_list = [0]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
         if seed == 0 and (alpha == 0.0001 and beta == 0):
             continue
@@ -251,7 +252,7 @@ if __name__ == '__main__':
             continue
         if seed == 3 and (alpha == 0 and beta == 0):
             continue
-        print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+        # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
         args.alpha = alpha
         args.beta = beta
         args.seed = seed
