@@ -10,7 +10,8 @@ import timm
 import configs
 from configs.model_config import model_attributes
 from data import dataset_attributes, shift_types, prepare_data, log_data
-from train_hessian import train
+# from train_hessian import train
+from train import train
 from utils.train_utils import set_seed, Logger, CSVBatchLogger, log_args
 import pdb
 
