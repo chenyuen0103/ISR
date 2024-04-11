@@ -217,7 +217,7 @@ for algo, model_select, seed in tqdm(list(product(args.parse_algos, args.parse_m
     # save the last linear layer (classifier head)
     if 'bert' in type(model).__name__.lower():
         weight = model.classifier.weight.detach().cpu().numpy()
-        bias = model.classifier.bias.detach().cpu().umpy()
+        bias = model.classifier.bias.detach().cpu().numpy()
     elif 'resnet' in type(model).__name__.lower():
         weight = model.fc.weight.detach().cpu().numpy()
         bias = model.fc.bias.detach().cpu().numpy()
