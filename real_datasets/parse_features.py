@@ -209,8 +209,8 @@ for algo, model_select, seed in tqdm(list(product(args.parse_algos, args.parse_m
     if not os.path.exists(save_dir):
         # continue
         os.makedirs(save_dir)
-    model.load_state_dict(torch.load(save_dir + f'/{model_select}_model.pth',
-                                     map_location='cpu').state_dict())
+    # model.load_state_dict(torch.load(save_dir + f'/{model_select}_model.pth',
+    #                                  map_location='cpu').state_dict())
 
     model.eval()
 
