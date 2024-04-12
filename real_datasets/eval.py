@@ -217,7 +217,8 @@ if __name__ == '__main__':
     beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 0, 1e-2, 1e-1][::-1]
 
     # Define specific pairs of alpha and beta values
-    parameter_pairs = [
+    if args.dataset == 'CUB':
+        parameter_pairs = [
         (0, 0.001),
         (0, 0.01),
         (0, 0.0001),
@@ -240,23 +241,37 @@ if __name__ == '__main__':
         (0.0001, 0),
         (0, 0.01),
     ]
+    if args.dataset == 'MultiNLI':
+        parameter_pairs = [
+        (0, 0),
+        (0.0001, 0),
+        (0.0001, 0.1),
+        (0, 0.1),
+        (0.0001, 0.0001),
+        (0, 0.0001),
+        (0.01, 1e-6),
+        (1e-5, 1e-6),
+        (1e-6, 1e-6),
+        (1e-7, 0),
+        (1e-5, 0),
+        ]
 
-    # seed_list = [0, 1, 2, 3, 4]
-    seed_list = [0]
+    seed_list = [0, 1, 2, 3, 4]
+    # seed_list = [0]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
-        if seed == 0 and (alpha == 0.0001 and beta == 0):
-            continue
-        if seed == 0 and (alpha == 0 and beta == 0):
-            continue
-        if seed == 2 and (alpha == 0 and beta == 0):
-            continue
-        if seed == 3 and (alpha == 0 and beta == 0):
-            continue
+        # if seed == 0 and (alpha == 0.0001 and beta == 0):
+        #     continue
+        # if seed == 0 and (alpha == 0 and beta == 0):
+        #     continue
+        # if seed == 2 and (alpha == 0 and beta == 0):
+        #     continue
+        # if seed == 3 and (alpha == 0 and beta == 0):
+        #     continue
         # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
         args.alpha = alpha
         args.beta = beta
         args.seed = seed
-        # eval_ISR(args)
+        eval_ISR(args)
     # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
     #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
     #     args.alpha = alpha
