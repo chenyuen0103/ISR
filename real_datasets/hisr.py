@@ -639,7 +639,7 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()
 
-                if epoch % 500 == 0:
+                if epoch % 100 == 0:
                     # info = {
                     #     "Loss": total_loss.item(),
                     #     "ERM Loss": erm_loss.item(),

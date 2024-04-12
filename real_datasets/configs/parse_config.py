@@ -8,7 +8,6 @@ PARSE_COMMANDS = dict(
     CUB=['-d', 'CUB', '-t', 'waterbird_complete95', '-c', 'forest2water2',
                 '--model', 'vits', '--weight_decay', '0.1', '--lr', '0.0001',
                 '--batch_size', '128', '--n_epochs', '300'],
-    PACS=['-d', 'PACS', '-t', 'object', '-c', 'medium',]
 )
 
 
