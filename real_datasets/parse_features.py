@@ -208,7 +208,8 @@ def process_batch(model, x, y=None, g=None, bert=True):
 for algo, model_select, seed in tqdm(list(product(args.parse_algos, args.parse_model_selects, args.parse_seeds)),
                                      desc='Iter'):
     print('Current iter:', algo, model_select, seed)
-    save_dir = f'{args.parse_dir}/{args.dataset}/{algo}/s{seed}/'
+    # save_dir = f'{args.parse_dir}/{args.dataset}/{algo}/s{seed}/'
+    save_dir = f'./inv-feature/logs/{args.dataset}/{algo}/s{seed}/'
     if not os.path.exists(save_dir):
         # continue
         os.makedirs(save_dir)

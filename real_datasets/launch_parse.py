@@ -24,12 +24,10 @@ model_selects = ['best', ]
 log_dir = LOG_FOLDER
 
 for dataset in datasets:
-    # command = get_parse_command(dataset=dataset, algos=algos, model_selects=model_selects,
-    #                             train_log_seeds=train_log_seeds, log_dir=log_dir, gpu_idx=gpu_idx,
-    #                             parse_script='parse_features.py')
     command = get_parse_command(dataset=dataset, algos=algos, model_selects=model_selects,
-                                train_log_seeds=train_log_seeds, gpu_idx=gpu_idx,
+                                train_log_seeds=train_log_seeds, log_dir=log_dir, gpu_idx=gpu_idx,
                                 parse_script='parse_features.py')
+
 
     print('Command:', command)
     os.system(command)
