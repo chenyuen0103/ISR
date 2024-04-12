@@ -78,8 +78,11 @@ parser.add_argument('--parse_model_selects', nargs='+',
                     help='best is based on worst-group validation accuracy.')
 parser.add_argument('--parse_seeds', nargs='+',
                     default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+# parser.add_argument(
+    # '--parse_dir', default='/data/common/inv-feature/logs/', type=str)
 parser.add_argument(
-    '--parse_dir', default='/data/common/inv-feature/logs/', type=str)
+    '--parse_dir', default='./inv-feature/logs/', type=str)
+
 
 args = parser.parse_args()
 check_args(args)

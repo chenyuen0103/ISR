@@ -252,6 +252,8 @@ def main():
     train_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'train.csv'), train_data.n_groups, mode=mode)
     val_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'val.csv'), train_data.n_groups, mode=mode)
     test_csv_logger = CSVBatchLogger(os.path.join(args.log_dir, 'test.csv'), train_data.n_groups, mode=mode)
+    # train(model, criterion, data, logger, train_csv_logger, val_csv_logger, test_csv_logger, args,
+    #       epoch_offset=epoch_offset)
     train(model, criterion, data,
           logger, train_csv_logger, val_csv_logger, test_csv_logger,
           args, epoch_offset=epoch_offset)
