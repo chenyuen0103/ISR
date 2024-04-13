@@ -209,12 +209,13 @@ for algo, model_select, seed in tqdm(list(product(args.parse_algos, args.parse_m
                                      desc='Iter'):
     print('Current iter:', algo, model_select, seed)
     # save_dir = f'{args.parse_dir}/{args.dataset}/{algo}/s{seed}/'
-    save_dir = f'./inv-feature/logs/{args.dataset}/{algo}/s{seed}/'
+    save_dir = f'./inv-feature-bert-trained/logs/{args.dataset}/{algo}/s{seed}/'
     if not os.path.exists(save_dir):
         # continue
         os.makedirs(save_dir)
-    # model.load_state_dict(torch.load(save_dir + f'/{model_select}_model.pth',
-    #                                  map_location='cpu').state_dict())
+    breakpoint()
+    model.load_state_dict(torch.load(save_dir + f'/{model_select}_model.pth',
+                                     map_location='cpu').state_dict())
 
     model.eval()
 
