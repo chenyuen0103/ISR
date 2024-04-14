@@ -210,7 +210,7 @@ for algo, model_select, seed in tqdm(list(product(args.parse_algos, args.parse_m
     print('Current iter:', algo, model_select, seed)
     # save_dir = f'{args.parse_dir}/{args.dataset}/{algo}/s{seed}/'
     save_dir = f'./inv-feature-bert-trained/logs/{args.dataset}/{algo}/s{seed}/'
-    model_dir = f'{args.parse_dir}/{args.dataset}/{algo}/s{seed}/'
+    model_dir = f'{args.parse_dir}/{args.dataset}/bert/{algo}/s{seed}/grad_alpha_1e-04_hess_beta_1e-04'
     if not os.path.exists(save_dir):
         # continue
         os.makedirs(save_dir)
