@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--save_best', type=bool, default=True)
     parser.add_argument('--save_last', type=bool, default=True)
     parser.add_argument('--resume', default=False, action='store_true')
-    parser.add_argument('--seed_list', nargs = '+',type=int, default=[0])
+    parser.add_argument('--seed_list', nargs = '+',type=int, default=[1,2,3,4])
     parser.add_argument('--model', type=str, default='bert')
     parser.add_argument('--learning_rate', type=float, default=None)
     parser.add_argument('--batch_size', type=int, default=None)

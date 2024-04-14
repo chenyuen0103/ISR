@@ -166,7 +166,7 @@ def main():
     if resume:
         # breakpoint()
         model = torch.load(os.path.join(args.log_dir, 'last_model.pth'))
-        clf = torch.load(os.path.join(args.log_dir, 'last_clf.pth'))
+        # clf = torch.load(os.path.join(args.log_dir, 'last_clf.pth'))
         if args.scheduler:
             # breakpoint()
             optimizer = torch.load(os.path.join(args.log_dir, 'last_optimizer.pth'))
