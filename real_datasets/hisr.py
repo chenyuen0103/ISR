@@ -603,7 +603,6 @@ class HISRClassifier:
         # grad_loss = grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
 
-
         return total_loss, erm_loss, hess_loss, grad_loss
     # @profile
     def fit_hessian_clf(self, x, y, envs_indices, approx_type = "exact", alpha = 1e-4, beta = 1e-4):
@@ -651,8 +650,8 @@ class HISRClassifier:
                         logits = model(x_batch)
                         total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta)
                         erm_loss = erm_loss.item()
-                        hess_penalty = hess_penalty.item()
-                        grad_penalty = grad_penalty.item()
+                        hess_penalty = hess_penalty.item() if alpha != 0 else 0
+                        grad_penalty = grad_penalty.item() if beta != 0 else 0
 
 
                     total_loss.backward()
