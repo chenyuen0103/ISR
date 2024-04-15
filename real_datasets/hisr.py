@@ -333,7 +333,12 @@ class HISRClassifier:
 
         # Generate one-hot encoding for y
         y_onehot = torch.zeros_like(p)
-        y_onehot.scatter_(1, y.long().unsqueeze(-1), 1)
+        try :
+            y_onehot.scatter_(1, y.long().unsqueeze(-1), 1)
+        except:
+            breakpoint()
+            y_onehot.scatter_(1, y.unsqueeze(-1), 1)
+        # y_onehot.scatter_(1, y.long().unsqueeze(-1), 1)
 
         # Compute the gradient for each class
         # Gradient computation is simplified by directly using the broadcasted subtraction and matrix multiplication
@@ -487,7 +492,6 @@ class HISRClassifier:
     def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5):
         # for params in model.parameters():
         #     params.requires_grad = True
-        num_classes = logits.size(1)
         total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
         env_hessians = []
