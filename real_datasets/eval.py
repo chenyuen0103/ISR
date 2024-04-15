@@ -160,13 +160,13 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
 def parse_args(args: list = None, specs: dict = None):
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--root_dir', type=str,
-                           default='inv-feature/logs')
+                           default='inv-feature-bert-trained/logs')
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB', 'PACS'])
+        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB', 'PACS'])
     argparser.add_argument('--model_select', type=str,
-                           default='init', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
+                           default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
     argparser.add_argument('--seed', type=int, default=0)
     argparser.add_argument('--n_components', type=int, default=100)
@@ -177,7 +177,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_ViT-B')
+    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
 
@@ -192,7 +192,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = None, type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
