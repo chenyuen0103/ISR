@@ -655,7 +655,11 @@ class HISRClassifier:
                     self.optimizer.zero_grad()
 
                 if epoch % 100 == 0:
-                    print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss.item(), "; Hessian Reg:", hess_penalty.item() if alpha != 0 else 0, "; Gradient Reg:", grad_penalty.item() if beta != 0 else 0)
+                    print("Epoch:", epoch,
+                          "\tLoss:", total_loss.item(),
+                          "\tERM Loss:", erm_loss.item(),
+                          "\tGradient Reg:", grad_penalty.item() if alpha != 0 else 0,
+                          "\tHessian Reg:", hess_penalty.item() if beta != 0 else 0)
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
