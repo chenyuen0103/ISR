@@ -514,20 +514,21 @@ class HISRClassifier:
             # get grads, hessian of loss with respect to parameters, and those to be backwarded later
             # loss.backward(retain_graph=True)
             # grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
-            x_env = x[idx]
 
-            y_env = y[idx]
-            yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
-            if alpha == 0:
-                grads = 0
-            else:
+            grads, hessian = 0, 0
+            if alpha != 0:
+                x_env = x[idx]
+                y_env = y[idx]
+                yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
                 grads = self.gradient(x_env, yhat_env, y_env)
             # grads_original = self.gradient_original(x_env, yhat_env, y_env)
             # hessian = self.compute_pytorch_hessian(model, x[idx], y[idx])
-            if beta == 0:
-                hessian = 0
-            else:
+
+            if beta != 0:
+                x_env = x[idx]
+                yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
                 hessian = self.hessian(x_env, yhat_env)
+
 
             # hessian_original = self.hessian_original(x_env, yhat_env)
             # assert torch.allclose(grads, grads_original), "Gradient computation is incorrect"
@@ -539,17 +540,16 @@ class HISRClassifier:
         # Compute average gradient and hessian
         # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
         #                 range(len(env_gradients[0]))]
+        avg_gradient, avg_hessian = 0, 0
         if alpha != 0:
             weight_gradients = [g[0] for g in env_gradients]
             avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
-        else:
-            avg_gradient = 0
+
 
         # avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
         if beta != 0:
             avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
-        else:
-            avg_hessian = 0
+
 
         erm_loss = 0
         hess_loss = 0
@@ -568,17 +568,17 @@ class HISRClassifier:
             env_fraction = len(idx) / len(env_indices)
             loss = self.loss_fn(logits_env.squeeze(), y_env.long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
-            if alpha == 0:
-                grad_diff_norm = 0
-            else:
+            grad_diff_norm, grad_reg = 0, 0
+            hessian_diff_norm, hessian_reg = 0, 0
+            if alpha != 0:
                 grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
-            if beta == 0:
-                hessian_diff_norm = 0
-            else:
+                grad_reg = alpha * grad_diff_norm ** 2
+            if beta != 0:
                 # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
                 hessian_diff = hessian - avg_hessian
                 # hessian_diff_original = hessian_original - avg_hessian_original
                 hessian_diff_norm = torch.norm(hessian_diff, p='fro')
+                hessian_reg = beta * hessian_diff_norm ** 2
                 # hessian_diff_norm_original = torch.norm(hessian_diff_original, p='fro')
                 # assert torch.allclose(hessian_diff_norm, hessian_diff_norm_original), "Hessian computation is incorrect"
 
@@ -586,8 +586,8 @@ class HISRClassifier:
             # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
             # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
 
-            grad_reg = alpha * grad_diff_norm ** 2
-            hessian_reg = beta * hessian_diff_norm ** 2
+
+
 
             total_loss = total_loss + (loss + hessian_reg + grad_reg) * env_fraction
             # total_loss = total_loss + loss
