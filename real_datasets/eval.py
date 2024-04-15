@@ -271,8 +271,8 @@ if __name__ == '__main__':
         args.alpha = alpha
         args.beta = beta
         args.seed = seed
-        # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-        # eval_ISR(args)
+        print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+        eval_ISR(args)
     # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
     #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
     #     args.alpha = alpha
@@ -280,6 +280,6 @@ if __name__ == '__main__':
     #     args.seed = seed
     for seed in seed_list:
         args.seed = seed
-        eval_ISR(args)
+        # eval_ISR(args)
 
 
