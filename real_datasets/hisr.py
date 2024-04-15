@@ -649,27 +649,13 @@ class HISRClassifier:
                     else:
                         logits = model(x_batch)
                         total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta)
-                        erm_loss = erm_loss.item()
-                        hess_penalty = hess_penalty.item() if alpha != 0 else 0
-                        grad_penalty = grad_penalty.item() if beta != 0 else 0
-
 
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
 
                 if epoch % 100 == 0:
-                    # info = {
-                    #     "Loss": total_loss.item(),
-                    #     "ERM Loss": erm_loss.item(),
-                    #     "Hessian Reg": hess_penalty.item(),
-                    #     "Gradient Reg": grad_penalty.item()
-                    # }
-                    print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss, "; Hessian Reg:", hess_penalty, "; Gradient Reg:", grad_penalty)
-
-            # self.clf = model.to('cpu')
-            # self.clf = model
-            # return self.clf
+                    print("Loss:", total_loss.item(), "; ERM Loss:", erm_loss.item(), "; Hessian Reg:", hess_penalty.item() if alpha != 0 else 0, "; Gradient Reg:", grad_penalty.item() if beta != 0 else 0)
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
