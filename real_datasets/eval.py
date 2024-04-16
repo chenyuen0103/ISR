@@ -232,6 +232,7 @@ if __name__ == '__main__':
         # (1e-5, 1e-6),
         # (1e-6, 1e-6)
     ]
+        args.max_iter = 300
     if args.dataset == 'CelebA':
         parameter_pairs = parameter_pairs = [
         (0, 0),
@@ -250,6 +251,7 @@ if __name__ == '__main__':
         # (0.0001, 0),
         # (0, 0.01),
     ]
+        args.max_iter = 50
     if args.dataset == 'MultiNLI':
         parameter_pairs = [
         (0, 0),
@@ -264,7 +266,7 @@ if __name__ == '__main__':
         (1e-7, 0),
         (1e-5, 0),
         ]
-
+        args.max_iter = 3
     seed_list = [0, 1, 2, 3, 4]
     # seed_list = [0]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):

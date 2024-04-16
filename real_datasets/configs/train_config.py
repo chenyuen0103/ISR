@@ -16,7 +16,7 @@ TRAIN_COMMANDS = dict(
     ,
     CUB={
         "ERM": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 0.1 --lr 1e-5 '
-               '--batch_size 128 --n_epochs 100',  # ERM
+               '--batch_size 128 --n_epochs 300',  # ERM
         "reweight": '-s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 1 --lr 1e-05 '
                     '--batch_size 128 --n_epochs 300 --reweight_groups',  # reweight
         "groupDRO": ' -s confounder -d CUB -t waterbird_complete95 -c forest2water2 --model resnet50 --weight_decay 1 --lr 1e-05 '
