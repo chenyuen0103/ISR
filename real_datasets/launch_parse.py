@@ -9,7 +9,7 @@ gpu_idx = 0  # could be None if you want to use cpu
 # Suppose we already trained the models for seeds 0, 1, 2, 3, 4,
 # then we can parse these traind models by choosing log_seeds = np.arange(5)
 train_log_seeds = np.arange(5)
-train_log_seeds = [2, 3, 4]
+train_log_seeds = [3, 4]
 
 # The training algorithms we want to parse
 # algos = ['ERM', 'reweight', 'groupDRO']
