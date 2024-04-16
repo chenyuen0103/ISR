@@ -63,7 +63,7 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     grouped = grouped.reset_index()
     cleaned_grouped = grouped.dropna(subset=['avg_acc_sem', 'worst_acc_sem'])
     # Display the cleaned DataFrame
-    print(cleaned_grouped)
+    # print(cleaned_grouped)
     val = cleaned_grouped[cleaned_grouped['split'] == 'val']
     test = cleaned_grouped[cleaned_grouped['split'] == 'test']
     num_runs = len(all_files)
@@ -167,19 +167,26 @@ def find_best_hps(val_df, test_df, worst_case = False):
 def main():
     cub_pattern = 'CUB_results_s*_hessian_exact.csv'
     celeba_pattern = 'CelebA_results_s*_hessian_exact.csv'
+    multiNLI_pattern = 'MultiNLI_results_s*_hessian_exact.csv'
 
     cubs_val, cubs_test = merge_seeds()
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
+    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern)
     # print(cubs_val)
     worst_case = True
     # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    find_best_isr(worst_case = worst_case)
-    find_best_gm(worst_case = worst_case)
-    find_best_hm(worst_case = worst_case)
-    find_best_gm_hm(worst_case = worst_case)
+
+    find_best_isr(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    # find_best_isr(worst_case = worst_case)
+    # find_best_gm(worst_case = worst_case)
+    # find_best_hm(worst_case = worst_case)
+    # find_best_gm_hm(worst_case = worst_case)
 
 if __name__ == '__main__':
     main()
