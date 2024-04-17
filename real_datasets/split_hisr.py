@@ -51,7 +51,12 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     merged_df = pd.concat(df_list, ignore_index=True)
     merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha',
                            'hessian_beta', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc']]
-
+    if 'CUB' in file_name_pattern:
+        merged_df = merged_df[merged_df['num_iter']==300]
+    elif 'CelebA' in file_name_pattern:
+        merged_df = merged_df[merged_df['num_iter']==50]
+    elif 'MultiNLI' in file_name_pattern:
+        merged_df = merged_df[merged_df['num_iter']==3]
     grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
                             'num_iter', 'gradient_alpha', 'hessian_beta']).agg({
         'avg_acc': ['mean', 'sem'],
@@ -171,7 +176,7 @@ def main():
 
     cubs_val, cubs_test = merge_seeds()
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
-    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern)
+    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir='./logs/ISR_hessian_results_bert')
     # print(cubs_val)
     worst_case = True
     # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
@@ -179,14 +184,15 @@ def main():
     # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
 
-    # find_best_isr(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    find_best_isr(worst_case = worst_case)
-    find_best_gm(worst_case = worst_case)
-    find_best_hm(worst_case = worst_case)
-    find_best_gm_hm(worst_case = worst_case)
+    find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+    find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+    find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+
+    # find_best_isr(worst_case = worst_case)
+    # find_best_gm(worst_case = worst_case)
+    # find_best_hm(worst_case = worst_case)
+    # find_best_gm_hm(worst_case = worst_case)
 
 if __name__ == '__main__':
     main()
