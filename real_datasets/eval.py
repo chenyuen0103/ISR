@@ -272,7 +272,8 @@ if __name__ == '__main__':
         (1e-6, 0.01),
         ]
         args.max_iter = 3
-        seed_list = [0, 1, 2, 3]
+        # seed_list = [0, 1, 2, 3,4]
+        seed_list = [3, 4]
     # seed_list = [0]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
         # if seed == 0 and (alpha == 0.0001 and beta == 0):
