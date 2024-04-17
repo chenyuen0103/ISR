@@ -179,14 +179,14 @@ def main():
     # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
 
-    find_best_isr(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
-    # find_best_isr(worst_case = worst_case)
-    # find_best_gm(worst_case = worst_case)
-    # find_best_hm(worst_case = worst_case)
-    # find_best_gm_hm(worst_case = worst_case)
+    # find_best_isr(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv')
+    find_best_isr(worst_case = worst_case)
+    find_best_gm(worst_case = worst_case)
+    find_best_hm(worst_case = worst_case)
+    find_best_gm_hm(worst_case = worst_case)
 
 if __name__ == '__main__':
     main()
