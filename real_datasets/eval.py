@@ -213,8 +213,8 @@ if __name__ == '__main__':
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    alpha_list = [1e-7, 1e-6, 1e-5, 1e-3, 1e-2, 1e-1, 0, 1e-4][::-1]
-    beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 0, 1e-2, 1e-1][::-1]
+    alpha_list = 10 ** np.linspace(-8, 0, 9)
+    beta_list = 10 ** np.linspace(-8, 0, 9)
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
@@ -285,7 +285,10 @@ if __name__ == '__main__':
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
     # seed_list = [0]
-    for (alpha, beta), seed in product(parameter_pairs, seed_list):
+    # for (alpha, beta), seed in product(parameter_pairs, seed_list):
+    for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+        if (alpha, beta) in parameter_pairs:
+            continue
         # if seed == 0 and (alpha == 0.0001 and beta == 0):
         #     continue
         # if seed == 0 and (alpha == 0 and beta == 0):
