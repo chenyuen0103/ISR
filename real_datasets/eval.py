@@ -252,7 +252,7 @@ if __name__ == '__main__':
         args.max_iter = 50
     if args.dataset == 'MultiNLI':
         parameter_pairs = [
-        (0, 0),
+        # (0, 0),
         (0, 0.01),
         (0, 0.0001),
         (0, 1e-6),
