@@ -215,7 +215,7 @@ if __name__ == '__main__':
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
     alpha_list = [1e-7, 1e-6, 1e-5, 1e-3, 1e-2, 1e-1, 0, 1e-4][::-1]
     beta_list = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 0, 1e-2, 1e-1][::-1]
-
+    seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
         parameter_pairs = [
@@ -269,7 +269,7 @@ if __name__ == '__main__':
         (1e-6, 0.01),
         ]
         args.max_iter = 3
-    seed_list = [0, 1, 2, 3, 4]
+        seed_list = [0, 1, 2, 3]
     # seed_list = [0]
     for (alpha, beta), seed in product(parameter_pairs, seed_list):
         # if seed == 0 and (alpha == 0.0001 and beta == 0):
