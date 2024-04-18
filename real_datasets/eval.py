@@ -66,6 +66,18 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                 'lambda': args.lam,
                 'penalty_anneal_iters': args.penalty_anneal_iters
         }
+    if args.hessian_approx_method == 'fishr':
+        save_path = os.path.join(args.save_dir,
+                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}_fishr.csv")
+    else:
+        save_path = os.path.join(args.save_dir,
+                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+
+    df_check = pd.read_csv(save_path) if os.path.exists(save_path) else None
+    df_check_base = df_check[['dataset', 'algo', 'seed', 'ckpt','num_iter','gradient_alpha','hessian_beta','ema','lambda','penalty_anneal_iters']].drop_duplicates() if df_check is not None else None
+    if df_check is not None and base_row in df_check_base.to_dict('records'):
+        print(f"Already evaluated {base_row}")
+        return df_check
 
     # Need to convert group labels to env labels (i.e., spurious-attribute labels)
     es, val_es, test_es = group2env(gs, n_spu_attr), group2env(val_gs, n_spu_attr), group2env(test_gs, n_spu_attr)
@@ -169,12 +181,6 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     if not args.no_save:
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
-        if args.hessian_approx_method == 'fishr':
-            save_path = os.path.join(args.save_dir,
-                                     f"{args.dataset}_results{args.file_suffix}_s{args.seed}_fishr.csv")
-        else:
-            save_path = os.path.join(args.save_dir,
-                                     f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
         save_df(df, save_path, subset=None, verbose=args.verbose)
         print(f"Saved to {args.save_dir} as {save_path}")
     return df
@@ -186,7 +192,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB', 'PACS'])
+        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -214,13 +220,13 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
-    argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--alpha', default=100, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=0.001, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 1500, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 0, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -266,7 +272,8 @@ if __name__ == '__main__':
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    alpha_list = 10 ** np.linspace(-8, 0, 9)
+    # alpha_list = 10 ** np.linspace(-8, 3, 12)
+    alpha_list = 10 ** np.linspace(0, 2, 4)
     beta_list = 10 ** np.linspace(-8, 0, 9)
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
@@ -289,6 +296,9 @@ if __name__ == '__main__':
             (1e-7, 1e-6),
     ]
         args.max_iter = 300
+        args.save_dir = './logs/ISR_Hessian_results_ViT-B'
+        args.root_dir = './inv-feature-ViT-B/logs'
+        args.model_select = 'init'
     if args.dataset == 'CelebA':
         parameter_pairs = parameter_pairs = [
         (0, 0),
@@ -306,9 +316,12 @@ if __name__ == '__main__':
         (0, 0.01),
     ]
         args.max_iter = 50
+        args.save_dir = './logs/ISR_Hessian_results_ViT-B'
+        args.root_dir = './inv-feature-ViT-B/logs'
+        args.model_select = 'init'
     if args.dataset == 'MultiNLI':
         parameter_pairs = [
-        # (0, 0),
+        (0, 0),
         # (0, 0.01),
         # (0, 0.0001),
         # (0, 1e-6),
@@ -339,6 +352,7 @@ if __name__ == '__main__':
         seed_list = [0, 1, 2, 3,4]
     # seed_list = [0]
     # for (alpha, beta), seed in product(parameter_pairs, seed_list):
+    eval_ISR(args)
     if args.hessian_approx_method == 'fishr':
         run_fishr(args)
     else:
@@ -357,8 +371,8 @@ if __name__ == '__main__':
             args.alpha = alpha
             args.beta = beta
             args.seed = seed
-            print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-            eval_ISR(args)
+            # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+            # eval_ISR(args)
 
 
 

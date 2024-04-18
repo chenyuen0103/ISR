@@ -757,14 +757,16 @@ class HISRClassifier:
             for epoch in pbar:
                 for x_batch, y_batch, envs_indices_batch in dataloader:
                     x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
-                    if approx_type == "control":
+                    if approx_type == "control" or self.update_count < args.penalty_anneal_iters:
                         total_loss = self.loss_fn(model(x_batch).squeeze(), y_batch.long())
                         erm_loss = total_loss.item
                         hess_penalty = 0
                         grad_penalty = 0
+                        self.update_count += 1
                     elif approx_type == "exact":
                         logits = model(x_batch)
                         total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                        self.update_count += 1
                     elif approx_type == "fishr":
                         logits = model(x_batch)
                         total_loss, erm_loss, penalty, penalty_weight = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args)
@@ -776,14 +778,14 @@ class HISRClassifier:
                 if epoch % 100 == 0 and approx_type == "exact":
                     print("Epoch:", epoch,
                           "\tLoss:", total_loss.item(),
-                          "\tERM Loss:", erm_loss.item(),
-                          "\tGradient Reg:", grad_penalty.item() if alpha != 0 else 0,
-                          "\tHessian Reg:", hess_penalty.item() if beta != 0 else 0)
+                          "\tERM Loss:", erm_loss,
+                          "\tGradient Reg:", grad_penalty,
+                          "\tHessian Reg:", hess_penalty)
 
                 elif epoch % 100 == 0 and approx_type == "fishr":
                     print("Epoch:", epoch,
                           "\tLoss:", total_loss.item(),
-                          "\tNLL Loss:", erm_loss.item(),
+                          "\tNLL Loss:", erm_loss,
                           "\tPenalty:", penalty,
                           "\tPenalty Weight:", penalty_weight)
         else:
