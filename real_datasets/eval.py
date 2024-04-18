@@ -74,7 +74,16 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                                  f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
 
     df_check = pd.read_csv(save_path) if os.path.exists(save_path) else None
-    df_check_base = df_check[['dataset', 'algo', 'seed', 'ckpt','num_iter','gradient_alpha','hessian_beta','ema','lambda','penalty_anneal_iters']].drop_duplicates() if df_check is not None else None
+
+
+    if 'ema' or 'lambda' or 'penalty_anneal_iters' not in df_check.columns:
+        df_check['ema'] = args.ema
+        df_check['lambda'] = args.lam
+        df_check['penalty_anneal_iters'] = args.penalty_anneal_iters
+
+    df_check_base = df_check[['dataset', 'algo', 'seed', 'ckpt','num_iter','gradient_alpha','hessian_beta']].drop_duplicates() if df_check is not None else None
+
+
     if df_check is not None and base_row in df_check_base.to_dict('records'):
         print(f"Already evaluated {base_row}")
         return df_check
@@ -237,6 +246,13 @@ def parse_args(args: list = None, specs: dict = None):
     return config
 
 
+def sample_hyperparams_hessian(seed):
+    np.random.seed(seed)
+    lam = np.random.choice(lambda_list)
+    penalty_anneal_iters = np.random.choice(penalty_anneal_iters_list)
+    ema = np.random.choice(ema_list)
+    return lam, penalty_anneal_iters, ema
+
 def run_fishr(args):
     seed_list = [0, 1, 2, 3, 4]
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
@@ -273,8 +289,9 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
     # alpha_list = 10 ** np.linspace(-8, 3, 12)
-    alpha_list = 10 ** np.linspace(0, 2, 4)
-    beta_list = 10 ** np.linspace(-8, 0, 9)
+    alpha_list = 10 ** np.linspace(0, 3, 9)
+    beta_list = 10 ** np.linspace(0, 3, 9)
+    penalty_anneal_iters_list = np.linspace(0, 5000, 6)
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
@@ -300,7 +317,7 @@ if __name__ == '__main__':
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
     if args.dataset == 'CelebA':
-        parameter_pairs = parameter_pairs = [
+        parameter_pairs = [
         (0, 0),
         (0, 0.1),
         (0, 0.0001),
@@ -352,13 +369,29 @@ if __name__ == '__main__':
         seed_list = [0, 1, 2, 3,4]
     # seed_list = [0]
     # for (alpha, beta), seed in product(parameter_pairs, seed_list):
-    eval_ISR(args)
+    # eval_ISR(args)
     if args.hessian_approx_method == 'fishr':
         run_fishr(args)
     else:
-        for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-            if (alpha, beta) in parameter_pairs:
-                continue
+        def sample_hyperparams_hessian(seed):
+            np.random.seed(seed)
+            alpha = np.random.choice(alpha_list)
+            penalty_anneal_iters = np.random.choice(penalty_anneal_iters_list)
+            beta = np.random.choice(beta_list)
+            return alpha, penalty_anneal_iters, beta
+
+        # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+        for i in range(50):
+            alpha, penalty_anneal_iters, beta = sample_hyperparams_hessian(i)
+            args.alpha = alpha
+            args.beta = beta
+            args.penalty_anneal_iters = penalty_anneal_iters
+            for seed in seed_list:
+                args.seed = seed
+                eval_ISR(args)
+
+        #     if (alpha, beta) in parameter_pairs:
+        #         continue
             # if seed == 0 and (alpha == 0.0001 and beta == 0):
             #     continue
             # if seed == 0 and (alpha == 0 and beta == 0):
@@ -368,9 +401,9 @@ if __name__ == '__main__':
             # if seed == 3 and (alpha == 0 and beta == 0):
             #     continue
             # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-            args.alpha = alpha
-            args.beta = beta
-            args.seed = seed
+            # args.alpha = alpha
+            # args.beta = beta
+            # args.seed = seed
             # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
             # eval_ISR(args)
 
