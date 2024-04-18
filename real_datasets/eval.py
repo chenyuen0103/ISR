@@ -375,9 +375,9 @@ if __name__ == '__main__':
     else:
         def sample_hyperparams_hessian(seed):
             np.random.seed(seed)
-            alpha = np.random.choice(alpha_list)
+            alpha = 10 ** np.random.uniform(-8, 3)
             penalty_anneal_iters = np.random.choice(penalty_anneal_iters_list)
-            beta = np.random.choice(beta_list)
+            beta = 10 ** np.random.uniform(-8, 3)
             return alpha, penalty_anneal_iters, beta
 
         # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
