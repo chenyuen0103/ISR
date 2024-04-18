@@ -6,6 +6,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+from collections import OrderedDict
+from backpack import backpack, extend
+from backpack.extensions import BatchGrad
 import gc
 # from memory_profiler import profile
 import cProfile
@@ -604,9 +607,116 @@ class HISRClassifier:
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
 
         return total_loss, erm_loss, hess_loss, grad_loss
+    def compute_fishr_penalty(self, all_logits, all_y, all_env_indices):
+        dict_grads = self._get_grads(all_logits, all_y)
+        grads_var_per_domain = self._get_grads_var_per_domain(dict_grads, all_env_indices)
+        return self._compute_distance_grads_var(grads_var_per_domain)
+
+    def _get_grads(self, logits, y):
+        self.optimizer.zero_grad()
+        loss = self.bce_extended(logits, y.long()).sum()
+        with backpack(BatchGrad()):
+            # loss.backward(
+            #     inputs=list(self.classifier.parameters()), retain_graph=True, create_graph=True
+            # )
+            loss.backward(
+                # inputs=list(self.classifier.parameters()),
+                retain_graph=True, create_graph=True
+            )
+
+
+        # compute individual grads for all samples across all domains simultaneously
+
+        dict_grads = OrderedDict(
+            [
+                (name, weights.grad_batch.clone().view(weights.grad_batch.size(0), -1))
+                for name, weights in self.classifier.named_parameters()
+            ]
+        )
+
+        # dict_grads = OrderedDict(
+        #     [
+        #         (name, weights.grad.clone().view(weights.grad.size(0), -1))
+        #         for name, weights in self.classifier.named_parameters()
+        #     ]
+        # )
+        return dict_grads
+
+    def _get_grads_var_per_domain(self, dict_grads, env_indices):
+        # grads var per domain
+        # len_minibatches = [len(env_indices[env_indices == domain_id]) for domain_id in range(self.num_domains)]
+        grads_var_per_domain = [{} for _ in range(self.num_domains)]
+        for name, _grads in dict_grads.items():
+            all_idx = 0
+            for domain_id in range(self.num_domains):
+                idx = (env_indices == domain_id).nonzero().squeeze()
+                env_grads = _grads[idx]
+                # all_idx += bsize
+                env_mean = env_grads.mean(dim=0, keepdim=True)
+                env_grads_centered = env_grads - env_mean
+                grads_var_per_domain[domain_id][name] = (env_grads_centered).pow(2).mean(dim=0)
+
+        # moving average
+        for domain_id in range(self.num_domains):
+            grads_var_per_domain[domain_id] = self.ema_per_domain[domain_id].update(
+                grads_var_per_domain[domain_id]
+            )
+
+        return grads_var_per_domain
+
+    def l2_between_dicts(self, dict_1, dict_2):
+        assert len(dict_1) == len(dict_2)
+        dict_1_values = [dict_1[key] for key in sorted(dict_1.keys())]
+        dict_2_values = [dict_2[key] for key in sorted(dict_1.keys())]
+        return (
+                torch.cat(tuple([t.view(-1) for t in dict_1_values])) -
+                torch.cat(tuple([t.view(-1) for t in dict_2_values]))
+        ).pow(2).mean()
+
+    def _compute_distance_grads_var(self, grads_var_per_domain):
+
+        # compute gradient variances averaged across domains
+        grads_var = OrderedDict(
+            [
+                (
+                    name,
+                    torch.stack(
+                        [
+                            grads_var_per_domain[domain_id][name]
+                            for domain_id in range(self.num_domains)
+                        ],
+                        dim=0
+                    ).mean(dim=0)
+                )
+                for name in grads_var_per_domain[0].keys()
+            ]
+        )
+
+        penalty = 0
+        for domain_id in range(self.num_domains):
+            penalty += self.l2_between_dicts(grads_var_per_domain[domain_id], grads_var)
+        return penalty / self.num_domains
+
+    def fishr_loss(self, logits, x, y, env_indices, args):
+        penalty = self.compute_fishr_penalty(logits, y, env_indices)
+        all_nll = F.cross_entropy(logits, y.long())
+        # all_nll2 = self.loss_fn(logits.squeeze(), y.long())
+        penalty_weight = 0
+        if self.update_count >= args.penalty_anneal_iters:
+            penalty_weight = args.lam
+            if self.update_count == args.penalty_anneal_iters != 0:
+                # Reset Adam as in IRM or V-REx, because it may not like the sharp jump in
+                # gradient magnitudes that happens at this step.
+                # init optimizer
+                self.optimizer = optim.SGD(self.classifier.parameters(), lr=0.001)
+        self.update_count += 1
+        objective = all_nll + penalty_weight * penalty
+        return objective, all_nll, penalty, penalty_weight
+
     # @profile
-    def fit_hessian_clf(self, x, y, envs_indices, approx_type = "exact", alpha = 1e-4, beta = 1e-4):
+    def fit_hessian_clf(self, x, y, envs_indices, args, approx_type = "exact", alpha = 1e-4, beta = 1e-4):
         # Create the model based on the model type
+        self.num_domains = len(np.unique(envs_indices))
         num_iterations = self.clf_kwargs['max_iter']
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # if approx_type == "exact":
@@ -617,12 +727,19 @@ class HISRClassifier:
         elif self.clf_type == 'RidgeClassifier':
             model = self.RidgeRegression(x.shape[1])
         elif self.clf_type == 'SGDClassifier':
-            model = self.SGDClassifier(x.shape[1], num_classes)
+            model = self.SGDClassifier(x.shape[1])
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
         model = model.to(device)
         self.optimizer = optim.SGD(model.parameters(), lr=0.001)
         self.optimizer.zero_grad()
+        if approx_type == "fishr":
+            self.classifier = extend(model)
+            self.bce_extended = extend(nn.CrossEntropyLoss(reduction='none'))
+            self.ema_per_domain = [
+                MovingAverage(ema=args.ema, oneminusema_correction=True)
+                for _ in range(self.num_domains)
+            ]
 
         # Transform the data to tensors
         if not isinstance(x, torch.Tensor):
@@ -635,9 +752,10 @@ class HISRClassifier:
         dataset = TensorDataset(x, y, envs_indices)
         print("Starting training on", device)
 
-        if approx_type in ['exact','control']:
+        if approx_type in ['exact','control','fishr']:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
             pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
+            self.update_count = 0
             for epoch in pbar:
                 for x_batch, y_batch, envs_indices_batch in dataloader:
                     x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
@@ -646,20 +764,30 @@ class HISRClassifier:
                         erm_loss = total_loss.item
                         hess_penalty = 0
                         grad_penalty = 0
-                    else:
+                    elif approx_type == "exact":
                         logits = model(x_batch)
                         total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                    elif approx_type == "fishr":
+                        logits = model(x_batch)
+                        total_loss, erm_loss, penalty, penalty_weight = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args)
 
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
 
-                if epoch % 100 == 0:
+                if epoch % 100 == 0 and approx_type == "exact":
                     print("Epoch:", epoch,
                           "\tLoss:", total_loss.item(),
                           "\tERM Loss:", erm_loss.item(),
                           "\tGradient Reg:", grad_penalty.item() if alpha != 0 else 0,
                           "\tHessian Reg:", hess_penalty.item() if beta != 0 else 0)
+
+                elif epoch % 100 == 0 and approx_type == "fishr":
+                    print("Epoch:", epoch,
+                          "\tLoss:", total_loss.item(),
+                          "\tNLL Loss:", erm_loss.item(),
+                          "\tPenalty:", penalty,
+                          "\tPenalty Weight:", penalty_weight)
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
@@ -684,8 +812,7 @@ class HISRClassifier:
 
 
 
-
-    def fit_clf(self, features=None, labels=None, envs = None, given_clf=None, sample_weight=None, hessian_approx = None, alpha = 10e-5, beta = 10e-5, spu_scale = None):
+    def fit_clf(self, features=None, labels=None, envs = None, args = None, given_clf=None, sample_weight=None, hessian_approx = None, alpha = 10e-5, beta = 10e-5, spu_scale = None):
         if not hessian_approx:
             if given_clf is None:
                 assert features is not None and labels is not None
@@ -702,7 +829,7 @@ class HISRClassifier:
         else:
             assert features is not None and labels is not None
             features = self.transform(features, )
-            return self.fit_hessian_clf(features, labels, envs_indices=envs, approx_type=self.hessian_approx_method, alpha=alpha, beta=beta)
+            return self.fit_hessian_clf(features, labels, envs, args,  approx_type=self.hessian_approx_method, alpha=alpha, beta=beta)
 
     def transform(self, features, ):
         if self.pca is not None:
@@ -770,3 +897,34 @@ class HISRClassifier:
 
         def score(self, X, y, sample_weight=None):
             return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
+
+
+class MovingAverage:
+
+    def __init__(self, ema, oneminusema_correction=True):
+        self.ema = ema
+        self.ema_data = {}
+        self._updates = 0
+        self._oneminusema_correction = oneminusema_correction
+
+    def update(self, dict_data):
+        ema_dict_data = {}
+        for name, data in dict_data.items():
+            data = data.view(1, -1)
+            if self._updates == 0:
+                previous_data = torch.zeros_like(data)
+            else:
+                previous_data = self.ema_data[name]
+
+            ema_data = self.ema * previous_data + (1 - self.ema) * data
+            if self._oneminusema_correction:
+                # correction by 1/(1 - self.ema)
+                # so that the gradients amplitude backpropagated in data is independent of self.ema
+                ema_dict_data[name] = ema_data / (1 - self.ema)
+            else:
+                ema_dict_data[name] = ema_data
+            self.ema_data[name] = ema_data.clone().detach()
+
+        self._updates += 1
+        return ema_dict_data
+

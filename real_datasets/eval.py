@@ -54,16 +54,27 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     df = pd.DataFrame(
         columns=['dataset', 'algo', 'seed', 'ckpt', 'split', 'method', 'clf_type', 'C', 'pca_dim', 'd_spu', 'ISR_class',
                  'ISR_scale', 'env_label_ratio','num_iter','gradient_alpha','hessian_beta'] +
+                ['ema', 'lambda', 'penalty_anneal_iters'] if args.hessian_approx_method == 'fishr' else [] +
                 [f'acc-{g}' for g in groups] + ['worst_group', 'avg_acc', 'worst_acc', ])
+
     base_row = {'dataset': args.dataset, 'algo': args.algo,
                 'seed': args.seed, 'ckpt': args.model_select,
-                'num_iter': args.max_iter, 'gradient_alpha': args.alpha, 'hessian_beta': args.beta}
+                'num_iter': args.max_iter,
+                'gradient_alpha': args.alpha,
+                'hessian_beta': args.beta,
+                'ema' : args.ema,
+                'lambda': args.lam,
+                'penalty_anneal_iters': args.penalty_anneal_iters
+        }
 
     # Need to convert group labels to env labels (i.e., spurious-attribute labels)
     es, val_es, test_es = group2env(gs, n_spu_attr), group2env(val_gs, n_spu_attr), group2env(test_gs, n_spu_attr)
 
     # eval_groups = np.array([0] + list(range(n_groups)))
-    if args.hessian_approx_method is not None:
+    if args.hessian_approx_method in ['Fishr','fishr']:
+        args.hessian_approx_method = 'fishr'
+        method = f'Fishr-{args.ISR_version.capitalize()}'
+    elif args.hessian_approx_method is not None:
         method = f'HISR-{args.hessian_approx_method}-{args.ISR_version.capitalize()}'
     else:
         method = f'ISR-{args.ISR_version.capitalize()}'
@@ -100,10 +111,19 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     ISR_classes = np.arange(
         n_classes) if args.ISR_class is None else [args.ISR_class]
 
-    clf_kwargs = dict(C=args.C, max_iter=args.max_iter, random_state=args.seed, gradient_hyperparam = args.alpha, hessian_hyperparam = args.beta)
+    clf_kwargs = dict(C=args.C, max_iter=args.max_iter,
+                      random_state=args.seed,
+                      gradient_hyperparam = args.alpha,
+                      hessian_hyperparam = args.beta,
+                      ema = args.ema,
+                      lam = args.lam,
+                      penalty_anneal_iters = args.penalty_anneal_iters
+
+                      )
     if args.ISR_version == 'mean': args.d_spu = n_spu_attr - 1
     isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
-                        clf_type='LogisticRegression', clf_kwargs=clf_kwargs, )
+                        clf_type='LogisticRegression',
+                             clf_kwargs=clf_kwargs, )
 
     isr_clf.fit_data(zs, ys, es, n_classes=n_classes, n_envs=n_spu_attr)
     if type(args.alpha) != list:
@@ -116,9 +136,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         betas = args.beta
 
     for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, alphas, betas)), desc='ISR iter', leave=False):
-
         isr_clf.set_params(chosen_class=ISR_class, spu_scale=ISR_scale)
-
         if args.ISR_version == 'mean':
             isr_clf.fit_isr_mean(chosen_class=ISR_class, )
         elif args.ISR_version == 'cov':
@@ -126,7 +144,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         else:
             raise ValueError('Unknown ISR version')
 
-        isr_clf.fit_clf(zs, ys, es, given_clf=given_clf, sample_weight=sample_weight, hessian_approx= args.hessian_approx_method, alpha=args.alpha, beta=args.beta)
+        isr_clf.fit_clf(zs, ys, es, args, given_clf=given_clf, sample_weight=sample_weight, hessian_approx= args.hessian_approx_method, alpha=args.alpha, beta=args.beta)
         for (split, eval_zs, eval_ys, eval_gs) in [('val', val_zs, val_ys, val_gs),
                                                    ('test', test_zs, test_ys, test_gs)]:
             group_accs, worst_acc, worst_group = measure_group_accs(
@@ -151,8 +169,12 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     if not args.no_save:
         Path(args.save_dir).mkdir(parents=True,
                                   exist_ok=True)  # make dir if not exists
-        save_path = os.path.join(args.save_dir,
-                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+        if args.hessian_approx_method == 'fishr':
+            save_path = os.path.join(args.save_dir,
+                                     f"{args.dataset}_results{args.file_suffix}_s{args.seed}_fishr.csv")
+        else:
+            save_path = os.path.join(args.save_dir,
+                                     f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
         save_df(df, save_path, subset=None, verbose=args.verbose)
         print(f"Saved to {args.save_dir} as {save_path}")
     return df
@@ -192,10 +214,14 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
     argparser.add_argument('--alpha', default=1e-4, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=1e-2, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
+    argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
+    argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
+    argparser.add_argument('--penalty_anneal_iters', default=int, action=1500, help='fishr penalty anneal iters')
+
     config = argparser.parse_args(args=args)
 
     print("Specs:", specs)
@@ -205,9 +231,21 @@ def parse_args(args: list = None, specs: dict = None):
     return config
 
 
-def run_experiment(args,alpha, beta, seed, dataset):
-    print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {dataset}")
-    eval_ISR(args)
+def run_fishr(dataset):
+    seed_list = [0, 1, 2, 3, 4]
+    lambda_list = 10 ** np.linspace(1, 4, 7)
+    penalty_anneal_iters_list = np.linspace(0,5000,6)
+    ema_list = np.linspace(0.9, 0.99, 10)
+    for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
+        args = parse_args()
+        args.dataset = dataset
+        args.seed = seed
+        args.lam = lam
+        args.penalty_anneal_iters = penalty_anneal_iters
+        args.ema = ema
+        eval_ISR(args)
+
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -286,30 +324,26 @@ if __name__ == '__main__':
         seed_list = [0, 1, 2, 3,4]
     # seed_list = [0]
     # for (alpha, beta), seed in product(parameter_pairs, seed_list):
-    for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-        if (alpha, beta) in parameter_pairs:
-            continue
-        # if seed == 0 and (alpha == 0.0001 and beta == 0):
-        #     continue
-        # if seed == 0 and (alpha == 0 and beta == 0):
-        #     continue
-        # if seed == 2 and (alpha == 0 and beta == 0):
-        #     continue
-        # if seed == 3 and (alpha == 0 and beta == 0):
-        #     continue
-        # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-        args.alpha = alpha
-        args.beta = beta
-        args.seed = seed
-        print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-        eval_ISR(args)
-    # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-    #     print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-    #     args.alpha = alpha
-    #     args.beta = beta
-    #     args.seed = seed
-    for seed in seed_list:
-        args.seed = seed
-        # eval_ISR(args)
+    if args.hessian_approx_method == 'fishr':
+        run_fishr(args.dataset)
+    else:
+        for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
+            if (alpha, beta) in parameter_pairs:
+                continue
+            # if seed == 0 and (alpha == 0.0001 and beta == 0):
+            #     continue
+            # if seed == 0 and (alpha == 0 and beta == 0):
+            #     continue
+            # if seed == 2 and (alpha == 0 and beta == 0):
+            #     continue
+            # if seed == 3 and (alpha == 0 and beta == 0):
+            #     continue
+            # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+            args.alpha = alpha
+            args.beta = beta
+            args.seed = seed
+            print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
+            eval_ISR(args)
+
 
 
