@@ -708,7 +708,6 @@ class HISRClassifier:
                 # init optimizer
                 self.optimizer = optim.SGD(self.classifier.parameters(), lr=0.001)
         self.update_count += 1
-        print(self.update_count)
         objective = all_nll + penalty_weight * penalty
         return objective, all_nll, penalty, penalty_weight
 
