@@ -495,7 +495,6 @@ class HISRClassifier:
     def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5):
         # for params in model.parameters():
         #     params.requires_grad = True
-        total_loss = torch.tensor(0.0, requires_grad=True)
         env_gradients = []
         env_hessians = []
         # env_hessians_original = []
@@ -554,6 +553,7 @@ class HISRClassifier:
             avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
 
 
+        total_loss = torch.tensor(0.0, requires_grad=True)
         erm_loss = 0
         hess_loss = 0
         grad_loss = 0
@@ -566,10 +566,10 @@ class HISRClassifier:
                 num_samples = 1
             else:
                 num_samples = len(idx)
-            y_env = y[idx]
-            logits_env = logits[idx]
+            # y_env = y[idx]
+            # logits_env = logits[idx]
             env_fraction = len(idx) / len(env_indices)
-            loss = self.loss_fn(logits_env.squeeze(), y_env.long())
+            # loss = self.loss_fn(logits_env.squeeze(), y_env.long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm, grad_reg = 0, 0
             hessian_diff_norm, hessian_reg = 0, 0
@@ -589,15 +589,13 @@ class HISRClassifier:
             # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
             # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
 
-
-
-
-            total_loss = total_loss + (loss + hessian_reg + grad_reg) * env_fraction
+            total_loss = total_loss + (hessian_reg + grad_reg) * env_fraction
             # total_loss = total_loss + loss
-            erm_loss += loss * env_fraction
+            # erm_loss += loss * env_fraction
             grad_loss += alpha * grad_reg * env_fraction
             hess_loss += beta * hessian_reg * env_fraction
-
+        erm_loss = self.loss_fn(logits.squeeze(), y.long())
+        total_loss = total_loss + erm_loss
         # n_unique_envs = len(4)
         # print("Number of unique envs:", n_unique_envs)
         # total_loss = total_loss / n_unique_envs
@@ -710,6 +708,7 @@ class HISRClassifier:
                 # init optimizer
                 self.optimizer = optim.SGD(self.classifier.parameters(), lr=0.001)
         self.update_count += 1
+        print(self.update_count)
         objective = all_nll + penalty_weight * penalty
         return objective, all_nll, penalty, penalty_weight
 

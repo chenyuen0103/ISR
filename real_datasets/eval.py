@@ -220,7 +220,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default=int, action=1500, help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 1500, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -231,19 +231,34 @@ def parse_args(args: list = None, specs: dict = None):
     return config
 
 
-def run_fishr(dataset):
+def run_fishr(args):
     seed_list = [0, 1, 2, 3, 4]
+    # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
     lambda_list = 10 ** np.linspace(1, 4, 7)
     penalty_anneal_iters_list = np.linspace(0,5000,6)
     ema_list = np.linspace(0.9, 0.99, 10)
-    for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
-        args = parse_args()
-        args.dataset = dataset
-        args.seed = seed
-        args.lam = lam
-        args.penalty_anneal_iters = penalty_anneal_iters
-        args.ema = ema
-        eval_ISR(args)
+
+    def sample_hyperparams(seed):
+        np.random.seed(seed)
+        lam = np.random.choice(lambda_list)
+        penalty_anneal_iters = np.random.choice(penalty_anneal_iters_list)
+        ema = np.random.choice(ema_list)
+        return lam, penalty_anneal_iters, ema
+
+    for i in range(50):
+        lam, penalty_anneal_iters, ema = sample_hyperparams(i)
+        for seed in seed_list:
+            args.seed = seed
+            args.lam = lam
+            args.penalty_anneal_iters = penalty_anneal_iters
+            args.ema = ema
+            eval_ISR(args)
+    # for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
+    #     args.seed = seed
+    #     args.lam = lam
+    #     args.penalty_anneal_iters = penalty_anneal_iters
+    #     args.ema = ema
+    #     eval_ISR(args)
 
 
 
@@ -325,7 +340,7 @@ if __name__ == '__main__':
     # seed_list = [0]
     # for (alpha, beta), seed in product(parameter_pairs, seed_list):
     if args.hessian_approx_method == 'fishr':
-        run_fishr(args.dataset)
+        run_fishr(args)
     else:
         for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
             if (alpha, beta) in parameter_pairs:
