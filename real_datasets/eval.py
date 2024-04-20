@@ -306,7 +306,8 @@ if __name__ == '__main__':
     if args.hessian_approx_method == 'fishr':
         run_fishr(args)
     else:
-        for alpha, beta in product(alpha_list, beta_list):
+        # for alpha, beta in product(alpha_list, beta_list):
+        for alpha, beta in alpha_beta_list:
             args.alpha = alpha
             args.beta = beta
             for seed in seed_list:
