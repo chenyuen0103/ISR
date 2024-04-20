@@ -791,7 +791,7 @@ class HISRClassifier:
                 #           "\tNLL Loss:", erm_loss,
                 #           "\tPenalty:", penalty,
                 #           "\tPenalty Weight:", penalty_weight)
-                if args.apprpx_type == "fishr":
+                if approx_type == "fishr":
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(), penalty=penalty, penalty_weight=penalty_weight)
                 else:
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty, alpha = alpha, grad_penalty=grad_penalty)
