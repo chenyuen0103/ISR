@@ -778,21 +778,23 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()
 
-                if epoch % 100 == 0 and approx_type == "exact":
-                    print("Epoch:", epoch,
-                          "\tLoss:", total_loss.item(),
-                          "\tERM Loss:", erm_loss,
-                          "\tGradient Reg:", grad_penalty,
-                          "\tHessian Reg:", hess_penalty)
-
-                elif epoch % 100 == 0 and approx_type == "fishr":
-                    print("Epoch:", epoch,
-                          "\tLoss:", total_loss.item(),
-                          "\tNLL Loss:", erm_loss,
-                          "\tPenalty:", penalty,
-                          "\tPenalty Weight:", penalty_weight)
-
-                pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty, alpha = alpha, grad_penalty=grad_penalty)
+                # if epoch % 100 == 0 and approx_type == "exact":
+                #     print("Epoch:", epoch,
+                #           "\tLoss:", total_loss.item(),
+                #           "\tERM Loss:", erm_loss,
+                #           "\tGradient Reg:", grad_penalty,
+                #           "\tHessian Reg:", hess_penalty)
+                #
+                # elif epoch % 100 == 0 and approx_type == "fishr":
+                #     print("Epoch:", epoch,
+                #           "\tLoss:", total_loss.item(),
+                #           "\tNLL Loss:", erm_loss,
+                #           "\tPenalty:", penalty,
+                #           "\tPenalty Weight:", penalty_weight)
+                if args.appr_type == "fishr":
+                    pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(), penalty=penalty, penalty_weight=penalty_weight)
+                else:
+                    pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty, alpha = alpha, grad_penalty=grad_penalty)
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):

@@ -249,9 +249,9 @@ def parse_args(args: list = None, specs: dict = None):
 def run_fishr(args):
     seed_list = [0, 1, 2, 3, 4]
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
-    lambda_list = 10 ** np.linspace(1, 4, 7)
+    lambda_list = 10 ** np.linspace(1, 4, 4)
     penalty_anneal_iters_list = np.linspace(0,5000,6)
-    ema_list = np.linspace(0.9, 0.99, 10)
+    ema_list = np.linspace(0.9, 0.99, 3)
 
     def sample_hyperparams(seed):
         np.random.seed(seed)
@@ -260,8 +260,9 @@ def run_fishr(args):
         ema = np.random.choice(ema_list)
         return lam, penalty_anneal_iters, ema
 
-    for i in range(50):
-        lam, penalty_anneal_iters, ema = sample_hyperparams(i)
+    # for i in range(50):
+        # lam, penalty_anneal_iters, ema = sample_hyperparams(i)
+    for lam, penalty_anneal_iters, ema in product(lambda_list, penalty_anneal_iters_list, ema_list):
         for seed in seed_list:
             args.seed = seed
             args.lam = lam

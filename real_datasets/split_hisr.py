@@ -258,21 +258,21 @@ def main():
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir='./logs/ISR_hessian_results_bert_scaled')
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert')
     # print(cubs_val)
-    worst_case = True
+    worst_case = False
     # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv')
 
-    # find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
+    find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
     # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
-    # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
+    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
     find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
     # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
-    # find_best_isr(worst_case = worst_case)
+    find_best_isr(worst_case = worst_case)
     # find_best_gm(worst_case = worst_case)
-    # find_best_hm(worst_case = worst_case)
+    find_best_hm(worst_case = worst_case)
     find_best_gm_hm(worst_case = worst_case)
     # find_best_fishr(worst_case = worst_case)
 
