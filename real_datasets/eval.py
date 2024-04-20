@@ -284,6 +284,8 @@ if __name__ == '__main__':
     # alpha_list = 10 ** np.linspace(-8, 3, 12)
     alpha_list = 10 ** np.linspace(-1, 3, 5)
     beta_list = 10 ** np.linspace(-1, 3, 5)
+
+    alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
     penalty_anneal_iters_list = np.linspace(0, 5000, 6)
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
@@ -308,6 +310,7 @@ if __name__ == '__main__':
             args.alpha = alpha
             args.beta = beta
             for seed in seed_list:
+                print(f"Running alpha = {alpha}, beta = {beta}, seed = {seed}")
                 args.seed = seed
                 eval_ISR(args)
 
