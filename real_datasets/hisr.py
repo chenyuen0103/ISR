@@ -792,7 +792,7 @@ class HISRClassifier:
                           "\tPenalty:", penalty,
                           "\tPenalty Weight:", penalty_weight)
 
-                pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty.item(), alpha = alpha, grad_penalty=grad_penalty.item())
+                pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty, alpha = alpha, grad_penalty=grad_penalty)
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
