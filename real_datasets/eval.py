@@ -76,10 +76,10 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     df_check = pd.read_csv(save_path) if os.path.exists(save_path) else None
 
 
-    if 'ema' or 'lambda' or 'penalty_anneal_iters' not in df_check.columns:
-        df_check['ema'] = args.ema
-        df_check['lambda'] = args.lam
-        df_check['penalty_anneal_iters'] = args.penalty_anneal_iters
+    # if df_check is not None and 'ema' or 'lambda' or 'penalty_anneal_iters' not in df_check.columns:
+    #     df_check['ema'] = args.ema
+    #     df_check['lambda'] = args.lam
+    #     df_check['penalty_anneal_iters'] = args.penalty_anneal_iters
 
     df_check_base = df_check[['dataset', 'algo', 'seed', 'ckpt','num_iter','gradient_alpha','hessian_beta']].drop_duplicates() if df_check is not None else None
 
