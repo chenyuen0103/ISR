@@ -214,7 +214,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert')
+    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert_scaled')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
 
@@ -231,7 +231,7 @@ def parse_args(args: list = None, specs: dict = None):
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=100, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=0.001, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
@@ -245,13 +245,6 @@ def parse_args(args: list = None, specs: dict = None):
         config.__dict__.update(specs)
     return config
 
-
-def sample_hyperparams_hessian(seed):
-    np.random.seed(seed)
-    lam = np.random.choice(lambda_list)
-    penalty_anneal_iters = np.random.choice(penalty_anneal_iters_list)
-    ema = np.random.choice(ema_list)
-    return lam, penalty_anneal_iters, ema
 
 def run_fishr(args):
     seed_list = [0, 1, 2, 3, 4]
@@ -289,123 +282,35 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
     # alpha_list = 10 ** np.linspace(-8, 3, 12)
-    alpha_list = 10 ** np.linspace(0, 3, 9)
-    beta_list = 10 ** np.linspace(0, 3, 9)
+    alpha_list = 10 ** np.linspace(-1, 3, 5)
+    beta_list = 10 ** np.linspace(-1, 3, 5)
     penalty_anneal_iters_list = np.linspace(0, 5000, 6)
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        parameter_pairs = [
-        (0, 0.001),
-        (0, 0.01),
-        (0, 0.0001),
-        (0.1, 0),
-        (0.1, 0.0001),
-        (0, 0),
-        (0, 0.0001),
-        (1e-7, 0),
-        (1e-5, 0),
-        (0.01, 1e-6),
-        (1e-5, 1e-6),
-        (1e-6, 1e-6),
-            (1e-3, 1e-6),
-            (1e-1, 1e-6),
-            (1e-7, 1e-6),
-    ]
         args.max_iter = 300
-        args.save_dir = './logs/ISR_Hessian_results_ViT-B'
+        args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
     if args.dataset == 'CelebA':
-        parameter_pairs = [
-        (0, 0),
-        (0, 0.1),
-        (0, 0.0001),
-        (0.01, 1e-6),
-        (1e-5, 1e-6),
-        (1e-6, 1e-6),
-        (1e-7, 0),
-        (1e-5, 0),
-        (0.0001, 0),
-        (0.001, 0),
-        (0.0001, 0.0001),
-        (0.0001, 0.1),
-        (0, 0.01),
-    ]
         args.max_iter = 50
-        args.save_dir = './logs/ISR_Hessian_results_ViT-B'
+        args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
     if args.dataset == 'MultiNLI':
-        parameter_pairs = [
-        (0, 0),
-        # (0, 0.01),
-        # (0, 0.0001),
-        # (0, 1e-6),
-        # (0.01, 0),
-        # (0.0001, 0),
-        # (1e-6, 0),
-        # (0.0001, 0.01),
-        #     (0.0001, 0.001),
-        #     (0.001, 0.0001),
-        #     (1e-5, 0.0001),
-        #     (0.0001, 1e-5),
-        #     (1e-3, 1e-3),
-            (1e-3, 1e-2),
-            (1e-2, 1e-3),
-            (1e-1, 1e-2),
-            (1e-1, 1e-3)
-
-        # (0.0001, 0.0001),
-        # (0.01, 1e-6),
-        # (0.01, 1e-6),
-        # (1e-4, 1e-6),
-        # (1e-6, 1e-6),
-        # (1e-6, 0.0001),
-        # (1e-6, 0.01),
-
-        ]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
-    # seed_list = [0]
-    # for (alpha, beta), seed in product(parameter_pairs, seed_list):
-    # eval_ISR(args)
+
     if args.hessian_approx_method == 'fishr':
         run_fishr(args)
     else:
-        def sample_hyperparams_hessian(seed):
-            np.random.seed(seed)
-            alpha = 10 ** np.random.uniform(-8, 3)
-            penalty_anneal_iters = np.random.choice(penalty_anneal_iters_list)
-            beta = 10 ** np.random.uniform(-8, 3)
-            return alpha, penalty_anneal_iters, beta
-
-        # for alpha, beta, seed in product(alpha_list, beta_list, seed_list):
-        for i in range(50):
-            alpha, penalty_anneal_iters, beta = sample_hyperparams_hessian(i)
+        for alpha, beta in product(alpha_list, beta_list):
             args.alpha = alpha
             args.beta = beta
-            args.penalty_anneal_iters = penalty_anneal_iters
             for seed in seed_list:
                 args.seed = seed
                 eval_ISR(args)
 
-        #     if (alpha, beta) in parameter_pairs:
-        #         continue
-            # if seed == 0 and (alpha == 0.0001 and beta == 0):
-            #     continue
-            # if seed == 0 and (alpha == 0 and beta == 0):
-            #     continue
-            # if seed == 2 and (alpha == 0 and beta == 0):
-            #     continue
-            # if seed == 3 and (alpha == 0 and beta == 0):
-            #     continue
-            # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-            # args.alpha = alpha
-            # args.beta = beta
-            # args.seed = seed
-            # print(f"Running for alpha = {alpha}, beta = {beta}, seed = {seed} in {args.dataset}")
-            # eval_ISR(args)
 
 
 

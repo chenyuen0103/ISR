@@ -306,7 +306,7 @@ class HISRClassifier:
 
         # Normalize Hessian by the batch size
         H /= batch_size
-
+        H /= dC
         return H
 
         # # Compute the probabilities for each class
@@ -355,6 +355,8 @@ class HISRClassifier:
         # Stack the gradients for both classes
         # grad_w2 = torch.stack([grad_w_class1, grad_w_class0], dim=0)
         # assert torch.allclose(grad_w, grad_w2), "Gradient computation is incorrect"
+
+        grad_w /= (grad_w.shape[1]) ** 0.5
         return grad_w
 
     def calc_hessian_diag(self, model, loss_grad, repeat=1000):
@@ -581,6 +583,7 @@ class HISRClassifier:
                 hessian_diff = hessian - avg_hessian
                 # hessian_diff_original = hessian_original - avg_hessian_original
                 hessian_diff_norm = torch.norm(hessian_diff, p='fro')
+
                 hessian_reg = beta * hessian_diff_norm ** 2
                 # hessian_diff_norm_original = torch.norm(hessian_diff_original, p='fro')
                 # assert torch.allclose(hessian_diff_norm, hessian_diff_norm_original), "Hessian computation is incorrect"
@@ -592,8 +595,8 @@ class HISRClassifier:
             total_loss = total_loss + (hessian_reg + grad_reg) * env_fraction
             # total_loss = total_loss + loss
             # erm_loss += loss * env_fraction
-            grad_loss += alpha * grad_reg * env_fraction
-            hess_loss += beta * hessian_reg * env_fraction
+            grad_loss += grad_reg * env_fraction
+            hess_loss += hessian_reg * env_fraction
         erm_loss = self.loss_fn(logits.squeeze(), y.long())
         total_loss = total_loss + erm_loss
         # n_unique_envs = len(4)
@@ -757,9 +760,9 @@ class HISRClassifier:
             for epoch in pbar:
                 for x_batch, y_batch, envs_indices_batch in dataloader:
                     x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
-                    if approx_type == "control" or self.update_count < args.penalty_anneal_iters:
+                    if approx_type == "control":
                         total_loss = self.loss_fn(model(x_batch).squeeze(), y_batch.long())
-                        erm_loss = total_loss.item
+                        erm_loss = total_loss.item()
                         hess_penalty = 0
                         grad_penalty = 0
                         self.update_count += 1
@@ -788,6 +791,8 @@ class HISRClassifier:
                           "\tNLL Loss:", erm_loss,
                           "\tPenalty:", penalty,
                           "\tPenalty Weight:", penalty_weight)
+
+                pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty.item(), alpha = alpha, grad_penalty=grad_penalty.item())
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):

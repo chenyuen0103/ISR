@@ -49,10 +49,12 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
 
     # Concatenate all the dataframes in the list
     merged_df = pd.concat(df_list, ignore_index=True)
+    if 'penalty_anneal_iters' not in merged_df.columns:
+        merged_df['penalty_anneal_iters'] = 0
     if 'fishr' in file_name_pattern:
         merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc']]
     else:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc']]
     if 'CUB' in file_name_pattern:
         merged_df = merged_df[merged_df['num_iter']==300]
     elif 'CelebA' in file_name_pattern:
@@ -66,6 +68,7 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
             'worst_acc': ['mean', 'sem']
         })
     else:
+        merged_df.fillna(0, inplace=True)
         grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
                                 'num_iter', 'gradient_alpha', 'hessian_beta']).agg({
             'avg_acc': ['mean', 'sem'],
@@ -89,7 +92,7 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     else:
         val.to_csv(f'{data_dir}/{dataset}_{num_runs}runs_val.csv', index=False)
         test.to_csv(f'{data_dir}/{dataset}_{num_runs}runs_test.csv', index=False)
-    print(f"Saved {dataset}_{num_runs}runs_val.csv and {dataset}_{num_runs}runs_test.csv in {data_dir}")
+    # print(f"Saved {dataset}_{num_runs}runs_val.csv and {dataset}_{num_runs}runs_test.csv in {data_dir}")
     return val, test
 
 def find_best_isr(data_dir='./logs/ISR_hessian_results_ViT-B', file_name='CUB_5runs_val.csv', worst_case = False):
@@ -258,18 +261,18 @@ def main():
     worst_case = True
     find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
     find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv')
 
     find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
     # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
-    # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
     find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
-    find_best_fishr(worst_case = worst_case, file_name='MultiNLI_2runs_fishr_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+    find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir='./logs/ISR_hessian_results_bert')
     find_best_isr(worst_case = worst_case)
     # find_best_gm(worst_case = worst_case)
-    # find_best_hm(worst_case = worst_case)
+    find_best_hm(worst_case = worst_case)
     find_best_gm_hm(worst_case = worst_case)
     find_best_fishr(worst_case = worst_case)
 
