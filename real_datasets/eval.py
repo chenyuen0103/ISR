@@ -284,8 +284,12 @@ if __name__ == '__main__':
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
     # alpha_list = 10 ** np.linspace(-8, 3, 12)
     # alpha_list = 10 ** np.linspace(-1, 3, 5)
-    alpha_list = [2000]
-    beta_list = [0] + list(10 ** np.linspace(-1, 3, 5))
+    # alpha_list = [2000]
+    # beta_list = [0] + list(10 ** np.linspace(-1, 3, 5))
+
+    alpha_list = [1.96 * 10 ** -4]
+    beta_list = [7.4 * 10 **4]
+    # beta_list = [5000]
 
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
     penalty_anneal_iters_list = np.linspace(0, 5000, 6)
@@ -308,13 +312,13 @@ if __name__ == '__main__':
     if args.hessian_approx_method == 'fishr':
         run_fishr(args)
     else:
-        for alpha, beta in product(alpha_list, beta_list):
-        # for alpha, beta in alpha_beta_list:
-            args.alpha = alpha
-            args.beta = beta
-            for seed in seed_list:
-                print(f"Running alpha = {alpha}, beta = {beta}, seed = {seed}")
+        for seed in seed_list:
+            for alpha, beta in product(alpha_list, beta_list):
+            # for alpha, beta in alpha_beta_list:
+                args.alpha = alpha
+                args.beta = beta
                 args.seed = seed
+                print(f"Running alpha = {alpha}, beta = {beta}, seed = {seed}")
                 eval_ISR(args)
 
 
