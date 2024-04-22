@@ -252,29 +252,29 @@ def main():
     multiNLI_fishr = 'MultiNLI_results_s*_fishr.csv'
 
     cubs_val, cubs_test = merge_seeds()
-    # merge_seeds(file_name_pattern=cub_fishr)
+    merge_seeds(file_name_pattern=cub_fishr)
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
-    # merge_seeds(file_name_pattern=celeba_fishr)
+    merge_seeds(file_name_pattern=celeba_fishr)
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir='./logs/ISR_hessian_results_bert_scaled')
-    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert')
+    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert_scaled')
     # print(cubs_val)
-    worst_case = False
-    # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
-    # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv')
+    worst_case = True
+    find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv')
+    find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv')
 
     find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
-    # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert')
+    find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
     find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
     find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
-    # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
+    find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir='./logs/ISR_hessian_results_bert_scaled')
     find_best_isr(worst_case = worst_case)
-    # find_best_gm(worst_case = worst_case)
+    find_best_gm(worst_case = worst_case)
     find_best_hm(worst_case = worst_case)
     find_best_gm_hm(worst_case = worst_case)
-    # find_best_fishr(worst_case = worst_case)
+    find_best_fishr(worst_case = worst_case)
 
 if __name__ == '__main__':
     main()

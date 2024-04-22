@@ -283,7 +283,8 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
     # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
     # alpha_list = 10 ** np.linspace(-8, 3, 12)
-    alpha_list = 10 ** np.linspace(-1, 3, 5)
+    # alpha_list = 10 ** np.linspace(-1, 3, 5)
+    alpha_list = 10 ** 4
     beta_list = 10 ** np.linspace(-1, 3, 5)
 
     alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
