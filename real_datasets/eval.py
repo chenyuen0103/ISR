@@ -332,8 +332,8 @@ if __name__ == '__main__':
     if args.dataset == 'MultiNLI':
         alpha_list = 10 ** np.linspace(-1, 1, 3)
         beta_list = 10 ** np.linspace(-1, 1, 3)
-        alpha_list = [1]
-        beta_list = [0.1]
+        # alpha_list = [1]
+        # beta_list = [0.1]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
         penalty_anneal_iters_list = np.linspace(0, 600, 5)[1:]
