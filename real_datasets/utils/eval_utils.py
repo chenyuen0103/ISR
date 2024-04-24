@@ -86,7 +86,7 @@ def measure_group_accs_transformed(clf, zs, ys, gs, include_avg_acc=True):
         if acc < worst_acc:
             worst_group = g
             worst_acc = acc
-    clf = clf.to(orignal_device)
+    clf = clf.to(original_device)
     return accs, worst_acc, worst_group
 
 def group2env(groups, n_envs):
