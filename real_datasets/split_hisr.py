@@ -70,7 +70,7 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     else:
         merged_df.fillna(0, inplace=True)
         grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
-                                'num_iter', 'gradient_alpha', 'hessian_beta']).agg({
+                                'num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters']).agg({
             'avg_acc': ['mean', 'sem'],
             'worst_acc': ['mean', 'sem']
         })
@@ -166,6 +166,7 @@ def find_best_hps(val_df, test_df, worst_case = False):
         'num_iter': best_val_hyperparameters['num_iter'],
         'gradient_alpha': best_val_hyperparameters['gradient_alpha'],
         'hessian_beta': best_val_hyperparameters['hessian_beta'],
+        'penalty_anneal_iters': 0 if 'penalty_anneal_iters' not in best_val_hyperparameters else best_val_hyperparameters['penalty_anneal_iters'],
     }
 
     # Filter the test set for these hyperparameters
@@ -174,12 +175,13 @@ def find_best_hps(val_df, test_df, worst_case = False):
         (test_df['ISR_scale'] == best_hyperparameters['ISR_scale']) &
         (test_df['num_iter'] == best_hyperparameters['num_iter']) &
         (test_df['gradient_alpha'] == best_hyperparameters['gradient_alpha']) &
-        (test_df['hessian_beta'] == best_hyperparameters['hessian_beta'])
+        (test_df['hessian_beta'] == best_hyperparameters['hessian_beta']) &
+        (test_df['penalty_anneal_iters'] == best_hyperparameters['penalty_anneal_iters'])
     ]
     pd.set_option('display.max_columns', None)
 
     # Display the performance on the test set
-    print("Performance on test for best",f"{'worst case accuracy' if worst_case else 'average accuracy'}"  ":\n", best_test_performance[['dataset', 'split','gradient_alpha','hessian_beta','avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem']])
+    print("Performance on test for best",f"{'worst case accuracy' if worst_case else 'average accuracy'}"  ":\n", best_test_performance[['dataset', 'split','gradient_alpha','hessian_beta','penalty_anneal_iters', 'avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem']])
 
     return best_hyperparameters, best_test_performance
 
@@ -261,11 +263,11 @@ def main():
     worst_case = True
     data_dir_vit = './logs/ISR_Hessian_results_ViT-B_scaled'
     data_dir_bert = './logs/ISR_Hessian_results_bert_scaled'
-    find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir_vit)
+    # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir_vit)
 
     find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
     find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)

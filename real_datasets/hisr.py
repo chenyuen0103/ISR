@@ -657,11 +657,11 @@ class HISRClassifier:
 
     def _get_grads_var_per_domain(self, dict_grads, env_indices):
         # grads var per domain
-        # len_minibatches = [len(env_indices[env_indices == domain_id]) for domain_id in range(self.num_domains)]
-        grads_var_per_domain = [{} for _ in range(self.num_domains)]
+        # len_minibatches = [len(env_indices[env_indices == domain_id]) for domain_id in range(self.n_envs)]
+        grads_var_per_domain = [{} for _ in range(self.n_envs)]
         for name, _grads in dict_grads.items():
             all_idx = 0
-            for domain_id in range(self.num_domains):
+            for domain_id in range(self.n_envs):
                 idx = (env_indices == domain_id).nonzero().squeeze()
                 env_grads = _grads[idx]
                 # all_idx += bsize
@@ -670,7 +670,7 @@ class HISRClassifier:
                 grads_var_per_domain[domain_id][name] = (env_grads_centered).pow(2).mean(dim=0)
 
         # moving average
-        for domain_id in range(self.num_domains):
+        for domain_id in range(self.n_envs):
             grads_var_per_domain[domain_id] = self.ema_per_domain[domain_id].update(
                 grads_var_per_domain[domain_id]
             )
@@ -696,7 +696,7 @@ class HISRClassifier:
                     torch.stack(
                         [
                             grads_var_per_domain[domain_id][name]
-                            for domain_id in range(self.num_domains)
+                            for domain_id in range(self.n_envs)
                         ],
                         dim=0
                     ).mean(dim=0)
@@ -706,9 +706,9 @@ class HISRClassifier:
         )
 
         penalty = 0
-        for domain_id in range(self.num_domains):
+        for domain_id in range(self.n_envs):
             penalty += self.l2_between_dicts(grads_var_per_domain[domain_id], grads_var)
-        return penalty / self.num_domains
+        return penalty / self.n_envs
 
     def fishr_loss(self, logits, x, y, env_indices, args):
         penalty = self.compute_fishr_penalty(logits, y, env_indices)
@@ -814,7 +814,6 @@ class HISRClassifier:
 
     def fit_hessian_clf(self, x, y, envs_indices, args, approx_type = "exact", alpha = 1e-4, beta = 1e-4):
         # Create the model based on the model type
-        # self.num_domains = len(np.unique(envs_indices))
         num_iterations = self.clf_kwargs['max_iter']
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         num_classes = len(np.unique(y))
@@ -865,7 +864,7 @@ class HISRClassifier:
                     group_frac = group_count.float() / len(group_indices_batch)
                     env_count = torch.bincount(envs_indices_batch, minlength=self.n_envs)
                     env_frac = env_count.float() / len(envs_indices_batch)
-                    if approx_type == "control" or self.update_count < args.penalty_anneal_iters:
+                    if approx_type == "control" or (approx_type == 'exact' and self.update_count < args.penalty_anneal_iters):
                         # Find loss of each unique environment
                         group_losses = []
                         # a list of length n_envs, each element 0

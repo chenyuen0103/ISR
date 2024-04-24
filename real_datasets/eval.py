@@ -220,7 +220,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -255,7 +255,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 10, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 2000, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -330,8 +330,8 @@ if __name__ == '__main__':
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 8000, 5)[1:]
     if args.dataset == 'MultiNLI':
-        # alpha_list = 10 ** np.linspace(-2, 3, 6)
-        # beta_list = 10 ** np.linspace(-2, 3, 6)
+        alpha_list = 10 ** np.linspace(-1, 1, 3)
+        beta_list = 10 ** np.linspace(-1, 1, 3)
         alpha_list = [1]
         beta_list = [0.1]
         args.max_iter = 3
@@ -339,10 +339,13 @@ if __name__ == '__main__':
         penalty_anneal_iters_list = np.linspace(0, 600, 5)[1:]
 
     if args.hessian_approx_method == 'fishr':
-        run_fishr(args)
+        # run_fishr(args)
+        eval_ISR(args)
     else:
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
+                if alpha == 1 and beta == 0.1:
+                    continue
             # for alpha, beta in alpha_beta_list:
                 args.alpha = alpha
                 args.beta = beta
