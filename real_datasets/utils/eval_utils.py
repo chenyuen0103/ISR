@@ -73,7 +73,7 @@ def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
 import copy
 def measure_group_accs_transformed(clf, zs, ys, gs, include_avg_acc=True):
     accs = {}
-    oirignal_device = clf.device
+    original_device = next(clf.parameters()).device
     model = clf.to('cpu')
     if include_avg_acc:
         accs['avg_acc'] = model.score(zs, ys)
