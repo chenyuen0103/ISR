@@ -73,6 +73,7 @@ def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
 import copy
 def measure_group_accs_transformed(clf, zs, ys, gs, include_avg_acc=True):
     accs = {}
+    breakpoint()
     model = copy.deepcopy(clf)
     model = model.to('cpu')
     if include_avg_acc:
