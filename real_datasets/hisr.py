@@ -872,6 +872,7 @@ class HISRClassifier:
                         env_losses_weighted = torch.zeros(self.n_envs, device=x_batch.device)
                         for env_idx in range(self.n_envs):
                             idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+                            breakpoint()
                             env_loss = self.loss_fn(self.clf(x_batch[idx]).squeeze(), y_batch[idx].long())
                             env_losses_weighted[env_idx] = env_loss * env_frac_tensor[env_idx]
                         total_loss = env_losses_weighted.sum()
