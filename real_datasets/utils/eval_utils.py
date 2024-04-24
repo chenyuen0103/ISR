@@ -55,6 +55,7 @@ def save_df(df, save_path, subset=None, verbose=False, drop_duplicates=True):
 
 def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
     accs = {}
+    clf.clf = clf.clf.to('cpu')
     if include_avg_acc:
         accs['avg_acc'] = clf.score(zs, ys)
     worst_group = None
@@ -66,6 +67,7 @@ def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
         if acc < worst_acc:
             worst_group = g
             worst_acc = acc
+    clf.clf = clf.clf.to(clf.device)
     return accs, worst_acc, worst_group
 
 import copy

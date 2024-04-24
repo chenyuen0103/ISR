@@ -743,10 +743,6 @@ class HISRClassifier:
         val_grad_loss = 0
         for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
             stats = {}
-            group_indices = env2group(val_envs_indices, val_y, self.n_envs)
-            breakpoint()
-            group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
-                                                                    include_avg_acc=True)
             val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
             with torch.no_grad():
                 val_logits = self.clf(val_x_batch)
@@ -762,6 +758,10 @@ class HISRClassifier:
         val_hess_loss /= len(dataloader)
         val_grad_loss /= len(dataloader)
 
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+        breakpoint()
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                include_avg_acc=True)
         stats['anneal_iters']= args.penalty_anneal_iters
         stats['grad_alpha'] = args.alpha
         stats['hess_beta'] = args.beta
