@@ -1025,7 +1025,7 @@ class HISRClassifier:
         # build the constructor
         def __init__(self, n_inputs, n_outputs):
             super().__init__()
-            self.linear = torch.nn.Linear(n_inputs, n_outputs)
+            self.linear = torch.nn.Linear(n_inputs, n_outputs, bias = False)
 
         # make predictions
         def forward(self, x):
