@@ -728,6 +728,7 @@ class HISRClassifier:
 
     def validation_hessian_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
         self.clf.eval()
+        self.clf.to(device = val_x.device)
         transformed_val_x = self.transform(val_x)
         if not isinstance(transformed_val_x, torch.Tensor):
             transformed_val_x = torch.tensor(transformed_val_x).float()
