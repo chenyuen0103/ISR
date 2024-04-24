@@ -9,6 +9,8 @@ from tqdm import tqdm
 from collections import OrderedDict
 from backpack import backpack, extend
 from backpack.extensions import BatchGrad
+from utils.train_utils import CSVBatchLogger_ISR
+from utils.eval_utils import env2group, measure_group_accs, measure_group_accs_transformed
 import gc
 # from memory_profiler import profile
 import cProfile
@@ -104,13 +106,15 @@ class HISRClassifier:
     default_clf_kwargs = dict(C=1, max_iter=10000, random_state=0)
 
     def __init__(self, version: str = 'mean', hessian_approx_method = "exact", pca_dim: int = -1, d_spu: int = -1, spu_scale: float = 0,
-                 chosen_class=None, clf_type: str = 'LogisticRegression', clf_kwargs: dict = None,
+                 chosen_class=None, clf_type: str = 'LogisticRegression',  clf_kwargs: dict = None,
                  ):
         self.version = version
         self.hessian_approx_method = hessian_approx_method
         self.pca_dim = pca_dim
         self.d_spu = d_spu
         self.spu_scale = spu_scale
+
+
 
         self.clf_kwargs = HISRClassifier.default_clf_kwargs if clf_kwargs is None else clf_kwargs
         self.clf_type = clf_type
@@ -148,6 +152,7 @@ class HISRClassifier:
         # estimate the mean and covariance of each class per environment
         self.n_classes = check_labels(labels)
         self.n_envs = check_labels(envs)
+        self.n_groups =self.n_classes * self.n_envs
         if n_classes is not None: assert self.n_classes == n_classes
         if n_envs is not None: assert self.n_envs == n_envs
 
@@ -356,7 +361,9 @@ class HISRClassifier:
         # grad_w2 = torch.stack([grad_w_class1, grad_w_class0], dim=0)
         # assert torch.allclose(grad_w, grad_w2), "Gradient computation is incorrect"
 
-        grad_w /= (grad_w.shape[1]) ** 0.5
+        # dC = grad_w.shape[0] * grad_w.shape[1]
+        # grad_w /= (dC) ** 0.5
+        grad_w /=grad_w.shape[1] ** 0.5
         return grad_w
 
     def calc_hessian_diag(self, model, loss_grad, repeat=1000):
@@ -494,7 +501,7 @@ class HISRClassifier:
 
 
 
-    def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5):
+    def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5, stats = {}):
         # for params in model.parameters():
         #     params.requires_grad = True
         env_gradients = []
@@ -568,37 +575,39 @@ class HISRClassifier:
                 num_samples = 1
             else:
                 num_samples = len(idx)
-            # y_env = y[idx]
-            # logits_env = logits[idx]
+            y_env = y[idx]
+            logits_env = logits[idx]
             env_fraction = len(idx) / len(env_indices)
-            # loss = self.loss_fn(logits_env.squeeze(), y_env.long())
+            stats.update({f'env_frac:{env_idx}': env_fraction})
+            loss = self.loss_fn(logits_env.squeeze(), y_env.long())
             # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
             grad_diff_norm, grad_reg = 0, 0
             hessian_diff_norm, hessian_reg = 0, 0
             if alpha != 0:
                 grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
+
                 grad_reg = alpha * grad_diff_norm ** 2
             if beta != 0:
                 # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
                 hessian_diff = hessian - avg_hessian
                 # hessian_diff_original = hessian_original - avg_hessian_original
                 hessian_diff_norm = torch.norm(hessian_diff, p='fro')
-
                 hessian_reg = beta * hessian_diff_norm ** 2
+
                 # hessian_diff_norm_original = torch.norm(hessian_diff_original, p='fro')
                 # assert torch.allclose(hessian_diff_norm, hessian_diff_norm_original), "Hessian computation is incorrect"
-
-
-            # grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-            # hessian_reg = torch.trace((hessian - avg_hessian).t().matmul(hessian - avg_hessian))
-
-            total_loss = total_loss + (hessian_reg + grad_reg) * env_fraction
+            stats.update({f'erm_loss_env:{env_idx}': loss.item()})
+            stats.update({f'grad_penalty_env:{env_idx}': grad_diff_norm.item() if alpha != 0 else 0})
+            stats.update({f'hessian_penalty_env:{env_idx}': hessian_diff_norm.item() if beta != 0 else 0})
+            total_loss = total_loss + (loss + hessian_reg + grad_reg) * env_fraction
             # total_loss = total_loss + loss
-            # erm_loss += loss * env_fraction
+            erm_loss += loss * env_fraction
             grad_loss += grad_reg * env_fraction
             hess_loss += hessian_reg * env_fraction
-        erm_loss = self.loss_fn(logits.squeeze(), y.long())
-        total_loss = total_loss + erm_loss
+
+
+        # erm_loss = self.loss_fn(logits.squeeze(), y.long())
+        # total_loss = total_loss + erm_loss
         # n_unique_envs = len(4)
         # print("Number of unique envs:", n_unique_envs)
         # total_loss = total_loss / n_unique_envs
@@ -606,8 +615,11 @@ class HISRClassifier:
         # hess_loss = hess_loss / n_unique_envs
         # grad_loss = grad_loss / n_unique_envs
         # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
-
-        return total_loss, erm_loss, hess_loss, grad_loss
+        stats['total_loss'] = total_loss.item()
+        stats['erm_loss'] = erm_loss.item()
+        stats['hessian_loss'] = hess_loss.item() if beta != 0 else 0
+        stats['grad_loss'] = grad_loss.item() if alpha != 0 else 0
+        return total_loss, erm_loss, hess_loss, grad_loss, stats
     def compute_fishr_penalty(self, all_logits, all_y, all_env_indices):
         dict_grads = self._get_grads(all_logits, all_y)
         grads_var_per_domain = self._get_grads_var_per_domain(dict_grads, all_env_indices)
@@ -714,32 +726,110 @@ class HISRClassifier:
         objective = all_nll + penalty_weight * penalty
         return objective, all_nll, penalty, penalty_weight
 
-    # @profile
+    def validation_hessian_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
+        self.clf.eval()
+        transformed_val_x = self.transform(val_x)
+        if not isinstance(transformed_val_x, torch.Tensor):
+            transformed_val_x = torch.tensor(transformed_val_x).float()
+        if not isinstance(val_y, torch.Tensor):
+            val_y = torch.tensor(val_y).float()
+        if not isinstance(val_envs_indices, torch.Tensor):
+            val_envs_indices = torch.tensor(val_envs_indices).int()
+        datasets = TensorDataset(transformed_val_x, val_y, val_envs_indices)
+        dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+        val_total_loss = 0
+        val_erm_loss = 0
+        val_hess_loss = 0
+        val_grad_loss = 0
+        for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+            stats = {}
+            with torch.no_grad():
+                val_logits = self.clf(val_x_batch)
+                val_loss_batch, val_erm_loss_batch, val_hess_loss_batch, val_grad_loss_batch, _ = self.exact_hessian_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
+                val_total_loss += val_loss_batch
+                val_erm_loss += val_erm_loss_batch
+                val_hess_loss += val_hess_loss_batch
+                val_grad_loss += val_grad_loss_batch
+
+        val_total_loss /= len(dataloader)
+        val_erm_loss /= len(dataloader)
+        val_hess_loss /= len(dataloader)
+        val_grad_loss /= len(dataloader)
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices, include_avg_acc=True)
+        stats['anneal_iters']= args.penalty_anneal_iters
+        stats['grad_alpha'] = args.alpha
+        stats['hess_beta'] = args.beta
+        stats['total_loss'] = val_total_loss.item()
+        stats['erm_loss'] = val_erm_loss.item()
+        stats['hessian_loss'] = val_hess_loss.item() if args.beta != 0 else 0
+        stats['grad_loss'] = val_grad_loss.item() if args.alpha != 0 else 0
+        stats['worst_acc'] = worst_acc
+        stats['worst_group'] = worst_group
+
+        stats.update(group_accs)
+        csv_logger.log(epoch, 0, stats)
+        csv_logger.flush()
+
+    # def validation_erm_loss(self, epoch, val_x, val_y, val_envs_indices, args):
+    #     self.classifier.eval()
+    #     datasets = TensorDataset(val_x, val_y, val_envs_indices)
+    #     dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+    #     val_total_loss = 0
+    #     val_erm_loss = 0
+    #     val_hess_loss = 0
+    #     val_grad_loss = 0
+    #     for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+    #         stats = {}
+    #         with torch.no_grad():
+    #             val_logits = self.classifier(val_x_batch)
+    #             val_loss_batch = self.loss_fn(val_logits.squeeze(), val_y_batch.long())
+    #             val_total_loss += val_loss_batch
+    #
+    #     val_total_loss /= len(dataloader)
+    #     val_erm_loss = val_total_loss
+    #     group_accs, worst_acc, worst_group = measure_group_accs(self.classifier, val_x, val_y, val_envs_indices,
+    #                                                             include_avg_acc=True)
+    #     stats['grad_alpha'] = args.alpha
+    #     stats['hess_beta'] = args.beta
+    #     stats['total_loss'] = val_total_loss.item()
+    #     stats['erm_loss'] = val_erm_loss.item()
+    #     stats['hessian_loss'] = val_hess_loss
+    #     stats['grad_loss'] = val_grad_loss
+    #     stats['worst_acc'] = worst_acc
+    #     stats['worst_group'] = worst_group
+    #     stats['worst_acc'] = worst_acc
+    #     stats['worst_group'] = worst_group
+    #     stats.update(group_accs)
+    #     self.val_csv_logger.log(epoch, 0, stats)
+    #     self.val_csv_logger.flush()
+
+
+
+
     def fit_hessian_clf(self, x, y, envs_indices, args, approx_type = "exact", alpha = 1e-4, beta = 1e-4):
         # Create the model based on the model type
-        self.num_domains = len(np.unique(envs_indices))
+        # self.num_domains = len(np.unique(envs_indices))
         num_iterations = self.clf_kwargs['max_iter']
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # if approx_type == "exact":
-        #     device = "cpu"
         num_classes = len(np.unique(y))
         if self.clf_type == 'LogisticRegression':
-            model = self.LogisticRegression(x.shape[1], num_classes)
+            self.clf = self.LogisticRegression(x.shape[1], num_classes)
         elif self.clf_type == 'RidgeClassifier':
-            model = self.RidgeRegression(x.shape[1])
+            self.clfself.RidgeRegression(x.shape[1])
         elif self.clf_type == 'SGDClassifier':
-            model = self.SGDClassifier(x.shape[1])
+            self.clfself.SGDClassifier(x.shape[1])
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
-        model = model.to(device)
-        self.optimizer = optim.SGD(model.parameters(), lr=0.001)
+        self.clf = self.clf.to(device)
+        self.optimizer = optim.SGD(self.clf.parameters(), lr=0.001)
         self.optimizer.zero_grad()
         if approx_type == "fishr":
-            self.classifier = extend(model)
+            self.classifier = extend(self.clf)
             self.bce_extended = extend(nn.CrossEntropyLoss(reduction='none'))
             self.ema_per_domain = [
                 MovingAverage(ema=args.ema, oneminusema_correction=True)
-                for _ in range(self.num_domains)
+                for _ in range(self.n_envs)
             ]
 
         # Transform the data to tensors
@@ -757,44 +847,92 @@ class HISRClassifier:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
             pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
             self.update_count = 0
+            self.log_every = 100
             for epoch in pbar:
-                for x_batch, y_batch, envs_indices_batch in dataloader:
+                for batch_idx, (x_batch, y_batch, envs_indices_batch) in enumerate(dataloader):
+                    stats = {}
                     x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
-                    if approx_type == "control":
-                        total_loss = self.loss_fn(model(x_batch).squeeze(), y_batch.long())
+                    group_indices_batch = env2group(envs_indices_batch, y_batch, self.n_envs)
+
+                    group_count = torch.bincount(group_indices_batch.to(torch.int64), minlength=self.n_groups)
+                    group_frac = group_count.float() / len(group_indices_batch)
+                    env_count = torch.bincount(envs_indices_batch, minlength=self.n_envs)
+                    env_frac = env_count.float() / len(envs_indices_batch)
+                    if approx_type == "control" or self.update_count < args.penalty_anneal_iters:
+                        # Find loss of each unique environment
+                        group_losses = []
+                        # a list of length n_envs, each element 0
+                        env_frac_tensor = torch.tensor(env_frac, device=x_batch.device)
+                        # Iterate over each possible environment
+                        env_losses_weighted = torch.zeros(self.n_envs, device=x_batch.device)
+                        for env_idx in range(self.n_envs):
+                            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+                            env_loss = self.loss_fn(self.clf(x_batch[idx]).squeeze(), y_batch[idx].long())
+                            env_losses_weighted[env_idx] = env_loss * env_frac_tensor[env_idx]
+                        total_loss = env_losses_weighted.sum()
+                        # total_loss = self.loss_fn(self.clf(x_batch).squeeze(), y_batch.long())
                         erm_loss = total_loss.item()
                         hess_penalty = 0
                         grad_penalty = 0
+                        stats = {
+                            'anneal_iters': args.penalty_anneal_iters,
+                            'total_loss': total_loss.item(),
+                            'erm_loss': erm_loss,
+                            'grad_alpha': alpha,
+                            'hess_beta': beta,
+                            'grad_loss': 0,
+                            'hessian_loss': 0,
+                        }
+
+                        group_accs, worst_acc, worst_group = measure_group_accs_transformed(self, x_batch, y_batch, group_indices_batch, include_avg_acc=True)
+                        stats['worst_acc'] = worst_acc
+                        stats['worst_group'] = worst_group
+                        for group_idx in range(self.n_groups):
+                            stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
+                            stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
+                        stats.update(group_accs)
+
+                        for env_idx in range(self.n_envs):
+                            stats[f'env_count:{env_idx}'] = env_count[env_idx].item()
+                            stats[f'env_frac:{env_idx}'] = env_frac[env_idx].item()
+                            stats[f'erm_loss_env:{env_idx}'] = env_losses_weighted[env_idx].item()
+                            stats[f'grad_penalty_env:{env_idx}'] = 0
+                            stats[f'hessian_penalty_env:{env_idx}'] = 0
+                        self.train_csv_logger.log(epoch, batch_idx, stats)
+                        self.train_csv_logger.flush()
                         self.update_count += 1
+
                     elif approx_type == "exact":
-                        logits = model(x_batch)
-                        total_loss, erm_loss, hess_penalty, grad_penalty = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                        logits = self.clf(x_batch)
+                        stats['grad_alpha'] = alpha
+                        stats['hess_beta'] = beta
+                        total_loss, erm_loss, hess_loss, grad_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
+                        # if self.update_count % self.log_every == 0:
+
+                        group_accs, worst_acc, worst_group = measure_group_accs_transformed(self, x_batch, y_batch, group_indices_batch, include_avg_acc=True)
+                        stats.update(group_accs)
+                        for group_idx in range(self.n_groups):
+                            stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
+                            stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
+                        stats['worst_acc'] = worst_acc
+                        stats['worst_group'] = worst_group
+                        self.train_csv_logger.log(epoch,batch_idx,stats)
                         self.update_count += 1
                     elif approx_type == "fishr":
-                        logits = model(x_batch)
+                        logits = self.clf(x_batch)
                         total_loss, erm_loss, penalty, penalty_weight = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args)
 
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
 
-                # if epoch % 100 == 0 and approx_type == "exact":
-                #     print("Epoch:", epoch,
-                #           "\tLoss:", total_loss.item(),
-                #           "\tERM Loss:", erm_loss,
-                #           "\tGradient Reg:", grad_penalty,
-                #           "\tHessian Reg:", hess_penalty)
-                #
-                # elif epoch % 100 == 0 and approx_type == "fishr":
-                #     print("Epoch:", epoch,
-                #           "\tLoss:", total_loss.item(),
-                #           "\tNLL Loss:", erm_loss,
-                #           "\tPenalty:", penalty,
-                #           "\tPenalty Weight:", penalty_weight)
                 if approx_type == "fishr":
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(), penalty=penalty, penalty_weight=penalty_weight)
                 else:
-                    pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_penalty=hess_penalty, alpha = alpha, grad_penalty=grad_penalty)
+                    pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_loss=hess_loss, alpha = alpha, grad_loss=grad_loss)
+                    self.validation_hessian_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,self.val_csv_logger, args)
+                    self.validation_hessian_loss(epoch, self.test_x, self.test_y, self.test_envs_indices, self.test_csv_logger, args)
+
         else:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
@@ -802,9 +940,9 @@ class HISRClassifier:
                     x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
                         device)
                     if approx_type == "HGP":
-                        total_loss = self.hgp_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                        total_loss = self.hgp_loss(self.clf, x_batch, y_batch, envs_indices_batch, alpha, beta)
                     elif approx_type == "HUT":
-                        total_loss = self.hutchinson_loss(model, x_batch, y_batch, envs_indices_batch, alpha, beta)
+                        total_loss = self.hutchinson_loss(self.clf, x_batch, y_batch, envs_indices_batch, alpha, beta)
                     else:
                         raise ValueError(f"Unknown hessian approximation type: {approx_type}")
                     total_loss.backward()
@@ -812,14 +950,28 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
                     torch.cuda.empty_cache()
-        self.clf = model.to('cpu')
+        self.clf = self.clf.to('cpu')
         # self.clf = model
         return self.clf
 
 
 
 
-    def fit_clf(self, features=None, labels=None, envs = None, args = None, given_clf=None, sample_weight=None, hessian_approx = None, alpha = 10e-5, beta = 10e-5, spu_scale = None):
+    def fit_clf(self, features=None, labels=None, envs = None, args = None, given_clf=None, sample_weight=None,
+                hessian_approx = None, alpha = 10e-5, beta = 10e-5, spu_scale = None, train_csv_logger = None,
+        val_csv_logger = None, test_csv_logger = None,
+                        val_zs= None, val_ys= None, val_es = None, val_gs = None, test_zs = None, test_ys = None, test_es = None, test_gs = None):
+        self.train_csv_logger = train_csv_logger
+        self.val_csv_logger = val_csv_logger
+        self.test_csv_logger = test_csv_logger
+        self.val_x = val_zs
+        self.val_y = val_ys
+        self.val_envs_indices = val_es
+        self.val_groups_indices = val_gs
+        self.test_x = test_zs
+        self.test_y = test_ys
+        self.test_envs_indices = test_es
+        self.test_groups_indices = test_gs
         if not hessian_approx:
             if given_clf is None:
                 assert features is not None and labels is not None
@@ -836,7 +988,8 @@ class HISRClassifier:
         else:
             assert features is not None and labels is not None
             features = self.transform(features, )
-            return self.fit_hessian_clf(features, labels, envs, args,  approx_type=self.hessian_approx_method, alpha=alpha, beta=beta)
+            return self.fit_hessian_clf(features, labels, envs, args,  approx_type=self.hessian_approx_method,
+                                        alpha=alpha, beta=beta)
 
     def transform(self, features, ):
         if self.pca is not None:
@@ -852,7 +1005,6 @@ class HISRClassifier:
 
     def score(self, features, labels):
         zs = self.transform(features)
-
         return self.clf.score(zs, labels)
 
     def fit_transform(self, features, labels, envs, chosen_class, given_clf=None):

@@ -87,6 +87,50 @@ class CSVBatchLogger:
         self.file.close()
 
 
+class CSVBatchLogger_ISR:
+    def __init__(self, csv_path, n_groups, n_envs, mode='w'):
+        columns = ['epoch', 'batch']
+        for idx in range(n_groups):
+            columns.append(f'group_count:{idx}')
+            columns.append(f'group_frac:{idx}')
+            columns.append(f'acc-{idx}')
+        for idx in range(n_envs):
+            columns.append(f'env_count:{idx}')
+            columns.append(f'env_frac:{idx}')
+            columns.append(f'erm_loss_env:{idx}')
+            columns.append(f'grad_penalty_env:{idx}')
+            columns.append(f'hessian_penalty_env:{idx}')
+        columns.append('grad_alpha')
+        columns.append('hess_beta')
+        columns.append('anneal_iters')
+        columns.append('total_loss')
+        columns.append('erm_loss')
+        columns.append('grad_loss')
+        columns.append('hessian_loss')
+        columns.append('avg_acc')
+        columns.append('worst_group')
+        columns.append('worst_acc')
+
+
+        self.path = csv_path
+        self.file = open(csv_path, mode)
+        self.columns = columns
+        self.writer = csv.DictWriter(self.file, fieldnames=columns)
+        if mode == 'w':
+            self.writer.writeheader()
+
+    def log(self, epoch, batch, stats_dict):
+        stats_dict['epoch'] = epoch
+        stats_dict['batch'] = batch
+        self.writer.writerow(stats_dict)
+
+    def flush(self):
+        self.file.flush()
+
+    def close(self):
+        self.file.close()
+
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 

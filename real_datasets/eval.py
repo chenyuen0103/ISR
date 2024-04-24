@@ -14,7 +14,8 @@ from configs import DATA_FOLDER
 from configs import LOG_FOLDER
 from hisr import HISRClassifier, check_clf
 from isr import ISRClassifier
-from utils.eval_utils import extract_data, save_df, measure_group_accs, load_data, group2env
+from utils.eval_utils import extract_data, save_df, measure_group_accs, load_data, group2env, env2group
+from utils.train_utils import  CSVBatchLogger_ISR
 
 
 warnings.filterwarnings('ignore')  # filter out Pandas append warnings
@@ -50,6 +51,10 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
             sample_weight[train_gs == group] = n_train / n_groups / count
         if args.verbose:
             print('Computed non-uniform sample weight')
+
+    grad_alpha_formatted = "{:.1e}".format(args.alpha).replace('.0e', 'e')
+    hess_beta_formatted = "{:.1e}".format(args.beta).replace('.0e', 'e')
+
 
     df = pd.DataFrame(
         columns=['dataset', 'algo', 'seed', 'ckpt', 'split', 'method', 'clf_type', 'C', 'pca_dim', 'd_spu', 'ISR_class',
@@ -138,8 +143,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                       hessian_hyperparam = args.beta,
                       ema = args.ema,
                       lam = args.lam,
-                      penalty_anneal_iters = args.penalty_anneal_iters
-
+                      penalty_anneal_iters = args.penalty_anneal_iters,
                       )
     if args.ISR_version == 'mean': args.d_spu = n_spu_attr - 1
     isr_clf = HISRClassifier(version=args.ISR_version, hessian_approx_method = args.hessian_approx_method, pca_dim=args.n_components, d_spu=args.d_spu,
@@ -157,6 +161,13 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         betas = args.beta
 
     for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, alphas, betas)), desc='ISR iter', leave=False):
+        progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
+                                    f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}_anneal_{args.penalty_anneal_iters}")
+        if not os.path.exists(progress_dir):
+            os.makedirs(progress_dir)
+        train_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'train.csv'), n_groups, n_spu_attr)
+        val_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'val.csv'), n_groups, n_spu_attr)
+        test_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'test.csv'), n_groups, n_spu_attr)
         isr_clf.set_params(chosen_class=ISR_class, spu_scale=ISR_scale)
         if args.ISR_version == 'mean':
             isr_clf.fit_isr_mean(chosen_class=ISR_class, )
@@ -164,8 +175,11 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
             isr_clf.fit_isr_cov(chosen_class=ISR_class, )
         else:
             raise ValueError('Unknown ISR version')
-
-        isr_clf.fit_clf(zs, ys, es, args, given_clf=given_clf, sample_weight=sample_weight, hessian_approx= args.hessian_approx_method, alpha=args.alpha, beta=args.beta)
+        val_es = group2env(val_gs, n_spu_attr)
+        test_es = group2env(test_gs, n_spu_attr)
+        isr_clf.fit_clf(zs, ys, es, args, given_clf=given_clf, sample_weight=sample_weight, hessian_approx= args.hessian_approx_method,
+                        alpha=args.alpha, beta=args.beta, train_csv_logger = train_csv_logger, val_csv_logger = val_csv_logger, test_csv_logger = test_csv_logger,
+                        val_zs = val_zs, val_ys = val_ys, val_es = val_es, val_gs = val_gs, test_zs = test_zs, test_ys = test_ys, test_es = test_es, test_gs = test_gs)
         for (split, eval_zs, eval_ys, eval_gs) in [('val', val_zs, val_ys, val_gs),
                                                    ('test', test_zs, test_ys, test_gs)]:
             group_accs, worst_acc, worst_group = measure_group_accs(
@@ -183,6 +197,9 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
             #                              f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
             #     save_df(df, save_path, subset=None, verbose=args.verbose)
             #     print(f"Saved to {args.save_dir} as {save_path}")
+            train_csv_logger.close()
+            val_csv_logger.close()
+            test_csv_logger.close()
 
     if args.verbose:
         print('Evaluation result')
@@ -192,6 +209,8 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                                   exist_ok=True)  # make dir if not exists
         save_df(df, save_path, subset=None, verbose=args.verbose)
         print(f"Saved to {args.save_dir} as {save_path}")
+
+
     return df
 
 def parse_args(args: list = None, specs: dict = None):
@@ -201,7 +220,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -215,6 +234,7 @@ def parse_args(args: list = None, specs: dict = None):
                            nargs='+', default=[0])
     argparser.add_argument('--d_spu', type=int, default=-1)
     argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert_scaled')
+    argparser.add_argument('--progress_save_dir', type=str, default='./logs/ISR_training_progress')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
 
@@ -235,7 +255,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 0, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 10, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -288,38 +308,47 @@ if __name__ == '__main__':
     # beta_list = [0] + list(10 ** np.linspace(-1, 3, 5))
 
     # alpha_list = [1.96 * 10 ** -4]
-    alpha_list = [0]
-    beta_list = [10 ** 4]
     # beta_list = [5000]
 
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
-    penalty_anneal_iters_list = np.linspace(0, 5000, 6)
     seed_list = [0,1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
+        alpha_list = list(10 ** np.linspace(2, 3, 2)) + [0]
+        beta_list = list(10 ** np.linspace(2, 3, 2)) + [0]
         args.max_iter = 300
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
+        penalty_anneal_iters_list = np.linspace(0, 1400, 5)[1:]
     if args.dataset == 'CelebA':
+        alpha_list = [0.01, 0, 1000, 5000]
+        beta_list = [0.01, 0, 1000, 5000]
         args.max_iter = 50
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
+        penalty_anneal_iters_list = np.linspace(0, 8000, 5)[1:]
     if args.dataset == 'MultiNLI':
+        # alpha_list = 10 ** np.linspace(-2, 3, 6)
+        # beta_list = 10 ** np.linspace(-2, 3, 6)
+        alpha_list = [1]
+        beta_list = [0.1]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
+        penalty_anneal_iters_list = np.linspace(0, 600, 5)[1:]
 
     if args.hessian_approx_method == 'fishr':
         run_fishr(args)
     else:
         for seed in seed_list:
-            for alpha, beta in product(alpha_list, beta_list):
+            for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
             # for alpha, beta in alpha_beta_list:
                 args.alpha = alpha
                 args.beta = beta
                 args.seed = seed
-                print(f"Running alpha = {alpha}, beta = {beta}, seed = {seed}")
+                args.penalty_anneal_iters = anneal_iters
+                print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
                 eval_ISR(args)
 
 
