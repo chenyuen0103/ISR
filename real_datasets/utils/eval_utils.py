@@ -71,6 +71,7 @@ def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
 
 def measure_group_accs_transformed(clf, zs, ys, gs, include_avg_acc=True):
     accs = {}
+    clf.clf = clf.clf.to('cpu')
     if include_avg_acc:
         accs['avg_acc'] = clf.clf.score(zs, ys)
     worst_group = None
