@@ -860,10 +860,7 @@ class HISRClassifier:
                     group_accs, worst_acc, worst_group = measure_group_accs_transformed(self.clf, x_batch, y_batch,
                                                                                         group_indices_batch,
                                                                                         include_avg_acc=True)
-
                     x_batch, y_batch, envs_indices_batch = x_batch.to(self.device), y_batch.to(self.device), envs_indices_batch.to(self.device)
-
-
                     group_count = torch.bincount(group_indices_batch.to(torch.int64), minlength=self.n_groups)
                     group_frac = group_count.float() / len(group_indices_batch)
                     env_count = torch.bincount(envs_indices_batch, minlength=self.n_envs)
@@ -917,8 +914,6 @@ class HISRClassifier:
                         stats['hess_beta'] = beta
                         total_loss, erm_loss, hess_loss, grad_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # if self.update_count % self.log_every == 0:
-
-                        group_accs, worst_acc, worst_group = measure_group_accs_transformed(self.clf, x_batch, y_batch, group_indices_batch, include_avg_acc=True)
                         stats.update(group_accs)
                         for group_idx in range(self.n_groups):
                             stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
