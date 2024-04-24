@@ -918,7 +918,7 @@ class HISRClassifier:
                         total_loss, erm_loss, hess_loss, grad_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # if self.update_count % self.log_every == 0:
 
-                        group_accs, worst_acc, worst_group = measure_group_accs_transformed(self, x_batch, y_batch, group_indices_batch, include_avg_acc=True)
+                        group_accs, worst_acc, worst_group = measure_group_accs_transformed(self.clf, x_batch, y_batch, group_indices_batch, include_avg_acc=True)
                         stats.update(group_accs)
                         for group_idx in range(self.n_groups):
                             stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
