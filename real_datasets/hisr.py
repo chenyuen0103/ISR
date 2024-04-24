@@ -852,7 +852,7 @@ class HISRClassifier:
                 for batch_idx, (x_batch, y_batch, envs_indices_batch) in enumerate(dataloader):
                     stats = {}
                     group_indices_batch = env2group(envs_indices_batch, y_batch, self.n_envs)
-                    group_accs, worst_acc, worst_group = measure_group_accs_transformed(self, x_batch, y_batch,
+                    group_accs, worst_acc, worst_group = measure_group_accs_transformed(self.clf, x_batch, y_batch,
                                                                                         group_indices_batch,
                                                                                         include_avg_acc=True)
 

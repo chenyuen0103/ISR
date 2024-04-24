@@ -71,14 +71,14 @@ def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
 
 def measure_group_accs_transformed(clf, zs, ys, gs, include_avg_acc=True):
     accs = {}
-    clf.clf = clf.clf.to('cpu')
+    model = clf.to('cpu')
     if include_avg_acc:
-        accs['avg_acc'] = clf.clf.score(zs, ys)
+        accs['avg_acc'] = model.score(zs, ys)
     worst_group = None
     worst_acc = np.inf
     for g in np.unique(gs):
         g_idx = gs == g
-        acc = clf.clf.score(zs[g_idx], ys[g_idx])
+        acc = model.score(zs[g_idx], ys[g_idx])
         accs[f'acc-{int(g)}'] = acc
         if acc < worst_acc:
             worst_group = g
