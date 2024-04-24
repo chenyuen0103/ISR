@@ -876,13 +876,13 @@ class HISRClassifier:
                             env_losses_weighted[env_idx] = env_loss * env_frac_tensor[env_idx]
                         total_loss = env_losses_weighted.sum()
                         # total_loss = self.loss_fn(self.clf(x_batch).squeeze(), y_batch.long())
-                        erm_loss = total_loss.item()
+                        erm_loss = total_loss
                         hess_penalty = 0
                         grad_penalty = 0
                         stats = {
                             'anneal_iters': args.penalty_anneal_iters,
                             'total_loss': total_loss.item(),
-                            'erm_loss': erm_loss,
+                            'erm_loss': erm_loss.item(),
                             'grad_alpha': alpha,
                             'hess_beta': beta,
                             'grad_loss': 0,
