@@ -877,8 +877,8 @@ class HISRClassifier:
                         total_loss = env_losses_weighted.sum()
                         # total_loss = self.loss_fn(self.clf(x_batch).squeeze(), y_batch.long())
                         erm_loss = total_loss
-                        hess_penalty = 0
-                        grad_penalty = 0
+                        hess_loss = 0
+                        grad_loss = 0
                         stats = {
                             'anneal_iters': args.penalty_anneal_iters,
                             'total_loss': total_loss.item(),
