@@ -71,7 +71,9 @@ def measure_group_accs(clf, zs, ys, gs, include_avg_acc=True):
 
 def measure_group_accs_transformed(clf, zs, ys, gs, include_avg_acc=True):
     accs = {}
-    model = clf.to('cpu')
+    model = clf.copy()
+    breakpoint()
+    model = model.to('cpu')
     if include_avg_acc:
         accs['avg_acc'] = model.score(zs, ys)
     worst_group = None
