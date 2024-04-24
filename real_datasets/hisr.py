@@ -728,7 +728,7 @@ class HISRClassifier:
 
     def validation_hessian_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
         self.clf.eval()
-        self.clf.to(device = val_x.device)
+
         transformed_val_x = self.transform(val_x)
         if not isinstance(transformed_val_x, torch.Tensor):
             transformed_val_x = torch.tensor(transformed_val_x).float()
@@ -744,8 +744,13 @@ class HISRClassifier:
         val_grad_loss = 0
         for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
             stats = {}
+            group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+            group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                    include_avg_acc=True)
+            val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
             with torch.no_grad():
                 val_logits = self.clf(val_x_batch)
+
                 val_loss_batch, val_erm_loss_batch, val_hess_loss_batch, val_grad_loss_batch, _ = self.exact_hessian_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
                 val_total_loss += val_loss_batch
                 val_erm_loss += val_erm_loss_batch
@@ -756,8 +761,7 @@ class HISRClassifier:
         val_erm_loss /= len(dataloader)
         val_hess_loss /= len(dataloader)
         val_grad_loss /= len(dataloader)
-        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
-        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices, include_avg_acc=True)
+
         stats['anneal_iters']= args.penalty_anneal_iters
         stats['grad_alpha'] = args.alpha
         stats['hess_beta'] = args.beta
@@ -812,7 +816,7 @@ class HISRClassifier:
         # Create the model based on the model type
         # self.num_domains = len(np.unique(envs_indices))
         num_iterations = self.clf_kwargs['max_iter']
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         num_classes = len(np.unique(y))
         if self.clf_type == 'LogisticRegression':
             self.clf = self.LogisticRegression(x.shape[1], num_classes)
@@ -822,7 +826,7 @@ class HISRClassifier:
             self.clfself.SGDClassifier(x.shape[1])
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
-        self.clf = self.clf.to(device)
+        self.clf = self.clf.to(self.device)
         self.optimizer = optim.SGD(self.clf.parameters(), lr=0.001)
         self.optimizer.zero_grad()
         if approx_type == "fishr":
@@ -842,7 +846,7 @@ class HISRClassifier:
             envs_indices = torch.tensor(envs_indices).int()
 
         dataset = TensorDataset(x, y, envs_indices)
-        print("Starting training on", device)
+        print("Starting training on", self.device)
 
         if approx_type in ['exact','control','fishr']:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
@@ -857,7 +861,7 @@ class HISRClassifier:
                                                                                         group_indices_batch,
                                                                                         include_avg_acc=True)
 
-                    x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
+                    x_batch, y_batch, envs_indices_batch = x_batch.to(self.device), y_batch.to(self.device), envs_indices_batch.to(self.device)
 
 
                     group_count = torch.bincount(group_indices_batch.to(torch.int64), minlength=self.n_groups)
@@ -942,8 +946,8 @@ class HISRClassifier:
             dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
             for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
                 for x_batch, y_batch, envs_indices_batch in dataloader:
-                    x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(
-                        device)
+                    x_batch, y_batch, envs_indices_batch = x_batch.to(self.device), y_batch.to(self.device), envs_indices_batch.to(
+                        self.device)
                     if approx_type == "HGP":
                         total_loss = self.hgp_loss(self.clf, x_batch, y_batch, envs_indices_batch, alpha, beta)
                     elif approx_type == "HUT":
