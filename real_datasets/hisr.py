@@ -728,7 +728,6 @@ class HISRClassifier:
 
     def validation_hessian_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
         self.clf.eval()
-
         transformed_val_x = self.transform(val_x)
         if not isinstance(transformed_val_x, torch.Tensor):
             transformed_val_x = torch.tensor(transformed_val_x).float()
@@ -745,6 +744,7 @@ class HISRClassifier:
         for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
             stats = {}
             group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+            breakpoint()
             group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
                                                                     include_avg_acc=True)
             val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
