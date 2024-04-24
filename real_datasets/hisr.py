@@ -851,8 +851,13 @@ class HISRClassifier:
             for epoch in pbar:
                 for batch_idx, (x_batch, y_batch, envs_indices_batch) in enumerate(dataloader):
                     stats = {}
-                    x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
                     group_indices_batch = env2group(envs_indices_batch, y_batch, self.n_envs)
+                    group_accs, worst_acc, worst_group = measure_group_accs_transformed(self, x_batch, y_batch,
+                                                                                        group_indices_batch,
+                                                                                        include_avg_acc=True)
+
+                    x_batch, y_batch, envs_indices_batch = x_batch.to(device), y_batch.to(device), envs_indices_batch.to(device)
+
 
                     group_count = torch.bincount(group_indices_batch.to(torch.int64), minlength=self.n_groups)
                     group_frac = group_count.float() / len(group_indices_batch)
@@ -884,7 +889,6 @@ class HISRClassifier:
                             'hessian_loss': 0,
                         }
 
-                        group_accs, worst_acc, worst_group = measure_group_accs_transformed(self, x_batch, y_batch, group_indices_batch, include_avg_acc=True)
                         stats['worst_acc'] = worst_acc
                         stats['worst_group'] = worst_group
                         for group_idx in range(self.n_groups):
