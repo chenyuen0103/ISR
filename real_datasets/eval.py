@@ -311,7 +311,7 @@ if __name__ == '__main__':
     # beta_list = [5000]
 
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
-    seed_list = [0,1, 2, 3, 4]
+    seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
         alpha_list = list(10 ** np.linspace(2, 3, 2)) + [0]
@@ -322,21 +322,24 @@ if __name__ == '__main__':
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 1400, 5)[1:]
     if args.dataset == 'CelebA':
-        alpha_list = [0.01, 0, 1000, 5000][::-1]
-        beta_list = [0.01, 0, 1000, 5000][::-1]
+        # alpha_list = [0.01, 0, 1000, 5000][::-1]
+        # beta_list = [0.01, 0, 1000, 5000][::-1]
+        alpha_list = [0.01, 0, 1000, 5000][1:2]
+        beta_list = [0.01, 0, 1000, 5000][1:2]
+
         args.max_iter = 50
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 8000, 5)[1:]
+        penalty_anneal_iters_list = np.linspace(0, 8000, 5)[0:1]
     if args.dataset == 'MultiNLI':
-        alpha_list = 10 ** np.linspace(-1, 1, 3)
-        beta_list = 10 ** np.linspace(-1, 1, 3)
-        # alpha_list = [1]
-        # beta_list = [0.1]
+        # alpha_list = 10 ** np.linspace(-1, 1, 3)
+        # beta_list = 10 ** np.linspace(-1, 1, 3)
+        alpha_list = [1]
+        beta_list = [0.1]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
-        penalty_anneal_iters_list = np.linspace(0, 600, 5)[1:]
+        penalty_anneal_iters_list = np.linspace(0, 600, 5)[0:1]
 
     if args.hessian_approx_method == 'fishr':
         # run_fishr(args)
@@ -344,8 +347,8 @@ if __name__ == '__main__':
     else:
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
-                if alpha == 1 and beta == 0.1:
-                    continue
+                # if alpha == 1 and beta == 0.1:
+                #     continue
             # for alpha, beta in alpha_beta_list:
                 args.alpha = alpha
                 args.beta = beta
