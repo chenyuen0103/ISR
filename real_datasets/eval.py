@@ -161,13 +161,16 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         betas = args.beta
 
     for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, alphas, betas)), desc='ISR iter', leave=False):
-        progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
-                                    f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}_anneal_{args.penalty_anneal_iters}")
-        if not os.path.exists(progress_dir):
-            os.makedirs(progress_dir)
-        train_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'train.csv'), n_groups, n_spu_attr)
-        val_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'val.csv'), n_groups, n_spu_attr)
-        test_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'test.csv'), n_groups, n_spu_attr)
+        train_csv_logger, val_csv_logger, test_csv_logger = None, None, None
+        if args.hessian_approx_method == 'exact':
+            progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
+                                        f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}_anneal_{args.penalty_anneal_iters}")
+            if not os.path.exists(progress_dir):
+                os.makedirs(progress_dir)
+            train_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'train.csv'), n_groups, n_spu_attr)
+            val_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'val.csv'), n_groups, n_spu_attr)
+            test_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'test.csv'), n_groups, n_spu_attr)
+
         isr_clf.set_params(chosen_class=ISR_class, spu_scale=ISR_scale)
         if args.ISR_version == 'mean':
             isr_clf.fit_isr_mean(chosen_class=ISR_class, )
@@ -197,9 +200,10 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
             #                              f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
             #     save_df(df, save_path, subset=None, verbose=args.verbose)
             #     print(f"Saved to {args.save_dir} as {save_path}")
-            train_csv_logger.close()
-            val_csv_logger.close()
-            test_csv_logger.close()
+            if train_csv_logger is not None:
+                train_csv_logger.close()
+                val_csv_logger.close()
+                test_csv_logger.close()
 
     if args.verbose:
         print('Evaluation result')
@@ -249,7 +253,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
     argparser.add_argument('--alpha', default=100, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
