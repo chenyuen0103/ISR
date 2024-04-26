@@ -359,7 +359,7 @@ if __name__ == '__main__':
                                            f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
                 if os.path.exists(result_file):
                     existing_df = pd.read_csv(result_file)
-                    df_current = existing_df[(existing_df['grad_alpha'] == alpha) & (
+                    df_current = existing_df[(existing_df['gradient_alpha'] == alpha) & (
                                 existing_df['penalty_anneal_iters'] == anneal_iters) & (
                                                          existing_df['hessian_beta'] == beta)]
                     if len(df_current) > 0:
