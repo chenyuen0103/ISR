@@ -102,8 +102,6 @@ def find_best_isr(data_dir='./logs/ISR_hessian_results_ViT-B_scaled', file_name=
     test = test[test['gradient_alpha'] == 0]
     val = val[val['hessian_beta'] == 0]
     test = test[test['hessian_beta'] == 0]
-    val = val[val['penalty_anneal_iters'] == 0]
-    test = test[test['penalty_anneal_iters'] == 0]
 
     best_hyperparameters, best_test_performance = find_best_hps(val, test, worst_case)
 

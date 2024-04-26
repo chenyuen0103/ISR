@@ -830,6 +830,7 @@ class HISRClassifier:
                     env_frac = env_count.float() / len(envs_indices_batch)
                     logits = self.clf(x_batch)
                     if approx_type == "control" or (approx_type == 'exact' and self.update_count < args.penalty_anneal_iters):
+                    # if approx_type == "control":
                         # a list of length n_envs, each element 0
                         env_frac_tensor = torch.tensor(env_frac, device=x_batch.device)
                         # Iterate over each possible environment
@@ -869,7 +870,14 @@ class HISRClassifier:
                         self.train_csv_logger.log(epoch, batch_idx, stats)
                         self.train_csv_logger.flush()
                         self.update_count += 1
+                        # if self.update_count >= args.penalty_anneal_iters:
+                        #     self.clf = self.clf.to('cpu')
+                        #     return self.clf
+
                     elif approx_type == "exact":
+                        # if self.update_count < args.penalty_anneal_iters:
+                        #     alpha = 0
+                        #     beta = 0
                         # logits = self.clf(x_batch)
                         stats['grad_alpha'] = alpha
                         stats['hess_beta'] = beta
@@ -892,6 +900,10 @@ class HISRClassifier:
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
+                    # if self.update_count >= args.penalty_anneal_iters:
+                    #     self.clf = self.clf.to('cpu')
+                    #     # self.clf = model
+                    #     return self.clf
 
                 if approx_type == "fishr":
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(), penalty=penalty, penalty_weight=penalty_weight)
@@ -917,6 +929,8 @@ class HISRClassifier:
                     self.optimizer.step()
                     self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
                     torch.cuda.empty_cache()
+
+
         self.clf = self.clf.to('cpu')
         # self.clf = model
         return self.clf

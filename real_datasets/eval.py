@@ -220,7 +220,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -266,12 +266,12 @@ def parse_args(args: list = None, specs: dict = None):
     return config
 
 
-def run_fishr(args):
+def run_fishr(args, penalty_anneal_iters_list):
     seed_list = [0, 1, 2, 3, 4]
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
     lambda_list = 10 ** np.linspace(1, 4, 4)
-    penalty_anneal_iters_list = np.linspace(0,5000,6)
-    ema_list = np.linspace(0.9, 0.99, 3)
+    # penalty_anneal_iters_list = np.linspace(0,5000,6)
+    ema_list = np.linspace(0.9, 0.99, 5)
 
     def sample_hyperparams(seed):
         np.random.seed(seed)
@@ -288,6 +288,13 @@ def run_fishr(args):
             args.lam = lam
             args.penalty_anneal_iters = penalty_anneal_iters
             args.ema = ema
+            result_file = os.path.join(args.save_dir, f"{args.dataset}_results{args.file_suffix}_s{args.seed}_fishr.csv")
+            if os.path.exists(result_file):
+                existing_df = pd.read_csv(result_file)
+                df_current = existing_df[(existing_df['lambda'] == lam) & (existing_df['penalty_anneal_iters'] == penalty_anneal_iters) & (existing_df['ema'] == ema)]
+                if len(df_current) > 0:
+                    print(f"Already evaluated {lam}, {penalty_anneal_iters}, {ema}")
+                    continue
             eval_ISR(args)
     # for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
     #     args.seed = seed
@@ -320,7 +327,7 @@ if __name__ == '__main__':
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 1400, 5)[1:]
+        penalty_anneal_iters_list = np.linspace(0, 1400, 5)
     if args.dataset == 'CelebA':
         # alpha_list = [0.01, 0, 1000, 5000][::-1]
         # beta_list = [0.01, 0, 1000, 5000][::-1]
@@ -331,7 +338,8 @@ if __name__ == '__main__':
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 8000, 5)[0:1]
+        penalty_anneal_iters_list = np.linspace(0, 8000, 5)
+        # penalty_anneal_iters_list = [20000]
     if args.dataset == 'MultiNLI':
         # alpha_list = 10 ** np.linspace(-1, 1, 3)
         # beta_list = 10 ** np.linspace(-1, 1, 3)
@@ -339,11 +347,11 @@ if __name__ == '__main__':
         beta_list = [0.1]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
-        penalty_anneal_iters_list = np.linspace(0, 600, 5)[0:1]
+        penalty_anneal_iters_list = np.linspace(0, 600, 5)
 
     if args.hessian_approx_method == 'fishr':
-        # run_fishr(args)
-        eval_ISR(args)
+        run_fishr(args, penalty_anneal_iters_list)
+        # eval_ISR(args)
     else:
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
