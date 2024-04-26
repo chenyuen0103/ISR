@@ -359,6 +359,10 @@ if __name__ == '__main__':
     else:
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
+                args.alpha = alpha
+                args.beta = beta
+                args.seed = seed
+                args.penalty_anneal_iters = anneal_iters
                 result_file = os.path.join(args.save_dir,
                                            f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
                 if os.path.exists(result_file):
@@ -372,10 +376,6 @@ if __name__ == '__main__':
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
-                args.alpha = alpha
-                args.beta = beta
-                args.seed = seed
-                args.penalty_anneal_iters = anneal_iters
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
                 eval_ISR(args)
 
