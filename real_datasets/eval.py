@@ -331,8 +331,8 @@ if __name__ == '__main__':
     if args.dataset == 'CelebA':
         # alpha_list = [0.01, 0, 1000, 5000][::-1]
         # beta_list = [0.01, 0, 1000, 5000][::-1]
-        alpha_list = [0.001, 0.01, 0, 1000, 5000][1:2]
-        beta_list = [0.001, 0.01, 0, 1000, 5000][1:2]
+        alpha_list = [0.001, 0.01, 0, 1000, 5000]
+        beta_list = [0.001, 0.01, 0, 1000, 5000]
 
         args.max_iter = 50
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
