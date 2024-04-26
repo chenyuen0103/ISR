@@ -359,9 +359,11 @@ if __name__ == '__main__':
                                            f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
                 if os.path.exists(result_file):
                     existing_df = pd.read_csv(result_file)
-                    df_current = existing_df[(existing_df['gradient_alpha'] == alpha) & (
-                                existing_df['penalty_anneal_iters'] == anneal_iters) & (
-                                                         existing_df['hessian_beta'] == beta)]
+                    df_current = existing_df[
+                        np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
+                        (existing_df['penalty_anneal_iters'] == anneal_iters) &
+                        np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
+                        ]
                     if len(df_current) > 0:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
