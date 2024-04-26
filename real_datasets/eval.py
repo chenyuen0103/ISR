@@ -293,7 +293,7 @@ def run_fishr(args, penalty_anneal_iters_list):
                 existing_df = pd.read_csv(result_file)
                 df_current = existing_df[(existing_df['lambda'] == lam) & (existing_df['penalty_anneal_iters'] == penalty_anneal_iters) & (existing_df['ema'] == ema)]
                 if len(df_current) > 0:
-                    print(f"Already evaluated {lam}, {penalty_anneal_iters}, {ema}")
+                    print(f"Already evaluated seed: {seed}, lambda: {lam}, anneal iters: {penalty_anneal_iters}, ema: {ema}")
                     continue
             eval_ISR(args)
     # for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
@@ -322,7 +322,7 @@ if __name__ == '__main__':
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
         alpha_list = list(10 ** np.linspace(2, 3, 2)) + [0]
-        beta_list = list(10 ** np.linspace(2, 3, 2)) + [0]
+        beta_list = list(10 ** np.linspace(2, 3, 2)) + [0] + [5000, 10000]
         args.max_iter = 300
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
@@ -331,8 +331,8 @@ if __name__ == '__main__':
     if args.dataset == 'CelebA':
         # alpha_list = [0.01, 0, 1000, 5000][::-1]
         # beta_list = [0.01, 0, 1000, 5000][::-1]
-        alpha_list = [0.01, 0, 1000, 5000][1:2]
-        beta_list = [0.01, 0, 1000, 5000][1:2]
+        alpha_list = [0.001, 0.01, 0, 1000, 5000][1:2]
+        beta_list = [0.001, 0.01, 0, 1000, 5000][1:2]
 
         args.max_iter = 50
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
@@ -344,7 +344,7 @@ if __name__ == '__main__':
         # alpha_list = 10 ** np.linspace(-1, 1, 3)
         # beta_list = 10 ** np.linspace(-1, 1, 3)
         alpha_list = [1]
-        beta_list = [0.1]
+        beta_list = [0.01, 0.001]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
         penalty_anneal_iters_list = np.linspace(0, 600, 5)
@@ -355,9 +355,17 @@ if __name__ == '__main__':
     else:
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
-                # if alpha == 1 and beta == 0.1:
-                #     continue
-            # for alpha, beta in alpha_beta_list:
+                result_file = os.path.join(args.save_dir,
+                                           f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
+                if os.path.exists(result_file):
+                    existing_df = pd.read_csv(result_file)
+                    df_current = existing_df[(existing_df['grad_alpha'] == alpha) & (
+                                existing_df['penalty_anneal_iters'] == anneal_iters) & (
+                                                         existing_df['hessian_beta'] == beta)]
+                    if len(df_current) > 0:
+                        print(
+                            f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
+                        continue
                 args.alpha = alpha
                 args.beta = beta
                 args.seed = seed
