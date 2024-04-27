@@ -335,14 +335,15 @@ if __name__ == '__main__':
     if args.dataset == 'CelebA':
         # alpha_list = [0.01, 0, 1000, 5000][::-1]
         # beta_list = [0.01, 0, 1000, 5000][::-1]
-        alpha_list = [0.001, 0.01, 0, 1000, 5000]
-        beta_list = [0.001, 0.01, 0, 1000, 5000]
-
+        # alpha_list = [0.001, 0.01, 0, 1000, 5000]
+        # beta_list = [0.001, 0.01, 0, 1000, 5000]
+        alpha_list = [0]
+        beta_list = [0]
         args.max_iter = 50
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 8000, 5)
+        penalty_anneal_iters_list = np.linspace(0, 8000, 5)[1]
         # penalty_anneal_iters_list = [20000]
     if args.dataset == 'MultiNLI':
         # alpha_list = 10 ** np.linspace(-1, 1, 3)
