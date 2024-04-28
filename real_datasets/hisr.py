@@ -290,52 +290,53 @@ class HISRClassifier:
 
         # Compute probabilities
         p = F.softmax(logits, dim=1)  # Shape: [batch_size, num_classes]
-
-        # Compute p_k(1-p_k) for diagonal blocks and -p_k*p_l for off-diagonal blocks
-        # Diagonal part
+        #
+        # # Compute p_k(1-p_k) for diagonal blocks and -p_k*p_l for off-diagonal blocks
+        # # Diagonal part
         p_diag = p * (1 - p)  # Shape: [batch_size, num_classes]
-        # Off-diagonal part
+        # # Off-diagonal part
         p_off_diag = -p.unsqueeze(2) * p.unsqueeze(1)  # Shape: [batch_size, num_classes, num_classes]
-        # Fill the diagonal part in off-diagonal tensor
+        # # Fill the diagonal part in off-diagonal tensor
         indices = torch.arange(num_classes)
         p_off_diag[:, indices, indices] = p_diag
-
         # Outer product of x
         X_outer = torch.einsum('bi,bj->bij', x, x)  # Shape: [batch_size, d, d]
-
-        # Combine the probabilities with the outer product of x
         H = torch.einsum('bkl,bij->bklij', p_off_diag, X_outer)  # Shape: [batch_size, num_classes, num_classes, d, d]
 
-        # Sum over the batch and reshape to get final Hessian
         H = H.sum(0).reshape(dC, dC)  # Shape: [dC, dC]
-
-        # Normalize Hessian by the batch size
         H /= batch_size
         H /= dC
         return H
 
-        # # Compute the probabilities for each class
-        # p = F.softmax(logits, dim=1)  # Shape: [batch_size, num_classes]
-        #
-        # # Compute the scaling factors for the Hessian (p_i * (1 - p_i))
-        # scale_factors = p * (1 - p)  # Shape: [batch_size, num_classes]
-        #
-        # # Expand the scale_factors to shape [batch_size, num_classes, 1, 1]
-        # scale_factors = scale_factors.transpose(0, 1).unsqueeze(-1).unsqueeze(-1)
-        #
-        # # Reshape x for outer product: [batch_size, num_features, 1]
-        # x_reshaped = x.unsqueeze(2)
-        #
-        # # Compute the batched outer product: [batch_size, num_classes, num_features, num_features]
-        # outer_products = torch.matmul(x_reshaped, x_reshaped.transpose(1, 2))
-        #
-        # # Scale the outer products by the scaling factors and average across the batch
-        # hessians = torch.mean(scale_factors * outer_products, dim=1)
-        #
-        # return hessians
+    def grad_pen(self, x, logits, y, envs):
+        env_gradients = []
+        for e in range(self.n_envs):
+            idx = (envs == e).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+            y_env = y[idx]
+            logits_env = logits[idx]
+            x_env = x[idx]
+            grad_w = self.gradient(x_env, logits_env, y_env)
+            env_gradients.append(grad_w)
+
+        avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+
+        # avg_grad_minus_grad_bar_2_sq = torch.mean(torch.stack([(grad - avg_gradient).norm(2) ** 2 for grad in env_gradients]))
+        sum_grad_minus_grad_bar_2_sq = 0
+        for e in range(self.n_envs):
+            sum_grad_minus_grad_bar_2_sq += (env_gradients[e] - avg_gradient).norm(2) ** 2
+        avg_grad_minus_grad_bar_2_sq = sum_grad_minus_grad_bar_2_sq / self.n_envs
+
+        return avg_grad_minus_grad_bar_2_sq
+
+
 
     def gradient(self, x, logits, y):
-
         # Ensure logits are in proper shape
         p = F.softmax(logits, dim=-1)
 
@@ -348,22 +349,15 @@ class HISRClassifier:
             y_onehot.scatter_(1, y.unsqueeze(-1), 1)
         # y_onehot.scatter_(1, y.long().unsqueeze(-1), 1)
 
-        # Compute the gradient for each class
-        # Gradient computation is simplified by directly using the broadcasted subtraction and matrix multiplication
-        # Note: No need to unsqueeze and manually divide by the batch size, torch.matmul handles this efficiently
-        # grad_w_class1 = torch.matmul((y_onehot[:, 1] - p[:, 1]).T, x) / x.size(0)
-        # grad_w_class0 = torch.matmul((y_onehot[:, 0] - p[:, 0]).T, x) / x.size(0)
-
         # multiclasses
-        grad_w = torch.matmul((y_onehot - p).T, x) / x.size(0)
+        grad_w = torch.matmul((p - y_onehot).T, x) / x.size(0)
 
         # Stack the gradients for both classes
         # grad_w2 = torch.stack([grad_w_class1, grad_w_class0], dim=0)
         # assert torch.allclose(grad_w, grad_w2), "Gradient computation is incorrect"
 
-        # dC = grad_w.shape[0] * grad_w.shape[1]
-        # grad_w /= (dC) ** 0.5
-        grad_w /= grad_w.shape[1] ** 0.5
+        dC = grad_w.shape[0] * grad_w.shape[1]
+        grad_w /= dC
         return grad_w
 
     def calc_hessian_diag(self, model, loss_grad, repeat=1000):
@@ -500,17 +494,78 @@ class HISRClassifier:
         return torch.stack(hessian).squeeze()
 
 
+    def hessian_pen(self, x, logits, envs):
+        p = F.softmax(logits, dim=1)
+        diag = torch.diag_embed(p)
+        batch_size = x.shape[0]
+        off_diag = torch.einsum('bi,bj->bij', p, p)
+        diff = diag - off_diag
+        prob_trace = torch.einsum('bik,cjk->bcij', diff, diff).diagonal(dim1=-2, dim2=-1).sum(-1)
+        X_outer = torch.einsum('bi,bj->bij', x, x)
+        # x_traces = torch.einsum('bik,cjk->bcij', X_outer, X_outer).diagonal(dim1=-2, dim2=-1).sum(-1)
+        x_traces = torch.zeros(batch_size, batch_size, device=x.device)
+        for i in range(batch_size):
+            for j in range(i, batch_size):
+                x_traces[i, j] = torch.matmul(X_outer[i], X_outer[j]).trace()
+                x_traces[j, i] = x_traces[i, j]
 
-    def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5, stats = {}):
+        # Create a boolean mask for each environment
+        env_ids = torch.arange(self.n_envs).unsqueeze(1)  # Shape (num_envs, 1)
 
+        # Compare env_indices with envs to create the masks tensor
+        masks = env_ids == envs
+
+        # Compute product of prob_trace and x_traces
+        product_matrix = prob_trace * x_traces
+
+        # Precompute the denominators using broadcasting
+        denoms = masks.sum(1).unsqueeze(1) * masks.sum(1).unsqueeze(0)
+
+        # Expand masks for all pairwise environment combinations using broadcasting
+        mask1_expanded = masks.unsqueeze(1).unsqueeze(3)  # Shape (num_envs, 1, num_samples, 1)
+        mask2_expanded = masks.unsqueeze(0).unsqueeze(2)  # Shape (1, num_envs, 1, num_samples)
+
+        # Compute all pairwise masks by logical and
+        pairwise_masks = mask1_expanded & mask2_expanded  # Shape (num_envs, num_envs, num_samples, num_samples)
+
+        # Apply the pairwise masks to the product_matrix and sum over the last two dimensions
+        masked_products = pairwise_masks * product_matrix.unsqueeze(0).unsqueeze(0)  # Broadcast product_matrix
+        H_H_f = masked_products.sum(dim=-1).sum(dim=-1) / denoms
+
+        f_norm_env = H_H_f.diagonal()
+
+        # Compute the shared terms
+        shared_term = H_H_f.sum() / (self.n_envs ** 2)
+
+        # Compute the sum for each environment, divided by num_envs
+        individual_term = 2 * H_H_f.sum(dim=1) / self.n_envs
+
+        # Calculate the full expression in a vectorized form
+        avg_h_minus_h_bar_sq = torch.mean(f_norm_env + shared_term - individual_term)
+
+        sum_h_minus_h_bar_sq = 0
+        for e in range(self.n_envs):
+            sum_h_minus_h_bar_sq += f_norm_env[e] + shared_term - individual_term[e]
+        avg_h_minus_h_bar_sq = sum_h_minus_h_bar_sq / self.n_envs
+
+        # normalize by the dimmension of the hessian
+        avg_h_minus_h_bar_sq /= (x.shape[1] * self.n_classes) ** 2
+
+        return f_norm_env, avg_h_minus_h_bar_sq
+
+
+
+    def exact_hessian_loss_old(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5, stats = {}):
         env_gradients = []
+        # env_hessians = torch.zeros(self.n_envs, x.shape[1] * self.n_classes,  x.shape[1] * self.n_classes)
         env_hessians = []
         env_indices_unique = env_indices.unique()
         for env_idx in env_indices_unique:
             idx = (env_indices == env_idx).nonzero().squeeze()
             if idx.numel() == 0:
-                env_gradients.append(torch.zeros(1))
-                env_hessians.append(torch.zeros(1))
+                env_gradients.append(torch.zeros(1,device=x.device))
+                # env_hessians[env_idx] = torch.zeros(x.shape[1] * self.n_classes, x.shape[1] * self.n_classes)
+                env_hessians.append(torch.zeros(x.shape[1] * self.n_classes, x.shape[1] * self.n_classes))
                 continue
             elif x[idx].dim() == 1:
                 yhat_env = logits[idx].view(1, -1)
@@ -537,32 +592,26 @@ class HISRClassifier:
                 yhat_env = yhat_env[0] if isinstance(yhat_env, tuple) else yhat_env
                 hessian = self.hessian(x_env, yhat_env)
 
-
-            # hessian_original = self.hessian_original(x_env, yhat_env)
-            # assert torch.allclose(grads, grads_original), "Gradient computation is incorrect"
-            # assert torch.allclose(hessian, hessian_original, atol=1e-6), "Hessian computation is incorrect"
             env_gradients.append(grads)
+            # env_hessians[env_idx] = hessian
             env_hessians.append(hessian)
 
 
-        # Compute average gradient and hessian
-        # avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
-        #                 range(len(env_gradients[0]))]
         avg_gradient, avg_hessian = 0, 0
         if alpha != 0:
-            weight_gradients = [g[0] for g in env_gradients]
+            weight_gradients = [g for g in env_gradients]
             avg_gradient = torch.mean(torch.stack(weight_gradients), dim=0)
 
 
         # avg_gradient = torch.mean(torch.stack(env_gradients), dim=0)
         if beta != 0:
+            # avg_hessian = torch.mean(env_hessians, dim=0)
             avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
 
-
-        total_loss = torch.tensor(0.0, requires_grad=True)
         erm_loss = 0
         hess_loss = 0
         grad_loss = 0
+
         for env_idx, (grads, hessian) in enumerate(zip(env_gradients, env_hessians)):
             # hessian_original = env_hessians_original[env_idx]
             idx = (env_indices == env_idx).nonzero().squeeze()
@@ -581,8 +630,7 @@ class HISRClassifier:
             grad_diff_norm, grad_reg = 0, 0
             hessian_diff_norm, hessian_reg = 0, 0
             if alpha != 0:
-                grad_diff_norm = torch.norm(grads[0] - avg_gradient, p=2)
-
+                grad_diff_norm = torch.norm(grads - avg_gradient, p=2)
                 grad_reg = alpha * grad_diff_norm ** 2
             if beta != 0:
                 # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
@@ -591,32 +639,60 @@ class HISRClassifier:
                 hessian_diff_norm = torch.norm(hessian_diff, p='fro')
                 hessian_reg = beta * hessian_diff_norm ** 2
 
-                # hessian_diff_norm_original = torch.norm(hessian_diff_original, p='fro')
-                # assert torch.allclose(hessian_diff_norm, hessian_diff_norm_original), "Hessian computation is incorrect"
             stats.update({f'erm_loss_env:{env_idx}': loss.item()})
             stats.update({f'grad_penalty_env:{env_idx}': grad_diff_norm.item() if alpha != 0 else 0})
             stats.update({f'hessian_penalty_env:{env_idx}': hessian_diff_norm.item() if beta != 0 else 0})
-            total_loss = total_loss + (loss + hessian_reg + grad_reg) * env_fraction
-            # total_loss = total_loss + loss
-            erm_loss += loss * env_fraction
-            grad_loss += grad_reg * env_fraction
-            hess_loss += hessian_reg * env_fraction
+            erm_loss += loss / self.n_envs
+            grad_loss += grad_reg / self.n_envs
+            hess_loss += hessian_reg / self.n_envs
+        total_loss = erm_loss + grad_loss + hess_loss
 
 
-        # erm_loss = self.loss_fn(logits.squeeze(), y.long())
-        # total_loss = total_loss + erm_loss
-        # n_unique_envs = len(4)
-        # print("Number of unique envs:", n_unique_envs)
-        # total_loss = total_loss / n_unique_envs
-        # erm_loss = erm_loss / n_unique_envs
-        # hess_loss = hess_loss / n_unique_envs
-        # grad_loss = grad_loss / n_unique_envs
-        # print("Loss:", total_loss.item(), "; Hessian Reg:",  alpha * hessian_reg.item(), "; Gradient Reg:", beta * grad_reg.item())
         stats['total_loss'] = total_loss.item()
         stats['erm_loss'] = erm_loss.item()
         stats['hessian_loss'] = hess_loss.item() if beta != 0 else 0
         stats['grad_loss'] = grad_loss.item() if alpha != 0 else 0
-        return total_loss, erm_loss, hess_loss, grad_loss, stats
+        return total_loss, erm_loss, grad_loss, hess_loss, stats
+
+
+
+    def exact_hessian_loss(self, logits, x, y, env_indices, alpha=10e-5, beta=10e-5, stats = {}):
+        env_erm = torch.zeros(self.n_envs, device = x.device)
+        for e in range(self.n_envs):
+            idx = (env_indices == e).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+            y_env = y[idx]
+            logits_env = logits[idx]
+            env_fraction = len(idx) / len(env_indices)
+            stats.update({f'env_frac:{e}': env_fraction})
+            loss = self.loss_fn(logits_env.squeeze(), y_env.long())
+            env_erm[e] = loss
+            stats.update({f'erm_loss_env:{e}': loss.item()})
+            # Compute the 2-norm of the difference between the gradient for this environment and the average gradient
+
+        grad_pen, hess_pen = 0, 0
+        if alpha != 0:
+            grad_pen = self.grad_pen(x, logits, y, env_indices)
+
+        if beta != 0:
+            f_norm_env, hess_pen = self.hessian_pen(x, logits, env_indices)
+
+
+        erm_loss = torch.mean(env_erm)
+        total_loss = erm_loss + alpha * grad_pen + beta * hess_pen
+
+        stats['total_loss'] = total_loss.item()
+        stats['erm_loss'] = erm_loss.item()
+        stats['hessian_loss'] = beta * hess_pen.item() if beta != 0 else 0
+        stats['grad_loss'] = alpha * grad_pen.item() if alpha != 0 else 0
+
+        return total_loss, erm_loss, alpha * grad_pen, beta * hess_pen, stats
+
     def compute_fishr_penalty(self, all_logits, all_y, all_env_indices):
         dict_grads = self._get_grads(all_logits, all_y)
         grads_var_per_domain = self._get_grads_var_per_domain(dict_grads, all_env_indices)
@@ -743,8 +819,7 @@ class HISRClassifier:
             val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
             with torch.no_grad():
                 val_logits = self.clf(val_x_batch)
-
-                val_loss_batch, val_erm_loss_batch, val_hess_loss_batch, val_grad_loss_batch, _ = self.exact_hessian_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
+                val_loss_batch, val_erm_loss_batch, val_hess_loss_batch, val_grad_loss_batch, _ = self.exact_hessian_loss_old(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
                 val_total_loss += val_loss_batch
                 val_erm_loss += val_erm_loss_batch
                 val_hess_loss += val_hess_loss_batch
@@ -882,7 +957,8 @@ class HISRClassifier:
                         stats['grad_alpha'] = alpha
                         stats['hess_beta'] = beta
                         stats['anneal_iters'] = args.penalty_anneal_iters
-                        total_loss, erm_loss, hess_loss, grad_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
+                        # total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
+                        total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss_old(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # if self.update_count % self.log_every == 0:
                         stats.update(group_accs)
                         for group_idx in range(self.n_groups):

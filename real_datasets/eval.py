@@ -224,7 +224,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -237,7 +237,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert_scaled')
+    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert_rescaled')
     argparser.add_argument('--progress_save_dir', type=str, default='./logs/ISR_training_progress')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
@@ -325,31 +325,31 @@ if __name__ == '__main__':
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        alpha_list = list(10 ** np.linspace(2, 3, 2)) + [0]
-        beta_list = list(10 ** np.linspace(2, 3, 2)) + [0] + [5000, 10000]
+        alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
+        beta_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
         args.max_iter = 300
-        args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
+        args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 1400, 5)
     if args.dataset == 'CelebA':
-        # alpha_list = [0.01, 0, 1000, 5000][::-1]
-        # beta_list = [0.01, 0, 1000, 5000][::-1]
+        alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
+        beta_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
         # alpha_list = [0.001, 0.01, 0, 1000, 5000]
         # beta_list = [0.001, 0.01, 0, 1000, 5000]
-        alpha_list = [0]
-        beta_list = [0]
+        # alpha_list = [0]
+        # beta_list = [0]
         args.max_iter = 50
-        args.save_dir = './logs/ISR_Hessian_results_ViT-B_scaled'
+        args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 8000, 5)[1]
+        penalty_anneal_iters_list = np.linspace(0, 8000, 5)
         # penalty_anneal_iters_list = [20000]
     if args.dataset == 'MultiNLI':
-        # alpha_list = 10 ** np.linspace(-1, 1, 3)
-        # beta_list = 10 ** np.linspace(-1, 1, 3)
-        alpha_list = [1]
-        beta_list = [0.01, 0.001]
+        alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
+        beta_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
+        # alpha_list = [1]
+        # beta_list = [0.01, 0.001]
         args.max_iter = 3
         seed_list = [0, 1, 2, 3,4]
         penalty_anneal_iters_list = np.linspace(0, 600, 5)
@@ -376,7 +376,7 @@ if __name__ == '__main__':
                     if len(df_current) > 0:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
-                        continue
+                        # continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
                 eval_ISR(args)
 
