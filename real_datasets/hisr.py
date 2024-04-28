@@ -834,6 +834,8 @@ class HISRClassifier:
 
         group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
                                                                 include_avg_acc=True)
+        stats['epoch'] = epoch
+
         stats['anneal_iters']= args.penalty_anneal_iters
         stats['grad_alpha'] = args.alpha
         stats['hess_beta'] = args.beta
@@ -920,6 +922,9 @@ class HISRClassifier:
                         hess_loss = 0
                         grad_loss = 0
                         stats = {
+                            'epoch': epoch,
+                            'batch_idx': batch_idx,
+                            'step': self.update_count,
                             'anneal_iters': args.penalty_anneal_iters,
                             'total_loss': total_loss.item(),
                             'erm_loss': erm_loss.item(),
@@ -950,9 +955,12 @@ class HISRClassifier:
                         #     return self.clf
 
                     elif approx_type == "exact":
-                        # if self.update_count < args.penalty_anneal_iters:
-                        #     alpha = 0
-                        #     beta = 0
+                        stats['epoch'] = epoch
+                        stats['batch_idx'] = batch_idx
+                        stats['step'] = self.update_count
+                        if self.update_count < args.penalty_anneal_iters:
+                            alpha = 0
+                            beta = 0
                         # logits = self.clf(x_batch)
                         stats['grad_alpha'] = alpha
                         stats['hess_beta'] = beta

@@ -89,7 +89,7 @@ class CSVBatchLogger:
 
 class CSVBatchLogger_ISR:
     def __init__(self, csv_path, n_groups, n_envs, mode='w'):
-        columns = ['epoch', 'batch']
+        columns = ['epoch', 'batch','step']
         for idx in range(n_groups):
             columns.append(f'group_count:{idx}')
             columns.append(f'group_frac:{idx}')
