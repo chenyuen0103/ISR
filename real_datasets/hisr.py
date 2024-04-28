@@ -839,8 +839,8 @@ class HISRClassifier:
         stats['hess_beta'] = args.beta
         stats['total_loss'] = val_total_loss.item()
         stats['erm_loss'] = val_erm_loss.item()
-        stats['hessian_loss'] = val_hess_loss.item() if args.beta != 0 else 0
-        stats['grad_loss'] = val_grad_loss.item() if args.alpha != 0 else 0
+        stats['hessian_loss'] = val_hess_loss.item() if isinstance(val_hess_loss, torch.Tensor) else val_hess_loss
+        stats['grad_loss'] = val_grad_loss.item() if isinstance(val_grad_loss, torch.Tensor) else val_grad_loss
         stats['worst_acc'] = worst_acc
         stats['worst_group'] = worst_group
 
