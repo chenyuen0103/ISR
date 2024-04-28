@@ -923,7 +923,7 @@ class HISRClassifier:
                         grad_loss = 0
                         stats = {
                             'epoch': epoch,
-                            'batch_idx': batch_idx,
+                            'batch': batch_idx,
                             'step': self.update_count,
                             'anneal_iters': args.penalty_anneal_iters,
                             'total_loss': total_loss.item(),
@@ -956,7 +956,7 @@ class HISRClassifier:
 
                     elif approx_type == "exact":
                         stats['epoch'] = epoch
-                        stats['batch_idx'] = batch_idx
+                        stats['batch'] = batch_idx
                         stats['step'] = self.update_count
                         if self.update_count < args.penalty_anneal_iters:
                             alpha = 0
