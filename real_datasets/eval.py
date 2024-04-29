@@ -332,7 +332,7 @@ if __name__ == '__main__':
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 1400, 5)
+        penalty_anneal_iters_list = np.linspace(0, 2800, 5)
     if args.dataset == 'CelebA':
         alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
         beta_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
@@ -344,7 +344,7 @@ if __name__ == '__main__':
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 8000, 5)
+        penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [20000]
     if args.dataset == 'MultiNLI':
         alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
@@ -352,8 +352,7 @@ if __name__ == '__main__':
         # alpha_list = [1]
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
-        seed_list = [0, 1, 2, 3,4]
-        penalty_anneal_iters_list = np.linspace(0, 600, 5)
+        penalty_anneal_iters_list = np.linspace(0, 1200, 5)
 
     if args.hessian_approx_method == 'fishr':
         run_fishr(args, penalty_anneal_iters_list)
