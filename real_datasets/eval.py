@@ -381,9 +381,9 @@ if __name__ == '__main__':
                     if len(df_current) > 0:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
-                        # continue
-                # print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                # eval_ISR(args)
+                        continue
+                print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
+                eval_ISR(args)
 
 
 
