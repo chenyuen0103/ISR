@@ -321,6 +321,7 @@ if __name__ == '__main__':
     # alpha_list = [1.96 * 10 ** -4]
     # beta_list = [5000]
 
+
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
@@ -358,8 +359,12 @@ if __name__ == '__main__':
         run_fishr(args, penalty_anneal_iters_list)
         # eval_ISR(args)
     else:
+        # eval_ISR(args)
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
+                if alpha == 0 and beta == 0 and anneal_iters != 0:
+                    continue
+
                 args.alpha = alpha
                 args.beta = beta
                 args.seed = seed
@@ -377,8 +382,8 @@ if __name__ == '__main__':
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         # continue
-                print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
+                # eval_ISR(args)
 
 
 

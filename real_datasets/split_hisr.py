@@ -32,7 +32,7 @@ def result_merge(file_name_start = 'CUB_results_s1'):
     df_combined.to_csv(os.path.join(data_dir, file_name_start + '_combined.csv'), index=False)
 
 
-def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='./logs/ISR_hessian_results_ViT-B_scaled'):
+def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='./logs/ISR_hessian_results_ViT-B_rescaled'):
     # Create the full pattern for glob
     full_pattern = os.path.join(data_dir, file_name_pattern)
 
@@ -254,15 +254,15 @@ def main():
     multiNLI_fishr = 'MultiNLI_results_s*_fishr.csv'
 
     cubs_val, cubs_test = merge_seeds()
-    merge_seeds(file_name_pattern=cub_fishr)
+    # merge_seeds(file_name_pattern=cub_fishr)
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
-    merge_seeds(file_name_pattern=celeba_fishr)
-    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir='./logs/ISR_hessian_results_bert_scaled')
-    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert_scaled')
+    # merge_seeds(file_name_pattern=celeba_fishr)
+    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir='./logs/ISR_hessian_results_bert_rescaled')
+    # multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert_rescaled')
     # print(cubs_val)
     worst_case = True
-    data_dir_vit = './logs/ISR_Hessian_results_ViT-B_scaled'
-    data_dir_bert = './logs/ISR_Hessian_results_bert_scaled'
+    data_dir_vit = './logs/ISR_Hessian_results_ViT-B_rescaled'
+    data_dir_bert = './logs/ISR_Hessian_results_bert_rescaled'
     # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
     # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
     # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
@@ -275,11 +275,11 @@ def main():
     find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
     find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir_bert)
 
-    find_best_isr(worst_case = worst_case)
-    find_best_gm(worst_case = worst_case)
-    find_best_hm(worst_case = worst_case)
-    find_best_gm_hm(worst_case = worst_case)
-    find_best_fishr(worst_case = worst_case)
+    find_best_isr(worst_case = worst_case, data_dir=data_dir_vit)
+    find_best_gm(worst_case = worst_case, data_dir=data_dir_vit)
+    find_best_hm(worst_case = worst_case, data_dir=data_dir_vit)
+    find_best_gm_hm(worst_case = worst_case, data_dir=data_dir_vit)
+    find_best_fishr(worst_case = worst_case, data_dir=data_dir_vit)
 
 if __name__ == '__main__':
     main()
