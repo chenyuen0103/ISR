@@ -259,7 +259,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 2000, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 0, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -333,6 +333,7 @@ if __name__ == '__main__':
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 2800, 5)
+        num_rows = 4
     if args.dataset == 'CelebA':
         alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
         beta_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
@@ -346,6 +347,7 @@ if __name__ == '__main__':
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [20000]
+        num_rows = 4
     if args.dataset == 'MultiNLI':
         alpha_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
         beta_list = [0] + list(10 ** np.linspace(-1, 3, 5)[::-1])
@@ -353,12 +355,12 @@ if __name__ == '__main__':
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
         penalty_anneal_iters_list = np.linspace(0, 1200, 5)
-
+        num_rows = 6
     if args.hessian_approx_method == 'fishr':
         run_fishr(args, penalty_anneal_iters_list)
         # eval_ISR(args)
     else:
-        # eval_ISR(args)
+        eval_ISR(args)
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
                 if alpha == 0 and beta == 0 and anneal_iters != 0:
@@ -377,12 +379,12 @@ if __name__ == '__main__':
                         (existing_df['penalty_anneal_iters'] == anneal_iters) &
                         np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
                         ]
-                    if len(df_current) > 0:
+                    if len(df_current) >= num_rows:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # eval_ISR(args)
 
 
 

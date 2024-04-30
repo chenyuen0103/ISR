@@ -273,6 +273,39 @@ class HISRClassifier:
         # assert torch.allclose(hessian_w2, hessian_w), "Hessian computation is incorrect"
         return hessian_w2
 
+
+    def hessian_pen(self, x, logits, envs):
+        env_hessians = []
+        envs_indices_unique = envs.unique()
+        for e in envs_indices_unique:
+            idx = (envs == e).nonzero().squeeze()
+            if idx.numel() == 0:
+                breakpoint()
+                continue
+
+            logits_env = logits[idx]
+            x_env = x[idx]
+            hessian = self.hessian(x_env, logits_env)
+            env_hessians.append(hessian)
+
+        avg_hessian = torch.mean(torch.stack(env_hessians), dim=0)
+        hess_pen = 0
+        for env_idx, hessian in zip(envs_indices_unique, env_hessians):
+            # hessian_pytorch = env_hessians_pytorch[env_idx]
+            idx = (envs == env_idx).nonzero().squeeze()
+            if idx.numel() == 0:
+                breakpoint()
+                continue
+
+            # Compute the Frobenius norm of the difference between the Hessian for this environment and the average Hessian
+            hessian_diff = hessian - avg_hessian
+            hessian_reg = torch.norm(hessian_diff, p='fro') ** 2
+            num_envs = len(envs_indices_unique)
+            hess_pen += hessian_reg / num_envs
+
+        return hess_pen
+
+
     def hessian(self, x, logits):
         """
         Compute the Hessian of the cross-entropy loss for n-class classification.
@@ -494,7 +527,7 @@ class HISRClassifier:
         return torch.stack(hessian).squeeze()
 
 
-    def hessian_pen(self, x, logits, envs):
+    def hessian_pen_old(self, x, logits, envs):
         unique_envs = envs.unique()
         num_envs = len(unique_envs)
         H_H_f = torch.zeros(num_envs, num_envs, device=x.device)
@@ -723,7 +756,7 @@ class HISRClassifier:
             grad_pen = self.grad_pen(x, logits, y, env_indices)
 
         if beta != 0:
-            f_norm_env, hess_pen = self.hessian_pen(x, logits, env_indices)
+            hess_pen = self.hessian_pen(x, logits, env_indices)
 
 
         erm_loss = torch.mean(env_erm)
@@ -862,7 +895,7 @@ class HISRClassifier:
             val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
             with torch.no_grad():
                 val_logits = self.clf(val_x_batch)
-                val_loss_batch, val_erm_loss_batch, val_hess_loss_batch, val_grad_loss_batch, _ = self.exact_hessian_loss_old(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
+                val_loss_batch, val_erm_loss_batch, val_hess_loss_batch, val_grad_loss_batch, _ = self.exact_hessian_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
                 val_total_loss += val_loss_batch
                 val_erm_loss += val_erm_loss_batch
                 val_hess_loss += val_hess_loss_batch
@@ -1001,14 +1034,19 @@ class HISRClassifier:
                         stats['epoch'] = epoch
                         stats['batch'] = batch_idx
                         stats['step'] = self.update_count
-                        if self.update_count < args.penalty_anneal_iters:
-                            alpha = 0
-                            beta = 0
-                        # logits = self.clf(x_batch)
+                        alpha, beta = 0, 0
+                        if self.update_count >= args.penalty_anneal_iters:
+                            alpha = args.alpha
+                            beta = args.beta
+                            if self.update_count == args.penalty_anneal_iters != 0:
+                                # Reset Adam as in IRM or V-REx, because it may not like the sharp jump in
+                                # gradient magnitudes that happens at this step.
+                                # init optimizer
+                                self.optimizer = optim.SGD(self.clf.parameters(), lr=0.001)
                         stats['grad_alpha'] = alpha
                         stats['hess_beta'] = beta
                         stats['anneal_iters'] = args.penalty_anneal_iters
-                        total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss_old(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
+                        total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # if self.update_count % self.log_every == 0:
                         stats.update(group_accs)
