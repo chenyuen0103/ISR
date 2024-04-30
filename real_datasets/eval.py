@@ -349,8 +349,8 @@ if __name__ == '__main__':
         # penalty_anneal_iters_list = [20000]
         num_rows = 4
     if args.dataset == 'MultiNLI':
-        alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        beta_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # alpha_list = [1]
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
