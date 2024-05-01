@@ -326,8 +326,8 @@ if __name__ == '__main__':
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        beta_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        alpha_list = np.round([0]  + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        beta_list = np.round([0] + [2000, 5000, 10000]+ list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
