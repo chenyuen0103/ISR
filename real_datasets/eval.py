@@ -335,8 +335,10 @@ if __name__ == '__main__':
         penalty_anneal_iters_list = np.linspace(0, 2800, 5)
         num_rows = 4
     if args.dataset == 'CelebA':
-        alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        beta_list = np.round([0] + [2000, 5000, 10000] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        alpha_list = [1000, 2000, 5000]
+        beta_list = [100]
         # alpha_list = [0.001, 0.01, 0, 1000, 5000]
         # beta_list = [0.001, 0.01, 0, 1000, 5000]
         # alpha_list = [0]
@@ -345,7 +347,8 @@ if __name__ == '__main__':
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 16000, 5)
+        # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
+        penalty_anneal_iters_list = np.linspace(0, 8000, 5)
         # penalty_anneal_iters_list = [20000]
         num_rows = 4
     if args.dataset == 'MultiNLI':
