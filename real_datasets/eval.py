@@ -359,7 +359,7 @@ if __name__ == '__main__':
         # alpha_list = [1]
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
-        penalty_anneal_iters_list = np.linspace(0, 900, 4)
+        penalty_anneal_iters_list = np.linspace(0, 900, 4)[::-1]
         num_rows = 6
     if args.hessian_approx_method == 'fishr':
         run_fishr(args, penalty_anneal_iters_list)
