@@ -348,7 +348,7 @@ if __name__ == '__main__':
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        penalty_anneal_iters_list = np.linspace(0, 8000, 5)
+        penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [20000]
         num_rows = 4
     if args.dataset == 'MultiNLI':
