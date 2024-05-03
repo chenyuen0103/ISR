@@ -147,8 +147,8 @@ def find_best_gm_hm(data_dir='./logs/ISR_hessian_results_ViT-B_scaled', file_nam
 def find_best_hps(val_df, test_df, worst_case = False):
     val_df = val_df[val_df['ISR_scale'] == 0]
     test_df = test_df[test_df['ISR_scale'] == 0]
-    val_df = val_df[val_df['avg_acc_sem'].isna() == False]
-    test_df = test_df[test_df['avg_acc_sem'].isna() == False]
+    # val_df = val_df[val_df['avg_acc_sem'].isna() == False]
+    # test_df = test_df[test_df['avg_acc_sem'].isna() == False]
     col_mean = 'worst_acc_mean' if worst_case else 'avg_acc_mean'
     col_sem = 'worst_acc_sem' if worst_case else 'avg_acc_sem'
     # Step 1: Identify the highest average accuracy
@@ -159,7 +159,11 @@ def find_best_hps(val_df, test_df, worst_case = False):
 
     # Step 2: Select based on Standard Error
     # Identify the entry with the smallest standard error among the top performers
-    best_val_hyperparameters = top_performers.loc[top_performers[col_sem].idxmin()]
+    # best_val_hyperparameters = top_performers.loc[top_performers[col_sem].idxmin()]
+    if len(top_performers) > 1:
+        best_val_hyperparameters = top_performers.loc[top_performers[col_sem].idxmin()]
+    else:
+        best_val_hyperparameters = top_performers.iloc[0]
 
     # Display the chosen hyperparameters
 
@@ -270,10 +274,10 @@ def main():
 
     data_dir_vit = './logs/ISR_Hessian_results_ViT-B_rescaled'
     data_dir_bert = './logs/ISR_Hessian_results_bert_scaled'
-    # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
-    # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    find_best_isr(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
+    find_best_gm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
+    find_best_hm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
+    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
     # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir_vit)
 
     find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)

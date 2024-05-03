@@ -329,6 +329,7 @@ if __name__ == '__main__':
         alpha_list = np.round([0]  + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         beta_list = np.round([0] + [2000, 5000, 10000]+ list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
+        args.ISR_class = 0
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
@@ -337,8 +338,10 @@ if __name__ == '__main__':
     if args.dataset == 'CelebA':
         # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        alpha_list = [1000, 2000, 5000]
+        # alpha_list = [1000, 2000, 5000]
+        beta_list = [5000]
         beta_list = [100]
+        args.ISR_class = 0
         # alpha_list = [0.001, 0.01, 0, 1000, 5000]
         # beta_list = [0.001, 0.01, 0, 1000, 5000]
         # alpha_list = [0]
@@ -356,6 +359,7 @@ if __name__ == '__main__':
         # beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         alpha_list = [1000, 2000, 5000, 10000, 15000][::-1]
         beta_list = [1000, 2000, 5000, 10000, 15000][::-1]
+        args.ISR_class = 2
         # alpha_list = [1]
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
