@@ -860,16 +860,32 @@ class HISRClassifier:
         return penalty / self.n_envs
 
     def fishr_loss(self, logits, x, y, env_indices, args):
-        penalty = self.compute_fishr_penalty(logits, y, env_indices)
-        all_nll = F.cross_entropy(logits, y.long())
+        # all_nll = F.cross_entropy(logits, y.long())
         # all_nll2 = self.loss_fn(logits.squeeze(), y.long())
-        penalty_weight = 0
+        penalty_weight, penalty = 0, 0
+        env_nlls = []
+        for e in range(self.n_envs):
+            idx = (env_indices == e).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+            y_env = y[idx]
+            logits_env = logits[idx]
+            env_nll = F.cross_entropy(logits_env, y_env.long())
+            env_nlls.append(env_nll)
+        all_nll = torch.mean(torch.stack(env_nlls))
+
+
         if self.update_count >= args.penalty_anneal_iters:
             penalty_weight = args.lam
             if self.update_count == args.penalty_anneal_iters != 0:
                 # Reset Adam as in IRM or V-REx, because it may not like the sharp jump in
                 # gradient magnitudes that happens at this step.
                 # init optimizer
+                penalty = self.compute_fishr_penalty(logits, y, env_indices)
                 self.optimizer = optim.SGD(self.classifier.parameters(), lr=0.001)
         self.update_count += 1
         objective = all_nll + penalty_weight * penalty
