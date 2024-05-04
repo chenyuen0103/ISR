@@ -270,6 +270,7 @@ def main():
     # print(cubs_val)
     worst_case = True
 
+
     data_dir_vit = './logs/ISR_Hessian_results_ViT-B_rescaled'
     data_dir_bert = './logs/ISR_Hessian_results_bert_rescaled'
     find_best_isr(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)

@@ -393,7 +393,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                # eval_ISR(args)
+                eval_ISR(args)
 
 
 
