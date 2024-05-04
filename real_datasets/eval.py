@@ -272,7 +272,7 @@ def parse_args(args: list = None, specs: dict = None):
 
 def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
 
-    seed_list = [0, 1,2,3,4]
+    seed_list = [0]
     # args.ISR_class = None
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
     lambda_list = 10 ** np.linspace(1, 4, 4)
@@ -290,6 +290,7 @@ def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
         # lam, penalty_anneal_iters, ema = sample_hyperparams(i)
     if fishr_top5:
         params_list = fishr_top5
+        seed_list = [0,1,2,3,4]
     else:
         params_list =product(lambda_list, penalty_anneal_iters_list, ema_list)
 
@@ -342,6 +343,7 @@ if __name__ == '__main__':
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 2800, 5)
         num_rows = 4
+        fishr_top5 = None
     if args.dataset == 'CelebA':
         # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
@@ -357,10 +359,11 @@ if __name__ == '__main__':
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
+        penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        penalty_anneal_iters_list = [0]
+        # penalty_anneal_iters_list = [0]
         num_rows = 4
+        fishr_top5 = None
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
