@@ -257,7 +257,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=2000, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=10, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -419,11 +419,21 @@ if __name__ == '__main__':
                                            f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
                 if os.path.exists(result_file):
                     existing_df = pd.read_csv(result_file)
-                    df_current = existing_df[
-                        np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
-                        (existing_df['penalty_anneal_iters'] == anneal_iters) &
-                        np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
-                        ]
+                    try:
+                        df_current = existing_df[
+                            np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
+                            (existing_df['penalty_anneal_iters'] == anneal_iters) &
+                            np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
+                            ]
+                    except:
+                        # Replace non-numeric values with NaN or a specific number
+                        existing_df['gradient_alpha'] = pd.to_numeric(existing_df['gradient_alpha'], errors='coerce')
+                        existing_df['hessian_beta'] = pd.to_numeric(existing_df['hessian_beta'], errors='coerce')
+                        df_current = existing_df[
+                            np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
+                            (existing_df['penalty_anneal_iters'] == anneal_iters) &
+                            np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
+                            ]
                     if len(df_current) >= num_rows:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
