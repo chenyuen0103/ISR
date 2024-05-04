@@ -253,7 +253,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
     argparser.add_argument('--alpha', default=2000, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=10, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -270,9 +270,10 @@ def parse_args(args: list = None, specs: dict = None):
     return config
 
 
-def run_fishr(args, penalty_anneal_iters_list):
-    seed_list = [0]
-    args.ISR_class = None
+def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
+
+    seed_list = [0, 1,2,3,4]
+    # args.ISR_class = None
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
     lambda_list = 10 ** np.linspace(1, 4, 4)
     # penalty_anneal_iters_list = np.linspace(0,5000,6)
@@ -287,8 +288,13 @@ def run_fishr(args, penalty_anneal_iters_list):
 
     # for i in range(50):
         # lam, penalty_anneal_iters, ema = sample_hyperparams(i)
-    for lam, penalty_anneal_iters, ema in product(lambda_list, penalty_anneal_iters_list, ema_list):
-        for seed in seed_list:
+    if fishr_top5:
+        params_list = fishr_top5
+    else:
+        params_list =product(lambda_list, penalty_anneal_iters_list, ema_list)
+
+    for seed in seed_list:
+        for ema, lam, penalty_anneal_iters in params_list:
             args.seed = seed
             args.lam = lam
             args.penalty_anneal_iters = penalty_anneal_iters
@@ -366,8 +372,15 @@ if __name__ == '__main__':
         args.max_iter = 3
         penalty_anneal_iters_list = np.linspace(0, 900, 4)[::-1]
         num_rows = 6
+        fishr_top5 = [
+    (0.9675, 10000.0, 300.0),
+    (0.9675, 10000.0, 600.0),
+    (0.945, 1000.0, 900.0),
+    (0.945, 10000.0, 900.0),
+    (0.99, 10000.0, 600.0)
+]
     if args.hessian_approx_method == 'fishr':
-        run_fishr(args, penalty_anneal_iters_list)
+        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
         # eval_ISR(args)
     else:
         # eval_ISR(args)

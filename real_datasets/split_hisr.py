@@ -266,7 +266,7 @@ def main():
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
     # merge_seeds(file_name_pattern=celeba_fishr)
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir='./logs/ISR_hessian_results_bert_rescaled')
-    # multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert_rescaled')
+    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir='./logs/ISR_hessian_results_bert_rescaled')
     # print(cubs_val)
     worst_case = True
 
@@ -283,7 +283,7 @@ def main():
     find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
     find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
     find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
-    # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir_bert)
+    find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir_bert)
 
     find_best_isr(worst_case = worst_case, data_dir=data_dir_vit)
     find_best_gm(worst_case = worst_case, data_dir=data_dir_vit)
