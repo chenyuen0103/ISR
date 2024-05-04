@@ -272,6 +272,7 @@ def parse_args(args: list = None, specs: dict = None):
 
 def run_fishr(args, penalty_anneal_iters_list):
     seed_list = [0]
+    args.ISR_class = None
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
     lambda_list = 10 ** np.linspace(1, 4, 4)
     # penalty_anneal_iters_list = np.linspace(0,5000,6)
