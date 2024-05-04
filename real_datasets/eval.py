@@ -351,8 +351,8 @@ if __name__ == '__main__':
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        # penalty_anneal_iters_list = [20000]
+        # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
+        penalty_anneal_iters_list = [2000]
         num_rows = 4
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
