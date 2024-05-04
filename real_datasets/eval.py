@@ -295,8 +295,7 @@ def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
         params_list = fishr_top5
         seed_list = [0,1,2,3,4]
     else:
-        params_list = product(lambda_list, penalty_anneal_iters_list, ema_list)
-
+        params_list = product(ema_list, lambda_list, penalty_anneal_iters_list)
     for seed in seed_list:
         for ema, lam, penalty_anneal_iters in params_list:
             args.seed = seed

@@ -1054,6 +1054,8 @@ class HISRClassifier:
                     env_count = torch.bincount(envs_indices_batch, minlength=self.n_envs)
                     env_frac = env_count.float() / len(envs_indices_batch)
                     logits = self.clf(x_batch)
+                    # check if logits contain nan:
+
                     # if approx_type == "control" or (approx_type == 'exact' and self.update_count < args.penalty_anneal_iters):
                     # # if approx_type == "control":
                     #     # a list of length n_envs, each element 0
@@ -1122,21 +1124,32 @@ class HISRClassifier:
                         total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
                         # if self.update_count % self.log_every == 0:
-                        stats.update(group_accs)
-                        for group_idx in range(self.n_groups):
-                            stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
-                            stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
-                        stats['worst_acc'] = worst_acc
-                        stats['worst_group'] = worst_group
-                        self.train_csv_logger.log(epoch,batch_idx,stats)
-                        self.train_csv_logger.flush()
-                        self.update_count += 1
+                        # stats.update(group_accs)
+                        # for group_idx in range(self.n_groups):
+                        #     stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
+                        #     stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
+                        # stats['worst_acc'] = worst_acc
+                        # stats['worst_group'] = worst_group
+                        # self.train_csv_logger.log(epoch,batch_idx,stats)
+                        # self.train_csv_logger.flush()
+                        # self.update_count += 1
                     elif approx_type == "fishr":
                         stats['epoch'] = epoch
                         stats['batch'] = batch_idx
                         stats['step'] = self.update_count
                         total_loss, erm_loss, penalty, penalty_weight, stats = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args, stats = stats)
+                        if torch.isnan(total_loss).any():
+                            print("Logits contain nan")
+                            return
 
+                    stats.update(group_accs)
+                    for group_idx in range(self.n_groups):
+                        stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
+                        stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
+                    stats['worst_acc'] = worst_acc
+                    stats['worst_group'] = worst_group
+                    self.train_csv_logger.log(epoch,batch_idx,stats)
+                    self.train_csv_logger.flush()
                     total_loss.backward()
                     self.optimizer.step()
                     self.optimizer.zero_grad()
