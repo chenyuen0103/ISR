@@ -370,7 +370,7 @@ if __name__ == '__main__':
         run_fishr(args, penalty_anneal_iters_list)
         # eval_ISR(args)
     else:
-        eval_ISR(args)
+        # eval_ISR(args)
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
                 if alpha == 0 and beta == 0 and anneal_iters != 0:
