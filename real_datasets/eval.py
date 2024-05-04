@@ -241,7 +241,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ISR_scales', type=float,
                            nargs='+', default=[0])
     argparser.add_argument('--d_spu', type=int, default=-1)
-    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_bert_rescaled')
+    argparser.add_argument('--save_dir', type=str, default='./logs/ISR_Hessian_results_new')
     argparser.add_argument('--progress_save_dir', type=str, default='./logs/ISR_training_progress')
     argparser.add_argument('--no_save', default=False, action='store_true')
     argparser.add_argument('--verbose', default=False, action='store_true')
@@ -341,10 +341,22 @@ if __name__ == '__main__':
         beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
         args.ISR_class = 0
-        args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
+        args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 2800, 5)
+        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
+
+        alpha_beta_anneal = [
+            (1000.0, 2000.0, 1400.0),
+            (1.0, 10.0, 2800.0),
+            (100.0, 2000.0, 2100.0),
+            (100.0, 100.0, 1400.0),
+            (0.1, 0.1, 2800.0),
+            (1.0, 0.0, 2800.0),
+            (100.0, 100.0, 2100.0)
+        ]
+
         num_rows = 4
         fishr_top5 = None
     if args.dataset == 'CelebA':
@@ -359,10 +371,12 @@ if __name__ == '__main__':
         # alpha_list = [0]
         # beta_list = [0]
         args.max_iter = 50
-        args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
+        args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 16000, 5)
+
+        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [0]
         num_rows = 4
@@ -377,6 +391,7 @@ if __name__ == '__main__':
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
         penalty_anneal_iters_list = np.linspace(0, 900, 4)[::-1]
+        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
         num_rows = 6
         fishr_top5 = [
     (0.9675, 10000.0, 300.0),
@@ -391,7 +406,8 @@ if __name__ == '__main__':
     else:
         # eval_ISR(args)
         for seed in seed_list:
-            for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
+            # for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
+            for alpha, beta, anneal_iters in alpha_beta_anneal:
                 if alpha == 0 and beta == 0 and anneal_iters != 0:
                     continue
 
