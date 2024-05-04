@@ -352,7 +352,7 @@ if __name__ == '__main__':
         args.model_select = 'init'
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        penalty_anneal_iters_list = [2000]
+        penalty_anneal_iters_list = [0]
         num_rows = 4
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
