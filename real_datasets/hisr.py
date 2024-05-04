@@ -1054,55 +1054,56 @@ class HISRClassifier:
                     env_count = torch.bincount(envs_indices_batch, minlength=self.n_envs)
                     env_frac = env_count.float() / len(envs_indices_batch)
                     logits = self.clf(x_batch)
-                    if approx_type == "control" or (approx_type == 'exact' and self.update_count < args.penalty_anneal_iters):
-                    # if approx_type == "control":
-                        # a list of length n_envs, each element 0
-                        env_frac_tensor = torch.tensor(env_frac, device=x_batch.device)
-                        # Iterate over each possible environment
-                        env_losses = torch.zeros(self.n_envs, device=x_batch.device)
-                        for env_idx in range(self.n_envs):
-                            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-                            env_loss = self.loss_fn(logits[idx].squeeze(), y_batch[idx].long())
-                            env_losses[env_idx] = env_loss
-                        total_loss = (env_losses * env_frac_tensor).sum()
-                        # total_loss = self.loss_fn(self.clf(x_batch).squeeze(), y_batch.long())
-                        erm_loss = total_loss
-                        hess_loss = 0
-                        grad_loss = 0
-                        stats = {
-                            'epoch': epoch,
-                            'batch': batch_idx,
-                            'step': self.update_count,
-                            'anneal_iters': args.penalty_anneal_iters,
-                            'total_loss': total_loss.item(),
-                            'erm_loss': erm_loss.item(),
-                            'grad_alpha': alpha,
-                            'hess_beta': beta,
-                            'grad_loss': 0,
-                            'hessian_loss': 0,
-                        }
+                    # if approx_type == "control" or (approx_type == 'exact' and self.update_count < args.penalty_anneal_iters):
+                    # # if approx_type == "control":
+                    #     # a list of length n_envs, each element 0
+                    #     env_frac_tensor = torch.tensor(env_frac, device=x_batch.device)
+                    #     # Iterate over each possible environment
+                    #     env_losses = torch.zeros(self.n_envs, device=x_batch.device)
+                    #     for env_idx in range(self.n_envs):
+                    #         idx = (envs_indices_batch == env_idx).nonzero().squeeze()
+                    #         env_loss = self.loss_fn(logits[idx].squeeze(), y_batch[idx].long())
+                    #         env_losses[env_idx] = env_loss
+                    #     # total_loss = (env_losses * env_frac_tensor).sum()
+                    #     total_loss = env_losses.mean()
+                    #     # total_loss = self.loss_fn(self.clf(x_batch).squeeze(), y_batch.long())
+                    #     erm_loss = total_loss
+                    #     hess_loss = 0
+                    #     grad_loss = 0
+                    #     stats = {
+                    #         'epoch': epoch,
+                    #         'batch': batch_idx,
+                    #         'step': self.update_count,
+                    #         'anneal_iters': args.penalty_anneal_iters,
+                    #         'total_loss': total_loss.item(),
+                    #         'erm_loss': erm_loss.item(),
+                    #         'grad_alpha': alpha,
+                    #         'hess_beta': beta,
+                    #         'grad_loss': 0,
+                    #         'hessian_loss': 0,
+                    #     }
+                    #
+                    #     stats['worst_acc'] = worst_acc
+                    #     stats['worst_group'] = worst_group
+                    #     for group_idx in range(self.n_groups):
+                    #         stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
+                    #         stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
+                    #     stats.update(group_accs)
+                    #
+                    #     for env_idx in range(self.n_envs):
+                    #         stats[f'env_count:{env_idx}'] = env_count[env_idx].item()
+                    #         stats[f'env_frac:{env_idx}'] = env_frac[env_idx].item()
+                    #         stats[f'erm_loss_env:{env_idx}'] = env_losses[env_idx].item()
+                    #         stats[f'grad_penalty_env:{env_idx}'] = 0
+                    #         stats[f'hessian_penalty_env:{env_idx}'] = 0
+                    #     self.train_csv_logger.log(epoch, batch_idx, stats)
+                    #     self.train_csv_logger.flush()
+                    #     self.update_count += 1
+                    #     # if self.update_count >= args.penalty_anneal_iters:
+                    #     #     self.clf = self.clf.to('cpu')
+                    #     #     return self.clf
 
-                        stats['worst_acc'] = worst_acc
-                        stats['worst_group'] = worst_group
-                        for group_idx in range(self.n_groups):
-                            stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
-                            stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
-                        stats.update(group_accs)
-
-                        for env_idx in range(self.n_envs):
-                            stats[f'env_count:{env_idx}'] = env_count[env_idx].item()
-                            stats[f'env_frac:{env_idx}'] = env_frac[env_idx].item()
-                            stats[f'erm_loss_env:{env_idx}'] = env_losses[env_idx].item()
-                            stats[f'grad_penalty_env:{env_idx}'] = 0
-                            stats[f'hessian_penalty_env:{env_idx}'] = 0
-                        self.train_csv_logger.log(epoch, batch_idx, stats)
-                        self.train_csv_logger.flush()
-                        self.update_count += 1
-                        # if self.update_count >= args.penalty_anneal_iters:
-                        #     self.clf = self.clf.to('cpu')
-                        #     return self.clf
-
-                    elif approx_type == "exact":
+                    if approx_type == "exact":
                         stats['epoch'] = epoch
                         stats['batch'] = batch_idx
                         stats['step'] = self.update_count
@@ -1134,7 +1135,6 @@ class HISRClassifier:
                         stats['epoch'] = epoch
                         stats['batch'] = batch_idx
                         stats['step'] = self.update_count
-                        logits = self.clf(x_batch)
                         total_loss, erm_loss, penalty, penalty_weight, stats = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args, stats = stats)
 
                     total_loss.backward()

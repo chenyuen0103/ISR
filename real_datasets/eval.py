@@ -228,7 +228,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -275,7 +275,6 @@ def parse_args(args: list = None, specs: dict = None):
 
 
 def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
-
     seed_list = [0]
     # args.ISR_class = None
     # randomly choose 50 triples of lambda, penalty_anneal_iters, ema from the following ranges
@@ -296,7 +295,7 @@ def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
         params_list = fishr_top5
         seed_list = [0,1,2,3,4]
     else:
-        params_list =product(lambda_list, penalty_anneal_iters_list, ema_list)
+        params_list = product(lambda_list, penalty_anneal_iters_list, ema_list)
 
     for seed in seed_list:
         for ema, lam, penalty_anneal_iters in params_list:
@@ -311,6 +310,7 @@ def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
                 if len(df_current) > 0:
                     print(f"Already evaluated seed: {seed}, lambda: {lam}, anneal iters: {penalty_anneal_iters}, ema: {ema}")
                     continue
+            print(f"Running seed: {seed}, lambda: {lam}, anneal iters: {penalty_anneal_iters}, ema: {ema}")
             eval_ISR(args)
     # for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
     #     args.seed = seed

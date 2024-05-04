@@ -49,33 +49,75 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
 
     # Concatenate all the dataframes in the list
     merged_df = pd.concat(df_list, ignore_index=True)
+
     if 'penalty_anneal_iters' not in merged_df.columns:
         merged_df['penalty_anneal_iters'] = 0
+
+    # Define columns for the groupby operation based on 'fishr' in filename
+    group_columns = ['dataset', 'split', 'method', 'ISR_class', 'ISR_scale', 'num_iter', 'gradient_alpha',
+                     'hessian_beta', 'penalty_anneal_iters'] if 'fishr' not in file_name_pattern else ['dataset',
+                                                                                                       'split',
+                                                                                                       'method',
+                                                                                                       'ISR_class',
+                                                                                                       'ISR_scale',
+                                                                                                       'num_iter',
+                                                                                                       'ema', 'lambda',
+                                                                                                       'penalty_anneal_iters']
+    # Add 'num_runs' before groupby
+    merged_df['num_runs'] = merged_df.groupby(group_columns).transform('size')
+
+    # # Group the data and aggregate
+    # check_df = merged_df.groupby(group_columns).agg({
+    #     'num_runs': ['min', 'max']
+    # })
+    #
+    #
+    #
+    # # Flatten the multi-level columns
+    # check_df.columns = ['_'.join(col) for col in check_df.columns.values]
+    #
+    # # Check if all min and max values are the same for each group
+    # check_df['min_max_equal'] = check_df['num_runs_min'] == check_df['num_runs_max']
+    #
+    # # If any false exists, there are groups where 'num_runs' varies
+    # if not check_df['min_max_equal'].all():
+    #     print("Not all groups have the same 'num_runs' value.")
+    # else:
+    #     print("All groups have the same 'num_runs' value.")
+
+
+
     if 'fishr' in file_name_pattern:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs']]
     else:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs']]
     if 'CUB' in file_name_pattern:
         merged_df = merged_df[merged_df['num_iter']==300]
     elif 'CelebA' in file_name_pattern:
         merged_df = merged_df[merged_df['num_iter']==50]
     elif 'MultiNLI' in file_name_pattern:
         merged_df = merged_df[merged_df['num_iter']==3]
-    if 'fishr' in file_name_pattern:
-        grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
-                                     'num_iter','ema','lambda','penalty_anneal_iters']).agg({
-            'avg_acc': ['mean', 'sem'],
-            'worst_acc': ['mean', 'sem']
-        })
-    else:
-        merged_df.fillna(0, inplace=True)
-        grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
-                                'num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters']).agg({
-            'avg_acc': ['mean', 'sem'],
-            'worst_acc': ['mean', 'sem']
-        })
+    # if 'fishr' in file_name_pattern:
+    #     grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
+    #                                  'num_iter','ema','lambda','penalty_anneal_iters']).agg({
+    #         'avg_acc': ['mean', 'sem'],
+    #         'worst_acc': ['mean', 'sem']
+    #     })
+    # else:
+    #     merged_df.fillna(0, inplace=True)
+    #     grouped = merged_df.groupby(['dataset', 'split', 'method', 'ISR_class', 'ISR_scale',
+    #                             'num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters']).agg({
+    #         'avg_acc': ['mean', 'sem'],
+    #         'worst_acc': ['mean', 'sem']
+    #     })
+
+    grouped = merged_df.groupby(group_columns).agg({
+        'avg_acc': ['mean', 'sem'],
+        'worst_acc': ['mean', 'sem'],
+        'num_runs': 'first'
+    })
     # Renaming the columns for clarity
-    grouped.columns = ['avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem']
+    grouped.columns = ['avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem', 'num_runs']
     # Resetting the index if you want the grouped columns back as regular columns
     grouped = grouped.reset_index()
     # cleaned_grouped = grouped.dropna(subset=['avg_acc_sem', 'worst_acc_sem'])
@@ -175,6 +217,7 @@ def find_best_hps(val_df, test_df, worst_case = False):
         'gradient_alpha': best_val_hyperparameters['gradient_alpha'],
         'hessian_beta': best_val_hyperparameters['hessian_beta'],
         'penalty_anneal_iters': 0 if 'penalty_anneal_iters' not in best_val_hyperparameters else best_val_hyperparameters['penalty_anneal_iters'],
+        'num_runs': best_val_hyperparameters['num_runs']
     }
 
     # Filter the test set for these hyperparameters
@@ -196,8 +239,11 @@ def find_best_hps(val_df, test_df, worst_case = False):
 def find_best_fishr(data_dir='./logs/ISR_hessian_results_ViT-B_scaled', file_name='CUB_5runs_fishr_val.csv', worst_case = False):
     val = pd.read_csv(os.path.join(data_dir, file_name))
     test = pd.read_csv(os.path.join(data_dir, file_name.replace('val', 'test')))
+    val= val[val['num_runs'] == 5]
+    test= test[test['num_runs'] == 5]
     val_df = val[val['ISR_scale'] == 0]
     test_df = test[test['ISR_scale'] == 0]
+
     col_mean = 'worst_acc_mean' if worst_case else 'avg_acc_mean'
     col_sem = 'worst_acc_sem' if worst_case else 'avg_acc_sem'
     # Step 1: Identify the highest average accuracy
@@ -273,17 +319,17 @@ def main():
 
     data_dir_vit = './logs/ISR_Hessian_results_ViT-B_rescaled'
     data_dir_bert = './logs/ISR_Hessian_results_bert_rescaled'
-    find_best_isr(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
-    find_best_gm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
-    find_best_hm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
-    find_best_gm_hm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
+    # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
+    # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir_vit)
     # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir_vit)
 
-    find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
-    find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
-    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
-    find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
-    # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir_bert)
+    # find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
+    # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
+    # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
+    # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir_bert)
+    find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir_bert)
 
     find_best_isr(worst_case = worst_case, data_dir=data_dir_vit)
     find_best_gm(worst_case = worst_case, data_dir=data_dir_vit)
