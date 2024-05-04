@@ -859,7 +859,7 @@ class HISRClassifier:
             penalty += self.l2_between_dicts(grads_var_per_domain[domain_id], grads_var)
         return penalty / self.n_envs
 
-    def fishr_loss(self, logits, x, y, env_indices, args):
+    def fishr_loss(self, logits, x, y, env_indices, args, stats = {}):
         # all_nll = F.cross_entropy(logits, y.long())
         # all_nll2 = self.loss_fn(logits.squeeze(), y.long())
         penalty_weight, penalty = 0, 0
@@ -876,6 +876,10 @@ class HISRClassifier:
             logits_env = logits[idx]
             env_nll = F.cross_entropy(logits_env, y_env.long())
             env_nlls.append(env_nll)
+            env_fraction = len(idx) / len(env_indices)
+            stats.update({f'env_frac:{e}': env_fraction})
+            stats.update({f'erm_loss_env:{e}': env_nll.item()})
+
         all_nll = torch.mean(torch.stack(env_nlls))
 
 
@@ -888,8 +892,62 @@ class HISRClassifier:
                 penalty = self.compute_fishr_penalty(logits, y, env_indices)
                 self.optimizer = optim.SGD(self.classifier.parameters(), lr=0.001)
         self.update_count += 1
+        stats.update({'ema': args.ema})
+        stats.update({'anneal_iters': args.penalty_anneal_iters})
+        stats.update({'penalty_weight': penalty_weight})
+        stats.update({'fishr_penalty': penalty})
+
         objective = all_nll + penalty_weight * penalty
-        return objective, all_nll, penalty, penalty_weight
+        stats.update({'erm_loss': all_nll.item()})
+        stats.update({'total_loss': objective.item()})
+        return objective, all_nll, penalty, penalty_weight, stats
+
+
+
+
+    def validation_fishr_loss(self, epoch, val_x, val_y, val_envs_indices, csv_logger, args):
+        self.clf.eval()
+        transformed_val_x = self.transform(val_x)
+        if not isinstance(transformed_val_x, torch.Tensor):
+            transformed_val_x = torch.tensor(transformed_val_x).float()
+        if not isinstance(val_y, torch.Tensor):
+            val_y = torch.tensor(val_y).float()
+        if not isinstance(val_envs_indices, torch.Tensor):
+            val_envs_indices = torch.tensor(val_envs_indices).int()
+        datasets = TensorDataset(transformed_val_x, val_y, val_envs_indices)
+        dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+        val_total_loss = 0
+        val_erm_loss = 0
+        val_penalty = 0
+        for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+            stats = {}
+            val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
+            with torch.no_grad():
+                val_logits = self.clf(val_x_batch)
+                val_loss_batch, val_erm_loss_batch, val_penalty_batch, _, _ = self.fishr_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, args, stats = stats)
+                val_total_loss += val_loss_batch
+                val_erm_loss += val_erm_loss_batch
+                val_penalty += val_penalty_batch
+
+
+        val_total_loss /= len(dataloader)
+        val_erm_loss /= len(dataloader)
+        val_penalty /= len(dataloader)
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                include_avg_acc=True)
+
+        stats['epoch'] = epoch
+        stats['anneal_iters']= args.penalty_anneal_iters
+        stats['total_loss'] = val_total_loss.item()
+        stats['erm_loss'] = val_erm_loss.item()
+        stats['lambda'] = args.lam
+        stats['fishr_penalty'] = val_penalty.item()
+        stats['worst_acc'] = worst_acc
+        stats['worst_group'] = worst_group
+        stats.update(group_accs)
+        csv_logger.log(epoch, 0, stats)
+        csv_logger.flush()
 
     def validation_hessian_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
         self.clf.eval()
@@ -927,7 +985,6 @@ class HISRClassifier:
         group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
                                                                 include_avg_acc=True)
         stats['epoch'] = epoch
-
         stats['anneal_iters']= args.penalty_anneal_iters
         stats['grad_alpha'] = args.alpha
         stats['hess_beta'] = args.beta
@@ -1075,8 +1132,11 @@ class HISRClassifier:
                         self.train_csv_logger.flush()
                         self.update_count += 1
                     elif approx_type == "fishr":
+                        stats['epoch'] = epoch
+                        stats['batch'] = batch_idx
+                        stats['step'] = self.update_count
                         logits = self.clf(x_batch)
-                        total_loss, erm_loss, penalty, penalty_weight = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args)
+                        total_loss, erm_loss, penalty, penalty_weight = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args, stats = stats)
 
                     total_loss.backward()
                     self.optimizer.step()
@@ -1088,6 +1148,11 @@ class HISRClassifier:
 
                 if approx_type == "fishr":
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(), penalty=penalty, penalty_weight=penalty_weight)
+                    self.validation_fishr_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,
+                                                 self.val_csv_logger, args)
+                    self.validation_fishr_loss(epoch, self.test_x, self.test_y, self.test_envs_indices,
+                                                 self.test_csv_logger, args)
+
                 else:
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_loss=hess_loss, alpha = alpha, grad_loss=grad_loss)
                     self.validation_hessian_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,self.val_csv_logger, args)

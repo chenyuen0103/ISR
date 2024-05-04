@@ -167,9 +167,12 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                                         f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}_anneal_{args.penalty_anneal_iters}")
             if not os.path.exists(progress_dir):
                 os.makedirs(progress_dir)
-            train_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'train.csv'), n_groups, n_spu_attr)
-            val_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'val.csv'), n_groups, n_spu_attr)
-            test_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'test.csv'), n_groups, n_spu_attr)
+        elif args.hessian_approx_method == 'fishr':
+            progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
+                                        f"ISRclass_{ISR_class}_ema_{args.ema}_lam_{args.lam}_anneal_{args.penalty_anneal_iters}")
+        train_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'train.csv'), n_groups, n_spu_attr)
+        val_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'val.csv'), n_groups, n_spu_attr)
+        test_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'test.csv'), n_groups, n_spu_attr)
 
         isr_clf.set_params(chosen_class=ISR_class, spu_scale=ISR_scale)
         if args.ISR_version == 'mean':

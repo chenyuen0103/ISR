@@ -110,6 +110,9 @@ class CSVBatchLogger_ISR:
         columns.append('avg_acc')
         columns.append('worst_group')
         columns.append('worst_acc')
+        columns.append('ema')
+        columns.append('lambda')
+        columns.append('grad_penalty')
 
 
         self.path = csv_path
