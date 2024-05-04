@@ -224,7 +224,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -254,12 +254,12 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
-    argparser.add_argument('--alpha', default=100, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--alpha', default=2000, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=10, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 0, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 900, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -326,8 +326,8 @@ if __name__ == '__main__':
     seed_list = [0, 1, 2, 3, 4]
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        alpha_list = np.round([0]  + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        beta_list = np.round([0] + [2000, 5000, 10000]+ list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
         args.ISR_class = 0
         args.save_dir = './logs/ISR_Hessian_results_ViT-B_rescaled'
@@ -339,7 +339,7 @@ if __name__ == '__main__':
         # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # alpha_list = [1000, 2000, 5000]
-        beta_list = [5000]
+        alpha_list = [5000]
         beta_list = [100]
         args.ISR_class = 0
         # alpha_list = [0.001, 0.01, 0, 1000, 5000]
@@ -369,7 +369,7 @@ if __name__ == '__main__':
         run_fishr(args, penalty_anneal_iters_list)
         # eval_ISR(args)
     else:
-        # eval_ISR(args)
+        eval_ISR(args)
         for seed in seed_list:
             for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
                 if alpha == 0 and beta == 0 and anneal_iters != 0:
@@ -393,7 +393,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # eval_ISR(args)
 
 
 

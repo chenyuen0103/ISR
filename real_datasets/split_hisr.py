@@ -138,8 +138,6 @@ def find_best_gm_hm(data_dir='./logs/ISR_hessian_results_ViT-B_scaled', file_nam
     test = test[test['gradient_alpha'] != 0]
     val = val[val['hessian_beta'] != 0]
     test = test[test['hessian_beta'] != 0]
-    val = val[val['penalty_anneal_iters'] < 1200]
-    test = test[test['penalty_anneal_iters'] < 1200]
     best_hyperparameters, best_test_performance = find_best_hps(val, test, worst_case)
 
     return best_hyperparameters, best_test_performance
@@ -273,7 +271,7 @@ def main():
     worst_case = True
 
     data_dir_vit = './logs/ISR_Hessian_results_ViT-B_rescaled'
-    data_dir_bert = './logs/ISR_Hessian_results_bert_scaled'
+    data_dir_bert = './logs/ISR_Hessian_results_bert_rescaled'
     find_best_isr(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
     find_best_gm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
     find_best_hm(worst_case = worst_case, file_name='CelebA_4runs_val.csv', data_dir=data_dir_vit)
