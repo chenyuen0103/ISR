@@ -357,7 +357,7 @@ if __name__ == '__main__':
             (100.0, 100.0, 2100.0)
         ]
 
-        num_rows = 4
+        num_rows = 2
         fishr_top5 = None
     if args.dataset == 'CelebA':
         # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
@@ -379,7 +379,7 @@ if __name__ == '__main__':
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [0]
-        num_rows = 4
+        num_rows = 2
         fishr_top5 = None
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
@@ -392,7 +392,7 @@ if __name__ == '__main__':
         args.max_iter = 3
         penalty_anneal_iters_list = np.linspace(0, 900, 4)[::-1]
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
-        num_rows = 6
+        num_rows = 2
         fishr_top5 = [
     (0.9675, 10000.0, 300.0),
     (0.9675, 10000.0, 600.0),
