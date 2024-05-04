@@ -881,7 +881,7 @@ class HISRClassifier:
             stats.update({f'erm_loss_env:{e}': env_nll.item()})
 
         all_nll = torch.mean(torch.stack(env_nlls))
-
+        penalty = self.compute_fishr_penalty(logits, y, env_indices)
 
         if self.update_count >= args.penalty_anneal_iters:
             penalty_weight = args.lam
@@ -889,12 +889,11 @@ class HISRClassifier:
                 # Reset Adam as in IRM or V-REx, because it may not like the sharp jump in
                 # gradient magnitudes that happens at this step.
                 # init optimizer
-                penalty = self.compute_fishr_penalty(logits, y, env_indices)
                 self.optimizer = optim.SGD(self.classifier.parameters(), lr=0.001)
         self.update_count += 1
         stats.update({'ema': args.ema})
         stats.update({'anneal_iters': args.penalty_anneal_iters})
-        stats.update({'penalty_weight': penalty_weight})
+        stats.update({'fishr_penalty_weight': penalty_weight})
         stats.update({'fishr_penalty': penalty})
 
         objective = all_nll + penalty_weight * penalty
@@ -922,12 +921,12 @@ class HISRClassifier:
         for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
             stats = {}
             val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
-            with torch.no_grad():
-                val_logits = self.clf(val_x_batch)
-                val_loss_batch, val_erm_loss_batch, val_penalty_batch, _, _ = self.fishr_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, args, stats = stats)
-                val_total_loss += val_loss_batch
-                val_erm_loss += val_erm_loss_batch
-                val_penalty += val_penalty_batch
+            # with torch.no_grad():
+            val_logits = self.clf(val_x_batch)
+            val_loss_batch, val_erm_loss_batch, val_penalty_batch, _, _ = self.fishr_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, args, stats = stats)
+            val_total_loss += val_loss_batch
+            val_erm_loss += val_erm_loss_batch
+            val_penalty += val_penalty_batch
 
 
         val_total_loss /= len(dataloader)
@@ -939,10 +938,10 @@ class HISRClassifier:
 
         stats['epoch'] = epoch
         stats['anneal_iters']= args.penalty_anneal_iters
-        stats['total_loss'] = val_total_loss.item()
-        stats['erm_loss'] = val_erm_loss.item()
-        stats['lambda'] = args.lam
-        stats['fishr_penalty'] = val_penalty.item()
+        stats['total_loss'] = val_total_loss.item() if isinstance(val_penalty, torch.Tensor) else val_penalty
+        stats['erm_loss'] = val_erm_loss.item() if isinstance(val_penalty, torch.Tensor) else val_penalty
+        stats['fishr_penalty_weight'] = args.lam
+        stats['fishr_penalty'] = val_penalty.item() if isinstance(val_penalty, torch.Tensor) else val_penalty
         stats['worst_acc'] = worst_acc
         stats['worst_group'] = worst_group
         stats.update(group_accs)
@@ -1136,7 +1135,7 @@ class HISRClassifier:
                         stats['batch'] = batch_idx
                         stats['step'] = self.update_count
                         logits = self.clf(x_batch)
-                        total_loss, erm_loss, penalty, penalty_weight = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args, stats = stats)
+                        total_loss, erm_loss, penalty, penalty_weight, stats = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args, stats = stats)
 
                     total_loss.backward()
                     self.optimizer.step()
