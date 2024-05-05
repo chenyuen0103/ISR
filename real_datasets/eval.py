@@ -396,7 +396,7 @@ if __name__ == '__main__':
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        alpha_list = [10, 100][::-1]
+        alpha_list = [0.1, 1, 10, 100][::-1]
         beta_list = [1000, 2000, 5000, 10000, 15000][::-1]
         args.ISR_class = 2
         # alpha_list = [1]
