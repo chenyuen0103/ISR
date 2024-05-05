@@ -257,7 +257,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
     argparser.add_argument('--alpha', default=2000, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=10, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -341,14 +341,17 @@ if __name__ == '__main__':
     fishr_top5 = None
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        # alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        alpha_list = [0]
+        beta_list = [0]
         args.max_iter = 300
         args.ISR_class = 0
         args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        penalty_anneal_iters_list = np.linspace(0, 2800, 5)
+        # penalty_anneal_iters_list = np.linspace(0, 2800, 5)
+        penalty_anneal_iters_list = [0]
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
 
         alpha_beta_anneal = [

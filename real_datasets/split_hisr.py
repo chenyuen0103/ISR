@@ -32,7 +32,7 @@ def result_merge(file_name_start = 'CUB_results_s1'):
     df_combined.to_csv(os.path.join(data_dir, file_name_start + '_combined.csv'), index=False)
 
 
-def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='./logs/ISR_hessian_results_new'):
+def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='./logs/ISR_Hessian_results_new'):
     # Create the full pattern for glob
     full_pattern = os.path.join(data_dir, file_name_pattern)
 
@@ -50,8 +50,6 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     # Concatenate all the dataframes in the list
     merged_df = pd.concat(df_list, ignore_index=True)
 
-    if 'penalty_anneal_iters' not in merged_df.columns:
-        merged_df['penalty_anneal_iters'] = 0
 
     # Define columns for the groupby operation based on 'fishr' in filename
     group_columns = ['dataset', 'split', 'method', 'ISR_class', 'ISR_scale', 'num_iter', 'gradient_alpha',
@@ -65,32 +63,14 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
                                                                                                        'penalty_anneal_iters']
     # Add 'num_runs' before groupby
     merged_df['num_runs'] = merged_df.groupby(group_columns).transform('size')
-
-    # # Group the data and aggregate
-    # check_df = merged_df.groupby(group_columns).agg({
-    #     'num_runs': ['min', 'max']
-    # })
-    #
-    #
-    #
-    # # Flatten the multi-level columns
-    # check_df.columns = ['_'.join(col) for col in check_df.columns.values]
-    #
-    # # Check if all min and max values are the same for each group
-    # check_df['min_max_equal'] = check_df['num_runs_min'] == check_df['num_runs_max']
-    #
-    # # If any false exists, there are groups where 'num_runs' varies
-    # if not check_df['min_max_equal'].all():
-    #     print("Not all groups have the same 'num_runs' value.")
-    # else:
-    #     print("All groups have the same 'num_runs' value.")
-
+    merged_df['seed_runs'] = merged_df.groupby(group_columns)['seed'].transform(lambda x: list(x.unique()))
+    merged_df['num_iter'] = pd.to_numeric(merged_df['num_iter'], errors='coerce')
 
 
     if 'fishr' in file_name_pattern:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs', 'seed_runs']]
     else:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs', 'seed_runs']]
     if 'CUB' in file_name_pattern:
         merged_df = merged_df[merged_df['num_iter']==300]
     elif 'CelebA' in file_name_pattern:
@@ -111,6 +91,8 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     #         'worst_acc': ['mean', 'sem']
     #     })
 
+    merged_df['avg_acc'] = pd.to_numeric(merged_df['avg_acc'], errors='coerce')
+    merged_df['worst_acc'] = pd.to_numeric(merged_df['worst_acc'], errors='coerce')
     grouped = merged_df.groupby(group_columns).agg({
         'avg_acc': ['mean', 'sem'],
         'worst_acc': ['mean', 'sem'],
@@ -173,7 +155,7 @@ def find_best_hm(data_dir='./logs/ISR_hessian_results_new', file_name='CUB_5runs
 
     return best_hyperparameters, best_test_performance
 
-def find_best_gm_hm(data_dir='./logs/ISR_hessian_results_new', file_name='CUB_5runs_val.csv', worst_case = False):
+def find_best_gm_hm(data_dir='./logs/ISR_Hessian_results_new', file_name='CUB_5runs_val.csv', worst_case = False):
     val = pd.read_csv(os.path.join(data_dir, file_name))
     test = pd.read_csv(os.path.join(data_dir, file_name.replace('val', 'test')))
     val = val[val['gradient_alpha'] != 0]
@@ -334,11 +316,11 @@ def main():
     # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
     # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir)
 
-    find_best_isr(worst_case = worst_case, data_dir=data_dir)
-    find_best_gm(worst_case = worst_case, data_dir=data_dir)
-    find_best_hm(worst_case = worst_case, data_dir=data_dir)
+    # find_best_isr(worst_case = worst_case, data_dir=data_dir)
+    # find_best_gm(worst_case = worst_case, data_dir=data_dir)
+    # find_best_hm(worst_case = worst_case, data_dir=data_dir)
     find_best_gm_hm(worst_case = worst_case, data_dir=data_dir)
-    # find_best_fishr(worst_case = worst_case, data_dir=data_dir)
+    find_best_fishr(worst_case = worst_case, data_dir=data_dir)
 
 if __name__ == '__main__':
     main()
