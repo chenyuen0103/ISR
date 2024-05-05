@@ -180,6 +180,8 @@ def find_best_gm_hm(data_dir='./logs/ISR_hessian_results_new', file_name='CUB_5r
     test = test[test['gradient_alpha'] != 0]
     val = val[val['hessian_beta'] != 0]
     test = test[test['hessian_beta'] != 0]
+    val = val[val['num_runs'] == 5]
+    test = test[test['num_runs'] == 5]
     best_hyperparameters, best_test_performance = find_best_hps(val, test, worst_case)
 
     return best_hyperparameters, best_test_performance
@@ -309,7 +311,7 @@ def main():
     data_dir= './logs/ISR_Hessian_results_new'
 
     cubs_val, cubs_test = merge_seeds()
-    # merge_seeds(file_name_pattern=cub_fishr)
+    merge_seeds(file_name_pattern=cub_fishr)
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern)
     # merge_seeds(file_name_pattern=celeba_fishr)
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir=data_dir)
@@ -326,11 +328,11 @@ def main():
     # find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
     # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir)
 
-    find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir)
+    # find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
+    # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
+    # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
+    # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
+    # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir)
 
     find_best_isr(worst_case = worst_case, data_dir=data_dir)
     find_best_gm(worst_case = worst_case, data_dir=data_dir)
