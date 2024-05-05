@@ -298,9 +298,9 @@ def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
         params_list = product(ema_list, lambda_list, penalty_anneal_iters_list)
     for seed in seed_list:
         for ema, lam, penalty_anneal_iters in params_list:
-            lam = round(lam, 3)
+            lam = round(lam, 4)
             penalty_anneal_iters = round(penalty_anneal_iters, 1)
-            ema = round(ema, 3)
+            ema = round(ema, 4)
             args.seed = seed
             args.lam = lam
             args.penalty_anneal_iters = penalty_anneal_iters
