@@ -49,8 +49,10 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
 
     # Concatenate all the dataframes in the list
     merged_df = pd.concat(df_list, ignore_index=True)
-
-
+    merged_df.drop(0, inplace=True)
+    merged_df['gradient_alpha'] = pd.to_numeric(merged_df['gradient_alpha'], errors='coerce')
+    merged_df['hessian_beta'] = pd.to_numeric(merged_df['hessian_beta'], errors='coerce')
+    merged_df['penalty_anneal_iters'] = pd.to_numeric(merged_df['penalty_anneal_iters'], errors='coerce')
     # Define columns for the groupby operation based on 'fishr' in filename
     group_columns = ['dataset', 'split', 'method', 'ISR_class', 'ISR_scale', 'num_iter', 'gradient_alpha',
                      'hessian_beta', 'penalty_anneal_iters'] if 'fishr' not in file_name_pattern else ['dataset',
@@ -63,14 +65,21 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
                                                                                                        'penalty_anneal_iters']
     # Add 'num_runs' before groupby
     merged_df['num_runs'] = merged_df.groupby(group_columns).transform('size')
-    merged_df['seed_runs'] = merged_df.groupby(group_columns)['seed'].transform(lambda x: list(x.unique()))
+    # merged_df['seed_runs'] = merged_df.groupby(group_columns)['seed'].transform(lambda x: list(x.unique()))
+    seed_runs = merged_df.groupby(group_columns)['seed'].agg(lambda x: list(set(x))).rename('seed_runs')
+
+    # Merge this aggregated data back to the original DataFrame if needed
+    merged_df = merged_df.merge(seed_runs, on=group_columns, how='left')
+
+    # Group and aggregate data
+
     merged_df['num_iter'] = pd.to_numeric(merged_df['num_iter'], errors='coerce')
 
 
     if 'fishr' in file_name_pattern:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs', 'seed_runs']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'ema','lambda','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs','seed_runs']]
     else:
-        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs', 'seed_runs']]
+        merged_df = merged_df[['dataset','seed','split','method','ISR_class','ISR_scale','num_iter', 'gradient_alpha', 'hessian_beta','penalty_anneal_iters', 'acc-0', 'acc-1', 'acc-2', 'acc-3', 'worst_group', 'avg_acc', 'worst_acc','num_runs','seed_runs']]
     if 'CUB' in file_name_pattern:
         merged_df = merged_df[merged_df['num_iter']==300]
     elif 'CelebA' in file_name_pattern:
@@ -96,8 +105,10 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     grouped = merged_df.groupby(group_columns).agg({
         'avg_acc': ['mean', 'sem'],
         'worst_acc': ['mean', 'sem'],
-        'num_runs': 'first'
+        'num_runs': 'first',
+        'seed_runs': 'first'
     })
+
     # Renaming the columns for clarity
     grouped.columns = ['avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem', 'num_runs']
     # Resetting the index if you want the grouped columns back as regular columns

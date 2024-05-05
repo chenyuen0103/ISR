@@ -258,12 +258,12 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
-    argparser.add_argument('--alpha', default=2000, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=10, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--alpha', default=100, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 900, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 2100, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -353,6 +353,7 @@ if __name__ == '__main__':
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
 
         alpha_beta_anneal = [
+            (100.0, 100.0, 2100.0),
             (0, 0, 0),
             (1000.0, 2000.0, 1400.0),
             (1.0, 10.0, 2800.0),
@@ -360,7 +361,7 @@ if __name__ == '__main__':
             (100.0, 100.0, 1400.0),
             (0.1, 0.1, 2800.0),
             (1.0, 0.0, 2800.0),
-            (100.0, 100.0, 2100.0)
+
         ]
         fishr_top5 = [
             (0.945, 100.0, 700.0),
@@ -430,27 +431,21 @@ if __name__ == '__main__':
                                            f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
                 if os.path.exists(result_file):
                     existing_df = pd.read_csv(result_file)
-                    try:
-                        df_current = existing_df[
-                            np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
-                            (existing_df['penalty_anneal_iters'] == anneal_iters) &
-                            np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
-                            ]
-                    except:
-                        # Replace non-numeric values with NaN or a specific number
-                        existing_df['gradient_alpha'] = pd.to_numeric(existing_df['gradient_alpha'], errors='coerce')
-                        existing_df['hessian_beta'] = pd.to_numeric(existing_df['hessian_beta'], errors='coerce')
-                        df_current = existing_df[
-                            np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
-                            (existing_df['penalty_anneal_iters'] == anneal_iters) &
-                            np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
-                            ]
+                    # Replace non-numeric values with NaN or a specific number
+                    existing_df['gradient_alpha'] = pd.to_numeric(existing_df['gradient_alpha'], errors='coerce')
+                    existing_df['hessian_beta'] = pd.to_numeric(existing_df['hessian_beta'], errors='coerce')
+                    existing_df['penalty_anneal_iters'] = pd.to_numeric(existing_df['penalty_anneal_iters'], errors='coerce')
+                    df_current = existing_df[
+                        np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
+                        (existing_df['penalty_anneal_iters'] == anneal_iters) &
+                        np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
+                        ]
                     if len(df_current) >= num_rows:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # eval_ISR(args)
 
 
 
