@@ -422,10 +422,10 @@ if __name__ == '__main__':
                 if alpha == 0 and beta == 0 and anneal_iters != 0:
                     continue
 
-                args.alpha = alpha
-                args.beta = beta
+                args.alpha = round(alpha, 4)
+                args.beta = round(beta, 4)
                 args.seed = seed
-                args.penalty_anneal_iters = anneal_iters
+                args.penalty_anneal_iters = round(anneal_iters, 1)
                 result_file = os.path.join(args.save_dir,
                                            f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_exact.csv")
                 if os.path.exists(result_file):
