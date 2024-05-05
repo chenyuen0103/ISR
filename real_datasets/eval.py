@@ -341,20 +341,19 @@ if __name__ == '__main__':
     fishr_top5 = None
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        # alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        alpha_list = [0]
-        beta_list = [0]
+        alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
         args.ISR_class = 0
         args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
-        # penalty_anneal_iters_list = np.linspace(0, 2800, 5)
-        penalty_anneal_iters_list = [0]
+        penalty_anneal_iters_list = np.linspace(0, 2800, 5)
+        # penalty_anneal_iters_list = [0]
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
 
         alpha_beta_anneal = [
+            (0, 0, 0),
             (1000.0, 2000.0, 1400.0),
             (1.0, 10.0, 2800.0),
             (100.0, 2000.0, 2100.0),
