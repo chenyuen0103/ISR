@@ -341,8 +341,8 @@ if __name__ == '__main__':
     fishr_top5 = None
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
-        alpha_list = np.round([0] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        alpha_list = list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        beta_list = [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
         args.ISR_class = 0
         args.save_dir = './logs/ISR_Hessian_results_new'
