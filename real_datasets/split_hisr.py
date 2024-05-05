@@ -110,7 +110,7 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
     })
 
     # Renaming the columns for clarity
-    grouped.columns = ['avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem', 'num_runs']
+    grouped.columns = ['avg_acc_mean', 'avg_acc_sem', 'worst_acc_mean', 'worst_acc_sem', 'num_runs','seed_runs']
     # Resetting the index if you want the grouped columns back as regular columns
     grouped = grouped.reset_index()
     # cleaned_grouped = grouped.dropna(subset=['avg_acc_sem', 'worst_acc_sem'])
@@ -173,8 +173,8 @@ def find_best_gm_hm(data_dir='./logs/ISR_Hessian_results_new', file_name='CUB_5r
     test = test[test['gradient_alpha'] != 0]
     val = val[val['hessian_beta'] != 0]
     test = test[test['hessian_beta'] != 0]
-    val = val[val['num_runs'] == 5]
-    test = test[test['num_runs'] == 5]
+    # val = val[val['num_runs'] >= 2]
+    # test = test[test['num_runs'] >= 2]
     best_hyperparameters, best_test_performance = find_best_hps(val, test, worst_case)
 
     return best_hyperparameters, best_test_performance
@@ -194,7 +194,6 @@ def find_best_hps(val_df, test_df, worst_case = False):
 
     # Step 2: Select based on Standard Error
     # Identify the entry with the smallest standard error among the top performers
-    # best_val_hyperparameters = top_performers.loc[top_performers[col_sem].idxmin()]
     if len(top_performers) > 1:
         best_val_hyperparameters = top_performers.loc[top_performers[col_sem].idxmin()]
     else:
@@ -327,8 +326,8 @@ def main():
     # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
     # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir)
 
-    # find_best_isr(worst_case = worst_case, data_dir=data_dir)
-    # find_best_gm(worst_case = worst_case, data_dir=data_dir)
+    find_best_isr(worst_case = worst_case, data_dir=data_dir)
+    find_best_gm(worst_case = worst_case, data_dir=data_dir)
     # find_best_hm(worst_case = worst_case, data_dir=data_dir)
     find_best_gm_hm(worst_case = worst_case, data_dir=data_dir)
     find_best_fishr(worst_case = worst_case, data_dir=data_dir)

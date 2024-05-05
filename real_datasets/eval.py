@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
 
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
-    seed_list = [0, 1, 2, 3, 4]
+    seed_list = [0]
     fishr_top5 = None
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
@@ -352,17 +352,17 @@ if __name__ == '__main__':
         # penalty_anneal_iters_list = [0]
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
 
-        alpha_beta_anneal = [
-            (100.0, 100.0, 2100.0),
-            (0, 0, 0),
-            (1000.0, 2000.0, 1400.0),
-            (1.0, 10.0, 2800.0),
-            (100.0, 2000.0, 2100.0),
-            (100.0, 100.0, 1400.0),
-            (0.1, 0.1, 2800.0),
-            (1.0, 0.0, 2800.0),
-
-        ]
+        # alpha_beta_anneal = [
+        #     (100.0, 100.0, 2100.0),
+        #     (0, 0, 0),
+        #     (1000.0, 2000.0, 1400.0),
+        #     (1.0, 10.0, 2800.0),
+        #     (100.0, 2000.0, 2100.0),
+        #     (100.0, 100.0, 1400.0),
+        #     (0.1, 0.1, 2800.0),
+        #     (1.0, 0.0, 2800.0),
+        #
+        # ]
         fishr_top5 = [
             (0.945, 100.0, 700.0),
             (0.9675, 10.0, 0.0),
@@ -445,7 +445,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                # eval_ISR(args)
+                eval_ISR(args)
 
 
 
