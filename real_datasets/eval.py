@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
 
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
-    seed_list = [0]
+    seed_list = [0, 1]
     fishr_top5 = None
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
