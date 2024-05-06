@@ -383,8 +383,8 @@ if __name__ == '__main__':
         args.ISR_class = 0
         # alpha_list = [0.001, 0.01, 0, 1000, 5000]
         # beta_list = [0.001, 0.01, 0, 1000, 5000]
-        # alpha_list = [0]
-        # beta_list = [0]
+        alpha_list = [0]
+        beta_list = [0]
         args.max_iter = 50
         args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
@@ -392,13 +392,13 @@ if __name__ == '__main__':
         penalty_anneal_iters_list = np.linspace(0, 16000, 5)
 
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
-        alpha_beta_anneal = [
-            (2000.0, 100.0, 6000.0),
-            (5000.0, 100.0, 4000.0),
-            (5000.0, 100.0, 6000.0),
-            (1000.0, 100.0, 8000.0),
-            (5000.0, 100.0, 2000.0)
-        ]
+        # alpha_beta_anneal = [
+        #     (2000.0, 100.0, 6000.0),
+        #     (5000.0, 100.0, 4000.0),
+        #     (5000.0, 100.0, 6000.0),
+        #     (1000.0, 100.0, 8000.0),
+        #     (5000.0, 100.0, 2000.0)
+        # ]
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [0]
         num_rows = 2
