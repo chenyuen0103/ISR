@@ -433,7 +433,7 @@ if __name__ == '__main__':
         run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
         # eval_ISR(args)
     else:
-        eval_ISR(args)
+        # eval_ISR(args)
         for seed in seed_list:
             # for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
             for alpha, beta, anneal_iters in alpha_beta_anneal:
@@ -462,7 +462,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                # eval_ISR(args)
+                eval_ISR(args)
 
 
 

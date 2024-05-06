@@ -300,7 +300,7 @@ def main():
     celeba_fishr = 'CelebA_results_s*_fishr.csv'
     multiNLI_pattern = 'MultiNLI_results_s*_hessian_exact.csv'
     multiNLI_fishr = 'MultiNLI_results_s*_fishr.csv'
-    data_dir= './logs/ISR_Hessian_results_combined'
+    data_dir= './logs/ISR_Hessian_results_new'
 
     cubs_val, cubs_test = merge_seeds(data_dir=data_dir)
     merge_seeds(file_name_pattern=cub_fishr, data_dir=data_dir)
