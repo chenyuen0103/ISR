@@ -257,13 +257,13 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
     argparser.add_argument('--alpha', default=0, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=20000, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 2100, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--penalty_anneal_iters', default = 0, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -359,6 +359,9 @@ if __name__ == '__main__':
             (100.0, 10000.0, 2800.0),
             (1000.0, 100.0, 0.0),
             (10, 1000, 2100)
+            (0.1, 2000, 0.0),
+            (0.1, 2000, 2100)
+            (0.1, 2000, 2800)
         ]
         fishr_top5 = [
             (0.945, 100.0, 700.0),
@@ -372,9 +375,10 @@ if __name__ == '__main__':
     if args.dataset == 'CelebA':
         # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        # alpha_list = [1000, 2000, 5000]
-        alpha_list = [5000]
-        beta_list = [100]
+        alpha_list = [1000, 2000, 5000]
+        beta_list = [1000, 2000, 5000]
+        # alpha_list = [5000]
+        # beta_list = [100]
         args.ISR_class = 0
         # alpha_list = [0.001, 0.01, 0, 1000, 5000]
         # beta_list = [0.001, 0.01, 0, 1000, 5000]
@@ -424,10 +428,10 @@ if __name__ == '__main__':
             (0.99, 10000.0, 600.0)
         ]
     if args.hessian_approx_method == 'fishr':
-        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        # eval_ISR(args)
+        # run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
+        eval_ISR(args)
     else:
-        # eval_ISR(args)
+        eval_ISR(args)
         for seed in seed_list:
             # for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
             for alpha, beta, anneal_iters in alpha_beta_anneal:
@@ -456,7 +460,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # eval_ISR(args)
 
 
 
