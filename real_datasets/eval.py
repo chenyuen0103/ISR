@@ -228,7 +228,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='CUB', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -257,13 +257,13 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
-    argparser.add_argument('--alpha', default=0, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=20000, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--alpha', default=10000, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
-    argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
-    argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
-    argparser.add_argument('--penalty_anneal_iters', default = 0, type=int,  help='fishr penalty anneal iters')
+    argparser.add_argument('--ema', default=0.99, type=float, help='fishr ema')
+    argparser.add_argument('--lam', default=10000, type =int, help='fishr penalty weight')
+    argparser.add_argument('--penalty_anneal_iters', default = 1200, type=int,  help='fishr penalty anneal iters')
 
     config = argparser.parse_args(args=args)
 
@@ -430,10 +430,10 @@ if __name__ == '__main__':
         ]
         fishr_top5 = None
     if args.hessian_approx_method == 'fishr':
-        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        # eval_ISR(args)
+        # run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
+        eval_ISR(args)
     else:
-        # eval_ISR(args)
+        eval_ISR(args)
         for seed in seed_list:
             # for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
             for alpha, beta, anneal_iters in alpha_beta_anneal:
@@ -462,7 +462,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # eval_ISR(args)
 
 
 
