@@ -228,7 +228,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--algo', type=str, default='ERM',
                            choices=['ERM', 'groupDRO', 'reweight'])
     argparser.add_argument(
-        '--dataset', type=str, default='MultiNLI', choices=['CelebA', 'MultiNLI', 'CUB'])
+        '--dataset', type=str, default='CelebA', choices=['CelebA', 'MultiNLI', 'CUB'])
     argparser.add_argument('--model_select', type=str,
                            default='best', choices=['best', 'best_avg_acc', 'last','CLIP_init', 'init'])
 
@@ -257,7 +257,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--file_suffix', default='', type=str, )
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
-    argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
+    argparser.add_argument('--hessian_approx_method', default = 'fishr', type=str, )
     argparser.add_argument('--alpha', default=10000, type=float, help='gradient hyperparameter')
     argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
@@ -392,6 +392,7 @@ if __name__ == '__main__':
         penalty_anneal_iters_list = np.linspace(0, 16000, 5)
 
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
+        alpha_beta_anneal = [(0,0,0)]
         # alpha_beta_anneal = [
         #     (2000.0, 100.0, 6000.0),
         #     (5000.0, 100.0, 4000.0),
@@ -402,19 +403,28 @@ if __name__ == '__main__':
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [0]
         num_rows = 2
-        fishr_top5 = [
-            (0.99, 10.0, 2000.0),
-            (0.945, 100.0, 1000.0),
-            (0.99, 10.0, 0.0),
-            (0.99, 10.0, 4000.0),
-            (0.9, 100.0, 2000.0)
-        ]
+        # fishr_top5 = [
+        #     (0.99, 10.0, 2000.0),
+        #     (0.945, 100.0, 1000.0),
+        #     (0.99, 10.0, 0.0),
+        #     (0.99, 10.0, 4000.0),
+        #     (0.9, 100.0, 2000.0)
+        # ]
+        #
+        # 0.9, 10.0, 16000.0
+        # 0.9225, 10.0, 16000.0
+        # 0.9225, 10.0, 8000.0
+        # 0.945, 10.0, 8000.0
+        # 0.9, 10.0, 12000.0
+        # 0.9675, 100.0, 12000.0
+        fishr_top5 = None
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         alpha_list = [0.1, 1, 10, 100][::-1]
         beta_list = [1000, 2000, 5000, 10000, 15000][::-1]
         args.ISR_class = 2
+        seed_list = [0]
         # alpha_list = [1]
         # beta_list = [0.01, 0.001]
         args.max_iter = 3
@@ -436,8 +446,8 @@ if __name__ == '__main__':
         ]
         fishr_top5 = None
     if args.hessian_approx_method == 'fishr':
-        # run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        eval_ISR(args)
+        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
+        # eval_ISR(args)
     else:
         # eval_ISR(args)
         for seed in seed_list:

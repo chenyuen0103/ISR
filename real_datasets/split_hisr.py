@@ -305,7 +305,7 @@ def main():
     cubs_val, cubs_test = merge_seeds(data_dir=data_dir)
     merge_seeds(file_name_pattern=cub_fishr, data_dir=data_dir)
     celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern,data_dir=data_dir)
-    # merge_seeds(file_name_pattern=celeba_fishr, data_dir=data_dir)
+    merge_seeds(file_name_pattern=celeba_fishr, data_dir=data_dir)
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir=data_dir)
     multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir=data_dir)
 
@@ -318,7 +318,7 @@ def main():
     # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
     # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
     find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
-    # find_best_fishr(worst_case = worst_case, file_name='CelebA_3runs_fishr_val.csv', data_dir=data_dir)
+    find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir)
 
     find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
     # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
