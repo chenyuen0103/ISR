@@ -1132,7 +1132,7 @@ class HISRClassifier:
                         # stats['worst_group'] = worst_group
                         # self.train_csv_logger.log(epoch,batch_idx,stats)
                         # self.train_csv_logger.flush()
-                        # self.update_count += 1
+                        self.update_count += 1
                     elif approx_type == "fishr":
                         stats['epoch'] = epoch
                         stats['batch'] = batch_idx

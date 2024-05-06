@@ -258,8 +258,8 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--no_reweight', default=False, action='store_true',
                            help='No reweighting for ISR classifier on reweight/groupDRO features')
     argparser.add_argument('--hessian_approx_method', default = 'exact', type=str, )
-    argparser.add_argument('--alpha', default=100, type=float, help='gradient hyperparameter')
-    argparser.add_argument('--beta', default=100, type=float, help='hessian hyperparameter')
+    argparser.add_argument('--alpha', default=0, type=float, help='gradient hyperparameter')
+    argparser.add_argument('--beta', default=20000, type=float, help='hessian hyperparameter')
     argparser.add_argument('--cuda', default=1, type=int, help='cuda device')
     argparser.add_argument('--ema', default=0.95, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=1000, type =int, help='fishr penalty weight')
@@ -410,10 +410,10 @@ if __name__ == '__main__':
     (0.99, 10000.0, 600.0)
 ]
     if args.hessian_approx_method == 'fishr':
-        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        # eval_ISR(args)
+        # run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
+        eval_ISR(args)
     else:
-        # eval_ISR(args)
+        eval_ISR(args)
         for seed in seed_list:
             # for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
             for alpha, beta, anneal_iters in alpha_beta_anneal:
@@ -442,7 +442,7 @@ if __name__ == '__main__':
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
-                eval_ISR(args)
+                # eval_ISR(args)
 
 
 
