@@ -427,9 +427,10 @@ if __name__ == '__main__':
             (0.945, 10000.0, 900.0),
             (0.99, 10000.0, 600.0)
         ]
+        fishr_top5 = None
     if args.hessian_approx_method == 'fishr':
-        # run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        eval_ISR(args)
+        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
+        # eval_ISR(args)
     else:
         eval_ISR(args)
         for seed in seed_list:
