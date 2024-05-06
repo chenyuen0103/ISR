@@ -387,9 +387,23 @@ if __name__ == '__main__':
         penalty_anneal_iters_list = np.linspace(0, 16000, 5)
 
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
+        alpha_beta_anneal = [
+            (2000.0, 100.0, 6000.0),
+            (5000.0, 100.0, 4000.0),
+            (5000.0, 100.0, 6000.0),
+            (1000.0, 100.0, 8000.0),
+            (5000.0, 100.0, 2000.0)
+        ]
         # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
         # penalty_anneal_iters_list = [0]
         num_rows = 2
+        fishr_top5 = [
+            (0.99, 10.0, 2000.0),
+            (0.945, 100.0, 1000.0),
+            (0.99, 10.0, 0.0),
+            (0.99, 10.0, 4000.0),
+            (0.9, 100.0, 2000.0)
+        ]
     if args.dataset == 'MultiNLI':
         # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         # beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
@@ -403,15 +417,15 @@ if __name__ == '__main__':
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
         num_rows = 2
         fishr_top5 = [
-    (0.9675, 10000.0, 300.0),
-    (0.9675, 10000.0, 600.0),
-    (0.945, 1000.0, 900.0),
-    (0.945, 10000.0, 900.0),
-    (0.99, 10000.0, 600.0)
-]
+            (0.9675, 10000.0, 300.0),
+            (0.9675, 10000.0, 600.0),
+            (0.945, 1000.0, 900.0),
+            (0.945, 10000.0, 900.0),
+            (0.99, 10000.0, 600.0)
+        ]
     if args.hessian_approx_method == 'fishr':
-        # run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        eval_ISR(args)
+        run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
+        # eval_ISR(args)
     else:
         # eval_ISR(args)
         for seed in seed_list:
