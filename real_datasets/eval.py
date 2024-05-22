@@ -8,6 +8,7 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
+import shutil
 # from memory_profiler import profile
 
 from configs import DATA_FOLDER
@@ -60,6 +61,7 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
         columns=['dataset', 'algo', 'seed', 'ckpt', 'split', 'method', 'clf_type', 'C', 'pca_dim', 'd_spu', 'ISR_class',
                  'ISR_scale', 'env_label_ratio','num_iter','gradient_alpha','hessian_beta'] +
                 ['ema', 'lambda', 'penalty_anneal_iters'] if args.hessian_approx_method == 'fishr' else [] +
+                ['mmd_gamma'] if args.hessian_approx_method == 'coral' else [] +
                 [f'acc-{g}' for g in groups] + ['worst_group', 'avg_acc', 'worst_acc', ])
 
     base_row = {'dataset': args.dataset, 'algo': args.algo,
@@ -69,14 +71,19 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
                 'hessian_beta': args.beta,
                 'ema' : args.ema,
                 'lambda': args.lam,
-                'penalty_anneal_iters': args.penalty_anneal_iters
+                'penalty_anneal_iters': args.penalty_anneal_iters,
+                'mmd_gamma': args.mmd_gamma,
         }
     if args.hessian_approx_method == 'fishr':
         save_path = os.path.join(args.save_dir,
                                  f"{args.dataset}_results{args.file_suffix}_s{args.seed}_fishr.csv")
+    elif args.hessian_approx_method == 'coral':
+        save_path = os.path.join(args.save_dir,
+                                 f"{args.dataset}_results{args.file_suffix}_s{args.seed}_coral.csv")
     else:
         save_path = os.path.join(args.save_dir,
                                  f"{args.dataset}_results{args.file_suffix}_s{args.seed}{f'_hessian_{args.hessian_approx_method}' if args.hessian_approx_method else '_ISR'}.csv")
+
 
     df_check = pd.read_csv(save_path) if os.path.exists(save_path) else None
 
@@ -160,16 +167,31 @@ def eval_ISR(args, train_data=None, val_data=None, test_data=None, log_dir=None)
     else:
         betas = args.beta
 
-    for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, alphas, betas)), desc='ISR iter', leave=False):
+    for ISR_class, ISR_scale, alpha, beta in tqdm(list(product(ISR_classes, args.ISR_scales, alphas, betas)), desc='ISR iter', leave=True):
         train_csv_logger, val_csv_logger, test_csv_logger = None, None, None
-        if args.hessian_approx_method == 'exact':
+        if args.hessian_approx_method in ['exact']:
             progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
                                         f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}_anneal_{args.penalty_anneal_iters}")
+            if args.hessian_approx_method in ['hgp', 'hutchinson']:
+                progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}', args.hessian_approx_method,
+                                            f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}")
         elif args.hessian_approx_method == 'fishr':
             progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
                                         f"ISRclass_{ISR_class}_ema_{args.ema}_lam_{args.lam}_anneal_{args.penalty_anneal_iters}")
-        if not os.path.exists(progress_dir):
-            os.makedirs(progress_dir)
+        elif args.hessian_approx_method == 'coral':
+            progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
+                                        f"ISRclass_{ISR_class}_mmd_{args.mmd_gamma}")
+        elif args.hessian_approx_method == 'hgp':
+            progress_dir = os.path.join(args.progress_save_dir, args.dataset, f's{args.seed}',
+                                        f"ISRclass_{ISR_class}_grad_alpha_{grad_alpha_formatted}_hess_beta_{hess_beta_formatted}")
+
+        # Check if the directory exists
+        if os.path.exists(progress_dir):
+            # Remove the directory and its contents
+            shutil.rmtree(progress_dir)
+
+        # Create the directory, including any necessary parent directories
+        os.makedirs(progress_dir)
 
         train_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'train.csv'), n_groups, n_spu_attr)
         val_csv_logger = CSVBatchLogger_ISR(os.path.join(progress_dir, 'val.csv'), n_groups, n_spu_attr)
@@ -264,7 +286,7 @@ def parse_args(args: list = None, specs: dict = None):
     argparser.add_argument('--ema', default=0.99, type=float, help='fishr ema')
     argparser.add_argument('--lam', default=10000, type =int, help='fishr penalty weight')
     argparser.add_argument('--penalty_anneal_iters', default = 1200, type=int,  help='fishr penalty anneal iters')
-
+    argparser.add_argument('--mmd_gamma', default = 1, type=float, help='mmd_gamma for CORAL')
     config = argparser.parse_args(args=args)
 
     print("Specs:", specs)
@@ -311,59 +333,106 @@ def run_fishr(args, penalty_anneal_iters_list, fishr_top5 = None):
                 df_current = existing_df[(existing_df['lambda'] == lam) & (existing_df['penalty_anneal_iters'] == penalty_anneal_iters) & (existing_df['ema'] == ema)]
                 if len(df_current) > 0:
                     print(f"Already evaluated seed: {seed}, lambda: {lam}, anneal iters: {penalty_anneal_iters}, ema: {ema}")
-                    continue
+                    args.ISR_class = 1
+                    if len(df_current) > 4 and args.dataset == 'CUB' or 'CelebA':
+                        continue
+                    elif len(df_current) > 6 and args.dataset == 'MultiNLI':
+                        continue
             print(f"Running seed: {seed}, lambda: {lam}, anneal iters: {penalty_anneal_iters}, ema: {ema}")
             eval_ISR(args)
-    # for seed, lam, penalty_anneal_iters, ema in product(seed_list, lambda_list, penalty_anneal_iters_list, ema_list):
-    #     args.seed = seed
-    #     args.lam = lam
-    #     args.penalty_anneal_iters = penalty_anneal_iters
-    #     args.ema = ema
-    #     eval_ISR(args)
 
+
+def run_coral(args, coral_top5 = None):
+    if coral_top5:
+        params_list = np.round(coral_top5, decimals=8)
+        seed_list = [0,1,2,3,4]
+    else:
+        params_list = np.round(10 ** np.linspace(-1, 1, 50),decimals=8)
+        seed_list = [0]
+
+    for seed in seed_list:
+        for mmd_gamma in params_list:
+            args.seed = seed
+            args.mmd_gamma = mmd_gamma
+            result_file = os.path.join(args.save_dir, f"{args.dataset}_results{args.file_suffix}_s{args.seed}_coral.csv")
+            if os.path.exists(result_file):
+                existing_df = pd.read_csv(result_file)
+                df_current = existing_df[(existing_df['mmd_gamma'] == mmd_gamma)]
+                if len(df_current) > 0:
+                    print(f"Already evaluated seed: {seed}, mmd_gamma: {mmd_gamma}")
+                    args.ISR_class = 1
+            print(f"Running seed: {seed}, mmd_gamma: {mmd_gamma}")
+            eval_ISR(args)
+
+def run_hgp(args, hgp_top5 = None):
+    if hgp_top5:
+        params_list = np.round(hgp_top5, decimals=8)
+        seed_list = [0,1,2,3,4]
+    else:
+        alpha_list = np.round(10 ** np.linspace(-1, 3, 5),decimals=8)
+        beta_list = np.round(10 ** np.linspace(-3, 5, 9),decimals=8)
+        if args.dataset == 'CUB':
+            penalty_anneal_iters_list = np.linspace(0, 2800, 5)
+        elif args.dataset == 'CelebA':
+            penalty_anneal_iters_list = np.linspace(0, 16000, 5)
+        elif args.dataset == 'MultiNLI':
+            penalty_anneal_iters_list = np.linspace(0, 1200, 5)
+
+        params_list = product(alpha_list, beta_list, penalty_anneal_iters_list)
+        seed_list = [0]
+
+    for seed in seed_list:
+        for grad_alpha, hess_beta, anneal_iters in params_list:
+            args.seed = seed
+            args.alpha = grad_alpha
+            args.beta = hess_beta
+            args.penalty_anneal_iters = anneal_iters
+            result_file = os.path.join(args.save_dir, f"{args.dataset}_results{args.file_suffix}_s{args.seed}_hessian_hgp.csv")
+            if os.path.exists(result_file):
+                existing_df = pd.read_csv(result_file)
+                df_current = existing_df[(existing_df['gradient_alpha'] == grad_alpha) &
+                                         (existing_df['hessian_beta'] == hess_beta) &
+                                            (existing_df['penalty_anneal_iters'] == anneal_iters)
+                                         ]
+                if len(df_current) > 0:
+                    print(f"Already evaluated seed: {seed}, grad_alpha: {grad_alpha}, hess_beta: {hess_beta}, anneal_iters: {anneal_iters}")
+                    continue
+            print(f"Running seed: {seed}, grad_alpha: {grad_alpha}, hess_beta: {hess_beta}, anneal_iters: {anneal_iters} for HGP")
+            eval_ISR(args)
 
 
 if __name__ == '__main__':
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.cuda)
-    # loop over alpha and beta values in [0, 1e-7, 1e-6,1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0]
-    # alpha_list = 10 ** np.linspace(-8, 3, 12)
-    # alpha_list = 10 ** np.linspace(-1, 3, 5)
-    # alpha_list = [2000]
-    # beta_list = [0] + list(10 ** np.linspace(-1, 3, 5))
 
-    # alpha_list = [1.96 * 10 ** -4]
-    # beta_list = [5000]
 
 
     # alpha_beta_list = list(product([0],10 ** np.linspace(-1, 3, 5))) + list(product(10 ** np.linspace(-1, 3, 5), [0])) + [(0,0)]
-    seed_list = [0, 1, 2, 3, 4]
+    seed_list = [0]
     fishr_top5 = None
+    coral_top5 = None
+    hgp_top5 = None
     # Define specific pairs of alpha and beta values
     if args.dataset == 'CUB':
         alpha_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         beta_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
         args.ISR_class = 0
-        args.save_dir = './logs/ISR_Hessian_results_new'
+        # args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 2800, 5)
-        # penalty_anneal_iters_list = [0]
-        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
 
-        # alpha_beta_anneal = [
-        #     (100.0, 100.0, 0.0),
-        #     (10.0, 100.0, 0.0),
-        #     (1.0, 100.0, 0.0),
-        #     (100.0, 10000.0, 2800.0),
-        #     (1000.0, 100.0, 0.0),
-        #     (10, 1000, 2100),
-        #     (0.1, 2000, 0.0),
-        #     (0.1, 2000, 2100),
-        #     (0.1, 2000, 2800)
-        # ]
-        alpha_beta_anneal = [(0,0,0)]
+        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
+        alpha_beta_anneal = [
+            (0,0,0),
+            (10, 1000, 2100),
+            (100.0, 100.0, 0.0),
+            (10000,100.0, 1200),
+            (10.0, 100.0, 0.0),
+            (1.0, 100.0, 0.0)
+        ]
+        # alpha_beta_anneal = [(10,1000,2100)]
         fishr_top5 = [
             (0.945, 100.0, 700.0),
             (0.9675, 10.0, 0.0),
@@ -371,72 +440,76 @@ if __name__ == '__main__':
             (0.9225, 10000.0, 1400.0),
             (0.945, 100.0, 2800.0)
         ]
+        coral_top5 = [0.23299518,
+                    10.0,
+                    0.25595479,
+                    0.95409548,
+                    0.21209509,
+                    ]
+        hgp_top5 = [ (0.1,0.01,1400.0),
+                    (0.1,0.01,0.0),
+                    (1.0,0.001,700.0),
+                    (1.0,0.001,2100.0),
+                    (0.1,0.01,700.0)
+                                    ]
 
         num_rows = 2
     if args.dataset == 'CelebA':
-        # alpha_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        # beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        alpha_list = [1000, 2000, 5000]
-        beta_list = [1000, 2000, 5000]
-        # alpha_list = [5000]
-        # beta_list = [100]
-        args.ISR_class = 0
-        # alpha_list = [0.001, 0.01, 0, 1000, 5000]
-        # beta_list = [0.001, 0.01, 0, 1000, 5000]
-        alpha_list = [0]
-        beta_list = [0]
+        alpha_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
+        beta_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 50
-        args.save_dir = './logs/ISR_Hessian_results_new'
+        args.ISR_class = 0
+        # args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
-        alpha_beta_anneal = [(0,0,0)]
-        # alpha_beta_anneal = [
-        #     (2000.0, 100.0, 6000.0),
-        #     (5000.0, 100.0, 4000.0),
-        #     (5000.0, 100.0, 6000.0),
-        #     (1000.0, 100.0, 8000.0),
-        #     (5000.0, 100.0, 2000.0)
-        # ]
-        # penalty_anneal_iters_list = np.linspace(0, 16000, 5)
-        # penalty_anneal_iters_list = [0]
-        num_rows = 2
-        # fishr_top5 = [
-        #     (0.99, 10.0, 2000.0),
-        #     (0.945, 100.0, 1000.0),
-        #     (0.99, 10.0, 0.0),
-        #     (0.99, 10.0, 4000.0),
-        #     (0.9, 100.0, 2000.0)
-        # ]
-        #
-        # 0.9, 10.0, 16000.0
-        # 0.9225, 10.0, 16000.0
-        # 0.9225, 10.0, 8000.0
-        # 0.945, 10.0, 8000.0
-        # 0.9, 10.0, 12000.0
-        # 0.9675, 100.0, 12000.0
-        fishr_top5 = None
-    if args.dataset == 'MultiNLI':
-        # alpha_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        # beta_list = np.round([0]  + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
-        alpha_list = [0.1, 1, 10, 100][::-1]
-        beta_list = [1000, 2000, 5000, 10000, 15000][::-1]
-        args.ISR_class = 2
-        seed_list = [0]
-        # alpha_list = [1]
-        # beta_list = [0.01, 0.001]
-        args.max_iter = 3
-        penalty_anneal_iters_list = np.linspace(0, 900, 4)[::-1]
-        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
-        alpha_beta_anneal = [(10000.0, 100.0, 1200.0),
-            (0.1, 5000.0, 1200.0),
-            (1.0, 0.1, 1200.0),
-            (100.0, 1000.0, 1200.0),
-            (1000.0, 1000.0, 1200.0)
+        alpha_beta_anneal = [
+            (0.0, 0.0, 0.0),
+            (5000.0, 100.0, 4000.0),
+            (2000.0, 100.0, 6000.0),
+            (2000.0, 100.0, 6000.0),
+            (5000.0, 100.0, 6000.0),
+            (1000.0, 100.0, 8000.0),\
         ]
+
         num_rows = 2
+        fishr_top5 = [
+            (0.945, 10.0, 8000.0),
+            (0.9225, 10.0, 12000.0),
+            (0.9, 10.0, 4000.0),
+            (0.945, 10000.0, 8000.0),
+            (0.9, 100.0, 2000.0)
+        ]
+        coral_top5 = [0.13257114,
+                        0.14563485,
+                        0.15998587,
+                        0.33932218,
+                        0.44984327]
+
+        hgp_top5 = [(0.1,0.001,0.0),
+                    (0.1,0.001,4000.0),
+                    (0.1,0.001,8000.0),
+                    (0.1,0.001,12000.0),
+                    (0.1,0.001,16000.0)
+                    ]
+
+    if args.dataset == 'MultiNLI':
+        alpha_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5) + [0]), decimals=8)
+        beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)), decimals=8)[::-1]
+        args.ISR_class = 2
+        args.max_iter = 3
+        penalty_anneal_iters_list = np.linspace(0, 1200, 5)[::-1]
+        alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
+
+        alpha_beta_anneal = [
+            (0.0, 0.0, 0.0),
+            (5000,1,0),
+            (2000.0, 100.0, 0.0),
+            (1.0, 5000.0, 900.0),
+            (100.0, 0.1, 0.0),
+            (100, 5000, 300)
+        ]
         fishr_top5 = [
             (0.9675, 10000.0, 300.0),
             (0.9675, 10000.0, 600.0),
@@ -444,18 +517,27 @@ if __name__ == '__main__':
             (0.945, 10000.0, 900.0),
             (0.99, 10000.0, 600.0)
         ]
-        fishr_top5 = None
+        coral_top5 =[5.68986603,
+                    0.44984327,
+                    1.38949549,
+                    0.10985411,
+                    0.33932218,
+                    ]
+
+        hgp_top5 = [(1.0,0.001,0.0),
+                    (0.1,0.01,600.0),
+                    (0.1,0.001,600.0),
+                    (0.1,0.001,300.0),
+                    (0.1,0.001,900.0)]
     if args.hessian_approx_method == 'fishr':
         run_fishr(args, penalty_anneal_iters_list, fishr_top5 = fishr_top5)
-        # eval_ISR(args)
+    elif args.hessian_approx_method == 'coral':
+        run_coral(args, coral_top5 = coral_top5)
+    elif args.hessian_approx_method.lower() == 'hgp':
+        run_hgp(args, hgp_top5 = hgp_top5)
     else:
-        # eval_ISR(args)
         for seed in seed_list:
-            # for alpha, beta, anneal_iters in product(alpha_list, beta_list, penalty_anneal_iters_list):
             for alpha, beta, anneal_iters in alpha_beta_anneal:
-                if alpha == 0 and beta == 0 and anneal_iters != 0:
-                    continue
-
                 args.alpha = round(alpha, 4)
                 args.beta = round(beta, 4)
                 args.seed = seed
@@ -471,12 +553,14 @@ if __name__ == '__main__':
                     df_current = existing_df[
                         np.isclose(existing_df['gradient_alpha'], alpha, atol=1e-8) &
                         (existing_df['penalty_anneal_iters'] == anneal_iters) &
-                        np.isclose(existing_df['hessian_beta'], beta, atol=1e-8)
+                        np.isclose(existing_df['hessian_beta'], beta, atol=1e-8) &
+                        (existing_df['algo'] == args.algo)
                         ]
                     if len(df_current) >= num_rows:
                         print(
                             f"Already evaluated seed: {seed}, alpha: {alpha}, anneal iters: {anneal_iters}, beta: {beta}")
                         continue
+
                 print(f"Running alpha = {alpha}, beta = {beta}, anneal_iters = {anneal_iters}, seed = {seed}")
                 eval_ISR(args)
 

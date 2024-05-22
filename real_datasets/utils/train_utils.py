@@ -113,6 +113,8 @@ class CSVBatchLogger_ISR:
         columns.append('ema')
         columns.append('fishr_penalty_weight')
         columns.append('fishr_penalty')
+        columns.append('coral_mmd_gamma')
+        columns.append('coral_penalty')
 
 
         self.path = csv_path

@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+import torch.autograd as autograd
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from collections import OrderedDict
@@ -245,33 +247,6 @@ class HISRClassifier:
 
 
 
-    def hessian_original(self, x, logits):
-        p = F.softmax(logits, dim=1).clone()[:, 1]  # probability for class 1
-
-        # Compute scaling factors for Hessian (p * (1 - p)) for each sample in the batch
-        scale_factor = p * (1 - p)  # Shape: [batch_size]
-
-        # Expand scale_factor to shape [batch_size, 1, 1] for batched outer product
-        scale_factor = scale_factor.view(-1, 1, 1)
-
-        # Reshape x for outer product: [batch_size, num_features, 1]
-        x_reshaped = x.unsqueeze(2)
-
-        # Compute batched outer product: [batch_size, num_features, num_features]
-        # einsum
-        outer_product = torch.matmul(x_reshaped, x_reshaped.transpose(1, 2))
-
-        # Scale by p * (1 - p) and average across the batch
-        hessian_w_class0 = torch.mean(scale_factor * outer_product, dim=0)
-
-        # Hessian for class 1 is the negative of the Hessian for class 0
-        hessian_w_class1 = -hessian_w_class0
-
-        # Stack the Hessians for both classes: [2, num_features, num_features]
-        hessian_w2 = torch.stack([hessian_w_class0, hessian_w_class1])
-
-        # assert torch.allclose(hessian_w2, hessian_w), "Hessian computation is incorrect"
-        return hessian_w2
 
 
     def hessian_pen(self, x, logits, envs):
@@ -406,105 +381,158 @@ class HISRClassifier:
             diag.append(z*Hz)
         return sum(diag)/len(diag)
 
-    def hutchinson_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-4, beta=10e-4):
-        total_loss = torch.tensor(0.0, requires_grad=True)
-        env_gradients = []
-        env_hessian_diag = []
-        combine_loss = self.loss_fn(model(x_batch).squeeze(), y_batch.long())
-        average_gradient = torch.autograd.grad(combine_loss, model.parameters(), create_graph=True)
-        average_Hg = self.calc_hessian_diag(model, average_gradient, repeat=150)
-        for env_idx in envs_indices_batch.unique():
-            model.zero_grad()
+    def hutchinson_loss(self, logits, x, y, env_indices, alpha, beta, stats ={}):
+        envs = []
+        for edx in range(self.n_envs):
+            idx = (env_indices == edx).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+            y_env = y[idx]
+            logits_env = logits[idx]
+            env_fraction = len(idx) / len(env_indices)
+            stats.update({f'env_frac:{edx}': env_fraction})
+            env = {}
+            env['nll'] = self.loss_fn(logits_env.squeeze(), y_env.long())
+            stats.update({f'erm_loss_env:{edx}': env['nll'].item()})
+            env['sadg'], env['grad'] = self.compute_sadg_penalty(logits, y)
+            envs.append(env)
 
-            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
-            assert loss.requires_grad, "Original loss does not require gradient"
+        train_nll = torch.stack([env['nll'] for env in envs]).mean()
+        mean_grad = autograd.grad(train_nll, self.clf.parameters(), create_graph=True, retain_graph=True)
+        mean_hessian = self.calc_hessian_diag(mean_grad, repeat=300)
+        flatten_mean_grad = self._flatten_grad(mean_grad)
 
-            # get gradient of loss with respect to parameters
-            loss.backward(retain_graph=True)
+        loss = train_nll.clone()
 
-            # Gradient
-            # grads = self.get_grads(model)
-            # grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
-            grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
-            original_grads = [grad.clone().requires_grad_(True) for grad in grads]
-
-            # flatten gradient
-            flatten_grad = self._flatten_grad(grads)
-            flatten_original_grad = self._flatten_grad(original_grads)
-            env_gradients.append(flatten_grad)
-
-            # ||Gradient||
-            grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in flatten_grad))
-            grad_norm.backward(retain_graph=True)
-
-            # Diag of Hessian, the arguments are: model, gradient of the current environment, number of mc steps to take
-            Hg = self.calc_hessian_diag(model, flatten_original_grad, repeat = 150)
-            env_hessian_diag.append(Hg)
-
-            # average_Hg = torch.mean(torch.stack(env_hessian_diag), dim=0)
-            # average_gradient = torch.mean(torch.stack(env_gradients), dim=0)
+        sadg_penalty_list = []
+        all_flatten_grads = [self._flatten_grad(env['grad']) for env in envs]
+        all_hessians = [self.calc_hessian_diag(env['grad'], repeat=300) for env in envs]
 
 
-        for env_idx, (grad, hessian_diag) in enumerate(zip(env_gradients, env_hessian_diag)):
-            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
+        # alpha beta reversed in HGP/Hugtchinson
+        self.penalty_alpha = beta # for hessian
+        self.penalty_beta = alpha # for gradient
 
-            grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, average_gradient))
-            hg_reg = sum((hg - avg_hg).norm(2) ** 2 for hg, avg_hg in zip(hessian_diag, average_Hg))
+        if len(envs) > 0:
+            for i in range(len(all_flatten_grads)):
+                sadg_penalty_list.append(
+                    self.penalty_alpha * (all_hessians[i] - mean_hessian.detach()).pow(2).sum() + self.penalty_beta * (
+                                all_flatten_grads[i] - flatten_mean_grad.detach()).pow(2).sum())
 
-            total_loss = total_loss + (loss + alpha * grad_reg + beta * hg_reg)
+            N = len(sadg_penalty_list)
+            sadg_penalty = torch.stack(sadg_penalty_list).sum() / len(envs)
+        else:
+            sadg_penalty = torch.stack([self.penalty_alpha * torch.flatten(all_hessians[0]).pow(2).sum(),
+                                        self.penalty_beta * envs[0]['sadg']]).sum()
 
-        n_unique_envs = len(envs_indices_batch.unique())
-        total_loss = total_loss / n_unique_envs
 
-        return total_loss
+        stats['erm_loss'] = loss.item()
+        loss += sadg_penalty
+        stats['total_loss'] = loss.item()
+        stats['hessian_loss'] = sadg_penalty.item() # abbreviation for hessian + gradient penalty
 
-    def hgp_loss(self, model, x_batch, y_batch, envs_indices_batch, alpha=10e-5, beta=10e-5):
-        total_loss = torch.tensor(0.0, requires_grad=True)
-        env_gradients = []
-        env_hgp = []
-        for env_idx in envs_indices_batch.unique():
-            model.zero_grad()
-            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
-            # get gradient of loss with respect to parameters
-            loss.backward(retain_graph=True)
+        self.update_count += 1
+        return loss, sadg_penalty, stats
 
-            # Gradient
-            # grads = self.get_grads(model)
-            grads = [param.grad.clone().detach().requires_grad_(True) for param in model.parameters()]
-            env_gradients.append(grads)
 
-            # ||Gradient||
-            grad_norm = torch.sqrt(sum(grad.norm(2) ** 2 for grad in grads))
-            grad_norm.backward(retain_graph=True)
+    def calc_hessian_diag(self, loss_grad, repeat=50):
+        diag = []
+        gg = torch.cat([g.flatten() for g in loss_grad])
+        for _ in range(repeat):
+            z = 2 * torch.randint_like(gg, high=2) - 1
+            loss = torch.dot(gg, z)
+            Hz = autograd.grad(loss, self.clf.parameters(), retain_graph=True, create_graph=True)
+            Hz = torch.cat([torch.flatten(g) for g in Hz])
+            diag.append(z * Hz)
+        return sum(diag) / len(diag)
 
-            # gradient of ||Gradient||
-            grads_of_grad_norm = [param.grad.clone().detach() for param in model.parameters()]
+    def compute_sadg_penalty(self, logits, y):
+        gradient_norm = []
+        numels = []
+        loss = self.loss_fn(logits.squeeze(), y.long())
+        grads = autograd.grad(loss, self.clf.parameters(), create_graph=True, retain_graph=True)
+        for grad in grads:
+            grad = grad + 1e-16
+            gradient_norm.append(torch.norm(grad, p=2))
+            numels.append(torch.numel(grad))
+        gradient_loss = torch.norm(torch.stack(gradient_norm), p=2)
+        return gradient_loss, grads
 
-            # Approx. hessian-gradient-product
-            hessian_gradient_product = [grad_norm.clone().detach() * param for param in grads_of_grad_norm]
-            env_hgp.append(hessian_gradient_product)
-        # Compute average gradient and hessian
-        avg_gradient = [torch.mean(torch.stack([grads[i] for grads in env_gradients]), dim=0) for i in
-                        range(len(env_gradients[0]))]
-        avg_hgp = [torch.mean(torch.stack([hess[i] for hess in env_hgp]), dim=0) for i in
-                   range(len(env_hgp[0]))]
+    def hgp_loss(self, logits, x, y, env_indices, alpha, beta, stats = {}):
+        envs = []
+        for edx in range(self.n_envs):
+            idx = (env_indices == edx).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+            y_env = y[idx]
+            logits_env = logits[idx]
+            env_fraction = len(idx) / len(env_indices)
+            stats.update({f'env_frac:{edx}': env_fraction})
+            env = {}
+            env['nll'] = self.loss_fn(logits_env.squeeze(), y_env.long())
+            stats.update({f'erm_loss_env:{edx}': env['nll'].item()})
+            env['sadg'], env['grad'] = self.compute_sadg_penalty(logits, y)
+            envs.append(env)
 
-        for env_idx, (grads, hessian_gradient_product) in enumerate(zip(env_gradients, env_hgp)):
-            idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-            loss = self.loss_fn(model(x_batch[idx]).squeeze(), y_batch[idx].long())
+        train_nll = torch.stack([env['nll'] for env in envs]).mean()
+        # start  = time.time()
+        mean_grad = autograd.grad(train_nll, self.clf.parameters(), create_graph=True, retain_graph=True)
+        flatten_mean_grad = self._flatten_grad(mean_grad)
+        norm_of_mean_grad = flatten_mean_grad.pow(2).sum().sqrt()
+        norm_of_mean_grad = norm_of_mean_grad + 1e-16
+        grad_of_norm_of_mean_grad = autograd.grad(norm_of_mean_grad, self.clf.parameters(), create_graph=True,
+                                                  retain_graph=True)
+        flatten_grad_of_norm_of_mean_grad = self._flatten_grad(grad_of_norm_of_mean_grad)
+        mean_hessian_grad = torch.mul(norm_of_mean_grad, flatten_grad_of_norm_of_mean_grad)
 
-            grad_reg = sum((grad - avg_grad).norm(2) ** 2 for grad, avg_grad in zip(grads, avg_gradient))
-            hgp_reg = sum((hgp - avg_hgp).norm(2) ** 2 for hgp, avg_hgp in zip(hessian_gradient_product, avg_hgp))
+        loss = train_nll.clone()
 
-            total_loss = total_loss + (loss + alpha * grad_reg + beta * hgp_reg)
+        sadg_penalty_list = []
+        all_flatten_grads = [self._flatten_grad(env['grad']) for env in envs]
 
-        n_unique_envs = len(envs_indices_batch.unique())
-        total_loss = total_loss / n_unique_envs
+        grads_of_norm_of_grad = [
+            autograd.grad(env['sadg'], self.clf.parameters(), create_graph=True, retain_graph=True) for env in
+            envs]
+        all_flatten_grads_of_norm_of_grad = [self._flatten_grad(grad_of_norm_of_grad) for grad_of_norm_of_grad in
+                                             grads_of_norm_of_grad]
 
-        return total_loss
+        hessian_grad = [torch.mul(envs[k]['sadg'], f_grad) for k, f_grad in
+                        enumerate(all_flatten_grads_of_norm_of_grad)]
+
+
+        # alpha beta reversed in HGP/Hugtchinson
+        self.penalty_alpha = beta # for hessian
+        self.penalty_beta = alpha # for gradient
+
+        if len(envs) > 0:
+            for i in range(len(all_flatten_grads)):
+                sadg_penalty_list.append(self.penalty_alpha * (hessian_grad[i] - mean_hessian_grad.detach()).pow(
+                    2).sum() + self.penalty_beta * (all_flatten_grads[i] - flatten_mean_grad.detach()).pow(2).sum())
+
+            N = len(sadg_penalty_list)
+            sadg_penalty = torch.stack(sadg_penalty_list).sum() / len(envs)
+        else:
+            sadg_penalty = torch.stack([self.penalty_alpha * torch.flatten(hessian_grad[0]).pow(2).sum(),
+                                        self.penalty_beta * envs[0]['sadg']]).sum()
+
+
+
+        stats['erm_loss'] = loss.item()
+        loss += sadg_penalty
+        stats['total_loss'] = loss.item()
+        stats['hessian_loss'] = sadg_penalty.item() # abbreviation for hessian + gradient penalty
+
+        self.update_count += 1
+        return loss, sadg_penalty, stats
+
 
     def compute_pytorch_hessian(self, model, x, y):
         batch_size = x.shape[0]
@@ -764,10 +792,10 @@ class HISRClassifier:
 
         stats['total_loss'] = total_loss.item()
         stats['erm_loss'] = erm_loss.item()
-        stats['hessian_loss'] = beta * hess_pen.item() if beta != 0 else 0
-        stats['grad_loss'] = alpha * grad_pen.item() if alpha != 0 else 0
+        stats['hessian_loss'] = hess_pen.item() if isinstance(hess_pen, torch.Tensor) else hess_pen
+        stats['grad_loss'] = grad_pen.item() if isinstance(grad_pen, torch.Tensor) else grad_pen
 
-        return total_loss, erm_loss, alpha * grad_pen, beta * hess_pen, stats
+        return total_loss, erm_loss, grad_pen, hess_pen, stats
 
     def compute_fishr_penalty(self, all_logits, all_y, all_env_indices):
         dict_grads = self._get_grads(all_logits, all_y)
@@ -859,6 +887,89 @@ class HISRClassifier:
             penalty += self.l2_between_dicts(grads_var_per_domain[domain_id], grads_var)
         return penalty / self.n_envs
 
+
+    def my_cdist(self, x1, x2):
+        x1_norm = x1.pow(2).sum(dim=-1, keepdim=True)
+        x2_norm = x2.pow(2).sum(dim=-1, keepdim=True)
+        res = torch.addmm(x2_norm.transpose(-2, -1),
+                          x1,
+                          x2.transpose(-2, -1), alpha=-2).add_(x1_norm)
+        return res.clamp_min_(1e-30)
+
+    def gaussian_kernel(self, x, y, gamma=[0.001, 0.01, 0.1, 1, 10, 100,
+                                           1000]):
+        D = self.my_cdist(x, y)
+        K = torch.zeros_like(D)
+
+        for g in gamma:
+            K.add_(torch.exp(D.mul(-g)))
+
+        return K
+
+    def mmd(self, x, y):
+        if self.kernel_type == "gaussian":
+            Kxx = self.gaussian_kernel(x, x).mean()
+            Kyy = self.gaussian_kernel(y, y).mean()
+            Kxy = self.gaussian_kernel(x, y).mean()
+            return Kxx + Kyy - 2 * Kxy
+        else:
+            mean_x = x.mean(0, keepdim=True)
+            mean_y = y.mean(0, keepdim=True)
+            cent_x = x - mean_x
+            cent_y = y - mean_y
+            cova_x = (cent_x.t() @ cent_x) / (len(x) - 1)
+            cova_y = (cent_y.t() @ cent_y) / (len(y) - 1)
+
+            mean_diff = (mean_x - mean_y).pow(2).mean()
+            cova_diff = (cova_x - cova_y).pow(2).mean()
+
+            return mean_diff + cova_diff
+
+    def coral_loss(self, logits, x, y, env_indices, args, stats = {}):
+        self.kernel_type = 'mean_cov'
+        erm_loss = 0
+        penalty = 0
+        nmb = self.n_envs
+        #
+        features = x
+        classifs = logits
+        targets = y
+        for e in range(self.n_envs):
+            idx = (env_indices == e).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+        # for i in range(nmb):
+        #     objective += F.cross_entropy(classifs[i], targets[i])
+            erm_loss += F.cross_entropy(classifs[idx], targets[idx].long())
+
+            for e2 in range(e + 1, nmb):
+                idx_e2 = (env_indices == e2).nonzero().squeeze()
+                penalty += self.mmd(features[idx], features[idx_e2])
+
+
+        erm_loss /= nmb
+        if nmb > 1:
+            penalty /= (nmb * (nmb - 1) / 2)
+
+        # self.optimizer.zero_grad()
+        # (objective + (self.hparams['mmd_gamma'] * penalty)).backward()
+        # self.optimizer.step()
+
+        total_loss = erm_loss + args.mmd_gamma * penalty
+
+        if torch.is_tensor(penalty):
+            penalty = penalty.item()
+
+        return total_loss, erm_loss, penalty, stats
+
+
+
+
+
     def fishr_loss(self, logits, x, y, env_indices, args, stats = {}):
         # all_nll = F.cross_entropy(logits, y.long())
         # all_nll2 = self.loss_fn(logits.squeeze(), y.long())
@@ -904,6 +1015,56 @@ class HISRClassifier:
 
 
 
+    def update(self, minibatches, unlabeled=None):
+        device = "cuda" if minibatches[0][0].is_cuda else "cpu"
+        if not len(self.q):
+            self.q = torch.ones(len(minibatches)).to(device)
+
+        losses = torch.zeros(len(minibatches)).to(device)
+
+        for m in range(len(minibatches)):
+            x, y = minibatches[m]
+            losses[m] = F.cross_entropy(self.predict(x), y)
+            self.q[m] *= (self.hparams["groupdro_eta"] * losses[m].data).exp()
+
+        self.q /= self.q.sum()
+
+        loss = torch.dot(losses, self.q)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        return {'loss': loss.item()}
+
+    def groupdro_loss(self, logits, x, y, env_indices, args, stats = {}):
+        penalty_weight, penalty = 0, 0
+        env_nlls = torch.zeros(self.n_envs).to(self.device)
+        self.q = torch.ones(self.n_envs).to(self.device)
+        for e in range(self.n_envs):
+            idx = (env_indices == e).nonzero().squeeze()
+            if idx.numel() == 0:
+                continue
+            elif idx.dim() == 0:
+                num_samples = 1
+            else:
+                num_samples = len(idx)
+            x_env = x[idx]
+            y_env = y[idx]
+            env_nll = F.cross_entropy(logits[idx], y_env.long())
+            self.q[e] *= (args.groupdro_eta * env_nll.data).exp()
+            env_nlls[e] = env_nll
+            env_fraction = len(idx) / len(env_indices)
+            stats.update({f'env_frac:{e}': env_fraction})
+            stats.update({f'erm_loss_env:{e}': env_nll.item()})
+        self.q /= self.q.sum()
+        loss = torch.dot(env_nlls, self.q)
+        stats.update({'groupdro_eta': args.groupdro_eta})
+        stats.update({'total_loss': loss.item()})
+
+        return loss, stats
+
+
     def validation_fishr_loss(self, epoch, val_x, val_y, val_envs_indices, csv_logger, args):
         self.clf.eval()
         transformed_val_x = self.transform(val_x)
@@ -921,7 +1082,6 @@ class HISRClassifier:
         for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
             stats = {}
             val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
-            # with torch.no_grad():
             val_logits = self.clf(val_x_batch)
             val_loss_batch, val_erm_loss_batch, val_penalty_batch, _, _ = self.fishr_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, args, stats = stats)
             val_total_loss += val_loss_batch
@@ -944,6 +1104,163 @@ class HISRClassifier:
         stats['fishr_penalty'] = val_penalty.item() if isinstance(val_penalty, torch.Tensor) else val_penalty
         stats['worst_acc'] = worst_acc
         stats['worst_group'] = worst_group
+        stats.update(group_accs)
+        csv_logger.log(epoch, 0, stats)
+        csv_logger.flush()
+
+    def validation_groupdro_loss(self, epoch, val_x, val_y, val_envs_indices, csv_logger, args):
+        self.clf.eval()
+        transformed_val_x = self.transform(val_x)
+        if not isinstance(transformed_val_x, torch.Tensor):
+            transformed_val_x = torch.tensor(transformed_val_x).float()
+        if not isinstance(val_y, torch.Tensor):
+            val_y = torch.tensor(val_y).float()
+        if not isinstance(val_envs_indices, torch.Tensor):
+            val_envs_indices = torch.tensor(val_envs_indices).int()
+        datasets = TensorDataset(transformed_val_x, val_y, val_envs_indices)
+        dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+        val_total_loss = 0
+
+        for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+            stats = {}
+            val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
+            with torch.no_grad():
+                val_logits = self.clf(val_x_batch)
+                val_loss_batch, _ = self.groupdro_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, args, stats = stats)
+                val_total_loss += val_loss_batch
+
+        val_total_loss /= len(dataloader)
+
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                include_avg_acc=True)
+        stats['epoch'] = epoch
+        stats['groupdro_eta'] = args.groupdro_eta
+        stats['total_loss'] = val_total_loss.item() if isinstance(val_total_loss, torch.Tensor) else val_total_loss
+        stats['worst_acc'] = worst_acc
+        stats['worst_group'] = worst_group
+
+        stats.update(group_accs)
+        csv_logger.log(epoch, self.update_count, stats)
+        csv_logger.flush()
+    def validation_coral_loss(self, epoch, val_x, val_y, val_envs_indices, csv_logger, args):
+        self.clf.eval()
+        transformed_val_x = self.transform(val_x)
+        if not isinstance(transformed_val_x, torch.Tensor):
+            transformed_val_x = torch.tensor(transformed_val_x).float()
+        if not isinstance(val_y, torch.Tensor):
+            val_y = torch.tensor(val_y).float()
+        if not isinstance(val_envs_indices, torch.Tensor):
+            val_envs_indices = torch.tensor(val_envs_indices).int()
+        datasets = TensorDataset(transformed_val_x, val_y, val_envs_indices)
+        dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+        val_total_loss = 0
+        val_erm_loss = 0
+        val_penalty = 0
+        for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+            stats = {}
+            val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
+            with torch.no_grad():
+                val_logits = self.clf(val_x_batch)
+                val_loss_batch, val_erm_loss_batch, val_penalty_batch, _ = self.coral_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, args, stats = stats)
+                val_total_loss += val_loss_batch
+                val_erm_loss += val_erm_loss_batch
+                val_penalty += val_penalty_batch
+
+        val_total_loss /= len(dataloader)
+        val_erm_loss /= len(dataloader)
+        val_penalty /= len(dataloader)
+
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                include_avg_acc=True)
+        stats['epoch'] = epoch
+        stats['coral_mmd_gamma'] = args.mmd_gamma
+        stats['total_loss'] = val_total_loss.item()
+        stats['erm_loss'] = val_erm_loss.item()
+        stats['coral_penalty'] = val_penalty.item() if isinstance(val_penalty, torch.Tensor) else val_penalty
+        stats['worst_acc'] = worst_acc
+        stats['worst_group'] = worst_group
+
+        stats.update(group_accs)
+        csv_logger.log(epoch, self.update_count, stats)
+        csv_logger.flush()
+
+    def validation_hgp_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
+        self.clf.eval()
+        transformed_val_x = self.transform(val_x)
+        if not isinstance(transformed_val_x, torch.Tensor):
+            transformed_val_x = torch.tensor(transformed_val_x).float()
+        if not isinstance(val_y, torch.Tensor):
+            val_y = torch.tensor(val_y).float()
+        if not isinstance(val_envs_indices, torch.Tensor):
+            val_envs_indices = torch.tensor(val_envs_indices).int()
+        datasets = TensorDataset(transformed_val_x, val_y, val_envs_indices)
+        dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+        val_total_loss = 0
+        val_hess_grad_loss = 0
+        for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+            stats = {}
+            val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
+            # with torch.no_grad():
+            val_logits = self.clf(val_x_batch)
+            val_loss_batch, val_hess_grad_loss_batch, _ = self.hgp_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
+            val_total_loss += val_loss_batch
+
+        val_total_loss /= len(dataloader)
+        val_hess_grad_loss /= len(dataloader)
+
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                include_avg_acc=True)
+        stats['epoch'] = epoch
+        stats['grad_alpha'] = args.alpha
+        stats['hess_beta'] = args.beta
+        stats['total_loss'] = val_total_loss.item()
+        stats['hessian_loss'] = val_hess_grad_loss.item() if isinstance(val_hess_grad_loss, torch.Tensor) else val_hess_grad_loss
+        stats['worst_acc'] = worst_acc
+        stats['worst_group'] = worst_group
+
+        stats.update(group_accs)
+        csv_logger.log(epoch, 0, stats)
+        csv_logger.flush()
+    def validation_hutchinson_loss(self,  epoch, val_x, val_y, val_envs_indices, csv_logger, args):
+        self.clf.eval()
+        transformed_val_x = self.transform(val_x)
+        if not isinstance(transformed_val_x, torch.Tensor):
+            transformed_val_x = torch.tensor(transformed_val_x).float()
+        if not isinstance(val_y, torch.Tensor):
+            val_y = torch.tensor(val_y).float()
+        if not isinstance(val_envs_indices, torch.Tensor):
+            val_envs_indices = torch.tensor(val_envs_indices).int()
+        datasets = TensorDataset(transformed_val_x, val_y, val_envs_indices)
+        dataloader = DataLoader(datasets, batch_size=500, shuffle=True)
+        val_total_loss = 0
+        val_hess_grad_loss = 0
+        for val_x_batch, val_y_batch, val_envs_indices_batch in dataloader:
+            stats = {}
+            val_x_batch, val_y_batch, val_envs_indices_batch = val_x_batch.to(self.device), val_y_batch.to(self.device), val_envs_indices_batch.to(self.device)
+            # with torch.no_grad():
+            val_logits = self.clf(val_x_batch)
+            val_loss_batch, val_hess_grad_loss_batch, _ = self.hutchinson_loss(val_logits, val_x_batch, val_y_batch, val_envs_indices_batch, alpha=args.alpha, beta=args.beta, stats = stats)
+            val_total_loss += val_loss_batch
+
+        val_total_loss /= len(dataloader)
+        val_hess_grad_loss /= len(dataloader)
+
+        group_indices = env2group(val_envs_indices, val_y, self.n_envs)
+
+        group_accs, worst_acc, worst_group = measure_group_accs(self, val_x, val_y, group_indices,
+                                                                include_avg_acc=True)
+        stats['epoch'] = epoch
+        stats['grad_alpha'] = args.alpha
+        stats['hess_beta'] = args.beta
+        stats['total_loss'] = val_total_loss.item()
+        stats['hessian_loss'] = val_hess_grad_loss.item() if isinstance(val_hess_grad_loss, torch.Tensor) else val_hess_grad_loss
+        stats['worst_acc'] = worst_acc
+        stats['worst_group'] = worst_group
+
         stats.update(group_accs)
         csv_logger.log(epoch, 0, stats)
         csv_logger.flush()
@@ -1006,12 +1323,13 @@ class HISRClassifier:
         num_iterations = self.clf_kwargs['max_iter']
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         num_classes = len(np.unique(y))
+
         if self.clf_type == 'LogisticRegression':
             self.clf = self.LogisticRegression(x.shape[1], num_classes)
         elif self.clf_type == 'RidgeClassifier':
-            self.clfself.RidgeRegression(x.shape[1])
+            self.clf = self.RidgeRegression(x.shape[1])
         elif self.clf_type == 'SGDClassifier':
-            self.clfself.SGDClassifier(x.shape[1])
+            self.clf = self.SGDClassifier(x.shape[1])
         else:
             raise ValueError(f"Unknown model type: {self.clf_type}")
         self.clf = self.clf.to(self.device)
@@ -1036,7 +1354,7 @@ class HISRClassifier:
         dataset = TensorDataset(x, y, envs_indices)
         print("Starting training on", self.device)
 
-        if approx_type in ['exact','control','fishr']:
+        if approx_type in ['exact','control','fishr','coral','hgp','hutchinson']:
             dataloader = DataLoader(dataset, batch_size=500, shuffle=True)
             pbar = tqdm(range(num_iterations), desc='Hessian iter', leave=False)
             self.update_count = 0
@@ -1054,93 +1372,42 @@ class HISRClassifier:
                     env_count = torch.bincount(envs_indices_batch, minlength=self.n_envs)
                     env_frac = env_count.float() / len(envs_indices_batch)
                     logits = self.clf(x_batch)
-                    # check if logits contain nan:
-
-                    # if approx_type == "control" or (approx_type == 'exact' and self.update_count < args.penalty_anneal_iters):
-                    # # if approx_type == "control":
-                    #     # a list of length n_envs, each element 0
-                    #     env_frac_tensor = torch.tensor(env_frac, device=x_batch.device)
-                    #     # Iterate over each possible environment
-                    #     env_losses = torch.zeros(self.n_envs, device=x_batch.device)
-                    #     for env_idx in range(self.n_envs):
-                    #         idx = (envs_indices_batch == env_idx).nonzero().squeeze()
-                    #         env_loss = self.loss_fn(logits[idx].squeeze(), y_batch[idx].long())
-                    #         env_losses[env_idx] = env_loss
-                    #     # total_loss = (env_losses * env_frac_tensor).sum()
-                    #     total_loss = env_losses.mean()
-                    #     # total_loss = self.loss_fn(self.clf(x_batch).squeeze(), y_batch.long())
-                    #     erm_loss = total_loss
-                    #     hess_loss = 0
-                    #     grad_loss = 0
-                    #     stats = {
-                    #         'epoch': epoch,
-                    #         'batch': batch_idx,
-                    #         'step': self.update_count,
-                    #         'anneal_iters': args.penalty_anneal_iters,
-                    #         'total_loss': total_loss.item(),
-                    #         'erm_loss': erm_loss.item(),
-                    #         'grad_alpha': alpha,
-                    #         'hess_beta': beta,
-                    #         'grad_loss': 0,
-                    #         'hessian_loss': 0,
-                    #     }
-                    #
-                    #     stats['worst_acc'] = worst_acc
-                    #     stats['worst_group'] = worst_group
-                    #     for group_idx in range(self.n_groups):
-                    #         stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
-                    #         stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
-                    #     stats.update(group_accs)
-                    #
-                    #     for env_idx in range(self.n_envs):
-                    #         stats[f'env_count:{env_idx}'] = env_count[env_idx].item()
-                    #         stats[f'env_frac:{env_idx}'] = env_frac[env_idx].item()
-                    #         stats[f'erm_loss_env:{env_idx}'] = env_losses[env_idx].item()
-                    #         stats[f'grad_penalty_env:{env_idx}'] = 0
-                    #         stats[f'hessian_penalty_env:{env_idx}'] = 0
-                    #     self.train_csv_logger.log(epoch, batch_idx, stats)
-                    #     self.train_csv_logger.flush()
-                    #     self.update_count += 1
-                    #     # if self.update_count >= args.penalty_anneal_iters:
-                    #     #     self.clf = self.clf.to('cpu')
-                    #     #     return self.clf
-
+                    stats['epoch'] = epoch
+                    stats['batch'] = batch_idx
+                    stats['step'] = self.update_count
                     if approx_type == "exact":
-                        stats['epoch'] = epoch
-                        stats['batch'] = batch_idx
-                        stats['step'] = self.update_count
                         alpha, beta = 0, 0
                         if self.update_count >= args.penalty_anneal_iters:
                             alpha = args.alpha
                             beta = args.beta
                             if self.update_count == args.penalty_anneal_iters != 0:
-                                # Reset Adam as in IRM or V-REx, because it may not like the sharp jump in
-                                # gradient magnitudes that happens at this step.
-                                # init optimizer
                                 self.optimizer = optim.SGD(self.clf.parameters(), lr=0.001)
                         stats['grad_alpha'] = alpha
                         stats['hess_beta'] = beta
                         stats['anneal_iters'] = args.penalty_anneal_iters
                         total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
-                        # total_loss, erm_loss, grad_loss, hess_loss, stats = self.exact_hessian_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats)
-                        # if self.update_count % self.log_every == 0:
-                        # stats.update(group_accs)
-                        # for group_idx in range(self.n_groups):
-                        #     stats[f'group_count:{group_idx}'] = group_count[group_idx].item()
-                        #     stats[f'group_frac:{group_idx}'] = group_frac[group_idx].item()
-                        # stats['worst_acc'] = worst_acc
-                        # stats['worst_group'] = worst_group
-                        # self.train_csv_logger.log(epoch,batch_idx,stats)
-                        # self.train_csv_logger.flush()
                         self.update_count += 1
                     elif approx_type == "fishr":
-                        stats['epoch'] = epoch
-                        stats['batch'] = batch_idx
-                        stats['step'] = self.update_count
                         total_loss, erm_loss, penalty, penalty_weight, stats = self.fishr_loss(logits, x_batch, y_batch,envs_indices_batch, args, stats = stats)
-                        if torch.isnan(total_loss).any():
-                            print("Logits contain nan")
-                            return
+                    elif approx_type == "coral":
+                        total_loss, erm_loss, penalty, stats = self.coral_loss(logits, x_batch, y_batch, envs_indices_batch, args, stats = stats)
+                        stats['coral_mmd_gamma'] = args.mmd_gamma
+                        self.update_count += 1
+                    elif approx_type == "hgp":
+                        alpha, beta = 0, 0
+                        if self.update_count >= args.penalty_anneal_iters:
+                            alpha = args.alpha
+                            beta = args.beta
+                            if self.update_count == args.penalty_anneal_iters != 0:
+                                self.optimizer = optim.SGD(self.clf.parameters(), lr=0.001)
+                        stats['grad_alpha'] = alpha
+                        stats['hess_beta'] = beta
+                        total_loss, hess_grad_pen, stats = self.hgp_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats = stats)
+                    elif approx_type == "hutchinson":
+                        total_loss, hess_grad_pen, stats = self.hutchinson_loss(logits, x_batch, y_batch, envs_indices_batch, alpha, beta, stats = stats)
+                    elif approx_type == "groupdro":
+                        total_loss, stats = self.groupdro_loss(logits, x_batch, y_batch, envs_indices_batch, args, stats = stats)
+                        self.update_count += 1
 
                     stats.update(group_accs)
                     for group_idx in range(self.n_groups):
@@ -1164,29 +1431,36 @@ class HISRClassifier:
                                                  self.val_csv_logger, args)
                     self.validation_fishr_loss(epoch, self.test_x, self.test_y, self.test_envs_indices,
                                                  self.test_csv_logger, args)
+                elif approx_type == "coral":
+                    pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(), penalty=penalty)
+                    self.validation_coral_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,
+                                                 self.val_csv_logger, args)
+                    self.validation_coral_loss(epoch, self.test_x, self.test_y, self.test_envs_indices,
+                                                 self.test_csv_logger, args)
+                elif approx_type == "groupdro":
+                    pbar.set_postfix(loss=total_loss.item())
+                    self.validation_groupdro_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,
+                                                 self.val_csv_logger, args)
+                    self.validation_groupdro_loss(epoch, self.test_x, self.test_y, self.test_envs_indices,
+                                                 self.test_csv_logger, args)
+
+                elif approx_type == "hgp":
+                    pbar.set_postfix(loss=total_loss.item(), hess_grad_pen=hess_grad_pen)
+                    self.validation_hgp_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,
+                                                 self.val_csv_logger, args)
+                    self.validation_hgp_loss(epoch, self.test_x, self.test_y, self.test_envs_indices,
+                                                 self.test_csv_logger, args)
+                elif approx_type == "hutchinson":
+                    pbar.set_postfix(loss=total_loss.item())
+                    self.validation_hutchinson_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,
+                                                 self.val_csv_logger, args)
+                    self.validation_hutchinson_loss(epoch, self.test_x, self.test_y, self.test_envs_indices,
+                                                 self.test_csv_logger, args)
 
                 else:
                     pbar.set_postfix(loss=total_loss.item(), erm_loss=erm_loss.item(),beta = beta, hess_loss=hess_loss, alpha = alpha, grad_loss=grad_loss)
                     self.validation_hessian_loss(epoch, self.val_x, self.val_y, self.val_envs_indices,self.val_csv_logger, args)
                     self.validation_hessian_loss(epoch, self.test_x, self.test_y, self.test_envs_indices, self.test_csv_logger, args)
-
-        else:
-            dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-            for epoch in tqdm(range(num_iterations), desc = 'Hessian iter'):
-                for x_batch, y_batch, envs_indices_batch in dataloader:
-                    x_batch, y_batch, envs_indices_batch = x_batch.to(self.device), y_batch.to(self.device), envs_indices_batch.to(
-                        self.device)
-                    if approx_type == "HGP":
-                        total_loss = self.hgp_loss(self.clf, x_batch, y_batch, envs_indices_batch, alpha, beta)
-                    elif approx_type == "HUT":
-                        total_loss = self.hutchinson_loss(self.clf, x_batch, y_batch, envs_indices_batch, alpha, beta)
-                    else:
-                        raise ValueError(f"Unknown hessian approximation type: {approx_type}")
-                    total_loss.backward()
-
-                    self.optimizer.step()
-                    self.optimizer.zero_grad()  # Reset gradients to zero for the next iteration
-                    torch.cuda.empty_cache()
 
 
         self.clf = self.clf.to('cpu')
@@ -1244,6 +1518,7 @@ class HISRClassifier:
 
     def score(self, features, labels):
         zs = self.transform(features)
+
         return self.clf.score(zs, labels)
 
     def fit_transform(self, features, labels, envs, chosen_class, given_clf=None):
@@ -1253,9 +1528,9 @@ class HISRClassifier:
     # build custom module for logistic regression
     class LogisticRegression(torch.nn.Module):
         # build the constructor
-        def __init__(self, n_inputs, n_outputs):
+        def __init__(self, n_inputs, n_outputs, bias = False):
             super().__init__()
-            self.linear = torch.nn.Linear(n_inputs, n_outputs, bias = False)
+            self.linear = torch.nn.Linear(n_inputs, n_outputs, bias = bias)
 
         # make predictions
         def forward(self, x):
