@@ -417,13 +417,14 @@ if __name__ == '__main__':
         alpha_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         beta_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 300
-        args.ISR_class = 0
-        # args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
         penalty_anneal_iters_list = np.linspace(0, 2800, 5)
 
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
+        # Best ISR_class
+        args.ISR_class = 0
+
         alpha_beta_anneal = [
             (0,0,0),
             (10, 1000, 2100),
@@ -458,7 +459,7 @@ if __name__ == '__main__':
         alpha_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         beta_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)[::-1]), decimals=8)
         args.max_iter = 50
-        args.ISR_class = 0
+
         # args.save_dir = './logs/ISR_Hessian_results_new'
         args.root_dir = './inv-feature-ViT-B/logs'
         args.model_select = 'init'
@@ -474,6 +475,8 @@ if __name__ == '__main__':
         ]
 
         num_rows = 2
+        # Best ISR_class
+        args.ISR_class = 0
         fishr_top5 = [
             (0.945, 10.0, 8000.0),
             (0.9225, 10.0, 12000.0),
@@ -497,11 +500,14 @@ if __name__ == '__main__':
     if args.dataset == 'MultiNLI':
         alpha_list = np.round([2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5) + [0]), decimals=8)
         beta_list = np.round([0] + [2000, 5000, 10000] + list(10 ** np.linspace(-1, 3, 5)), decimals=8)[::-1]
-        args.ISR_class = 2
+
         args.max_iter = 3
         penalty_anneal_iters_list = np.linspace(0, 1200, 5)[::-1]
         alpha_beta_anneal = product(alpha_list, beta_list, penalty_anneal_iters_list)
 
+
+        # Best ISR_class
+        args.ISR_class = 2
         alpha_beta_anneal = [
             (0.0, 0.0, 0.0),
             (5000,1,0),
