@@ -145,3 +145,4 @@ __MACOSX/
 */test_results/
 *.pdf
 
+*.ipynb
