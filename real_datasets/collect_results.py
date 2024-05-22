@@ -22,7 +22,6 @@ def merge_seeds(file_name_pattern='CUB_results_s*_hessian_exact.csv', data_dir='
 
     # Concatenate all the dataframes in the list
     merged_df = pd.concat(df_list, ignore_index=True)
-    # merged_df.drop(0, inplace=True)
     merged_df['gradient_alpha'] = pd.to_numeric(merged_df['gradient_alpha'], errors='coerce')
     merged_df['hessian_beta'] = pd.to_numeric(merged_df['hessian_beta'], errors='coerce')
     merged_df['penalty_anneal_iters'] = pd.to_numeric(merged_df['penalty_anneal_iters'], errors='coerce')
@@ -461,50 +460,14 @@ def main():
     multiNLI_pattern = 'MultiNLI_results_s*_hessian_exact.csv'
     multiNLI_fishr = 'MultiNLI_results_s*_fishr.csv'
     multiNLI_coral = 'MultiNLI_results_s*_coral.csv'
-
     multiNLI_hgp = 'MultiNLI_results_s*_hessian_hgp.csv'
-
     data_dir= './logs/ISR_Hessian_results_new'
 
 
-    # data_dir = './logs/ISR_Hessian_results_for_plotting'
-
-    # for pattern in [cub_pattern, celeba_pattern, multiNLI_pattern, cub_fishr, celeba_fishr, multiNLI_fishr, cub_coral, celeba_coral, multiNLI_coral, cub_hgp, celeba_hgp]:
-    for pattern in [celeba_hgp, cub_hgp, multiNLI_hgp]:
+    for pattern in [cub_pattern, celeba_pattern, multiNLI_pattern, cub_fishr, celeba_fishr, multiNLI_fishr, cub_coral, celeba_coral, multiNLI_coral, cub_hgp, celeba_hgp, multiNLI_hgp]:
         merge_seeds(file_name_pattern=pattern, data_dir=data_dir)
-    merge_seeds(file_name_pattern=multiNLI_coral, data_dir=data_dir)
-    merge_seeds(file_name_pattern=cub_fishr, data_dir=data_dir)
-    celeba_val, celeba_test = merge_seeds(file_name_pattern=celeba_pattern,data_dir=data_dir)
-    #
-    merge_seeds(file_name_pattern=celeba_fishr, data_dir=data_dir)
-    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_pattern, data_dir=data_dir)
-    multiNLI_val, multiNLI_test = merge_seeds(file_name_pattern=multiNLI_fishr, data_dir=data_dir)
-    #
-    # # print(cubs_val)
-    worst_case = True
-    #
-    #
-    #
-    # find_best_isr(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
-    # # find_best_gm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
-    # # find_best_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
-    hparams, test_acc = find_best_gm_hm(worst_case = worst_case, file_name='CelebA_5runs_val.csv', data_dir=data_dir)
-    # find_best_fishr(worst_case = worst_case, file_name='CelebA_5runs_fishr_val.csv', data_dir=data_dir)
-    #
-    # find_best_isr(worst_case = worst_case,file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    # # find_best_gm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    # # find_best_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    # find_best_gm_hm(worst_case = worst_case, file_name='MultiNLI_5runs_val.csv', data_dir=data_dir)
-    # find_best_fishr(worst_case = worst_case, file_name='MultiNLI_5runs_fishr_val.csv', data_dir=data_dir)
-    #
-    # find_best_isr(worst_case = worst_case, data_dir=data_dir)
-    # # find_best_gm(worst_case = worst_case, data_dir=data_dir)
-    # # find_best_hm(worst_case = worst_case, data_dir=data_dir)
-    # find_best_gm_hm(worst_case = worst_case, data_dir=data_dir)
-    # find_best_fishr(worst_case = worst_case, data_dir=data_dir)
 
 
-    # data_dir = './logs/ISR_Hessian_results_new'
     worst_case = True  # Set this according to your need to get worst case or average case accuracies
 
     datasets = {
